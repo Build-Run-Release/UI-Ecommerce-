@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buyer Dashboard</title>
+</head>
+<body>
+    <header>
+        <h1>Buyer Dashboard</h1>
+        <p>Welcome, <%= user.username %></p>
+        <a href="/">Home</a> | <a href="/logout">Logout</a>
+    </header>
+
+    <main>
+        <h3>My Orders</h3>
+        <ul>
+            <% orders.forEach(function(order) { %>
+                <li style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+                    <strong>Product:</strong> <%= order.product_title %> <br>
+                    <strong>Amount:</strong> $<%= order.amount %> <br>
+                    <strong>Status:</strong> <%= order.status %> <br>
+                    <strong>Escrow Status:</strong>
+                    Buyer Confirmed: <%= order.buyer_confirmed ? 'Yes' : 'No' %> | 
+                    Seller Confirmed: <%= order.seller_confirmed ? 'Yes' : 'No' %>
+                    
+                    <% if (!order.buyer_confirmed) { %>
+                        <br>
+                        <form action="/order/<%= order.id %>/confirm/buyer" method="POST" style="margin-top: 5px;">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit" style="background-color: #28a745; color: white;">Confirm Receipt</button>
+                        </form>
+                    <% } else if (!order.escrow_released) { %>
+                        <br><em>Waiting for seller to confirm delivery...</em>
+                    <% } else { %>
+                        <br><strong>Transaction Completed</strong>
+                    <% } %>
+                </li>
+            <% }); %>
+            <% if (orders.length === 0) { %>
+                <p>You haven't bought anything yet.</p>
+            <% } %>
+        </ul>
+    </main>
+</body>
+</html>

@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Buy Advertisement Space</title>
+</head>
+<body>
+    <header>
+        <h1>Promote Your Products</h1>
+        <p>Buy ad space on the homepage to reach more students.</p>
+        <a href="/seller/dashboard">Back to Dashboard</a>
+    </header>
+
+    <main>
+        <form action="/ads/initialize" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label>Ad Message (Short description): <input type="text" name="message" maxlength="50" required></label><br>
+            <label>Select Package:
+                <select name="category">
+                    <option value="bronze">Bronze (3 Days) - ₦2,000</option>
+                    <option value="silver">Silver (7 Days) - ₦3,000</option>
+                    <option value="gold">Gold (30 Days) - ₦5,000</option>
+                </select>
+            </label><br>
+            <button type="submit">Pay & Publish Ad</button>
+        </form>
+    </main>
+</body>
+</html>

@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Seller Dashboard</title>
+</head>
+<body>
+    <header>
+        <h1>Seller Dashboard</h1>
+        <p>Welcome, <%= user.username %></p>
+        <p><strong>Wallet Balance:</strong> $<%= (user.wallet_balance || 0).toFixed(2) %></p>
+        <a href="/">Home</a> | <a href="/logout">Logout</a> | <a href="/ads/buy">Buy Ad Space</a>
+    </header>
+
+    <section style="background-color: #f0f0f0; padding: 15px; margin: 10px 0;">
+        <h3>Payment Setup (Paystack)</h3>
+        <p>To receive payments, please add your bank details.</p>
+        <form action="/seller/onboard" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label>Bank Name: <input type="text" name="bank_name" placeholder="e.g. GTBank" required></label><br>
+            <label>Account Number: <input type="text" name="account_number" required></label><br>
+            <label>Bank Code: <input type="text" name="bank_code" placeholder="e.g. 058" required></label><br>
+            <button type="submit">Save Bank Details</button>
+        </form>
+    </section>
+
+    <main>
+        <h3>Add New Product</h3>
+        <form action="/seller/add-product" method="POST">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <label>Title: <input type="text" name="title" required></label><br>
+            <label>Description: <textarea name="description" required></textarea></label><br>
+            <label>Price ($): <input type="number" step="0.01" name="price" required></label><br>
+            <button type="submit">Add Product</button>
+        </form>
+
+        <h3>My Products</h3>
+        <ul>
+            <% products.forEach(function(product) { %>
+                <li><%= product.title %> - $<%= product.price %></li>
+            <% }); %>
+        </ul>
+
+        <h3>Sales</h3>
+        <ul>
+            <% orders.forEach(function(order) { %>
+                <li>
+                    Item ID: <%= order.product_id %> - Amount: $<%= order.seller_amount %>
+                    <br>Status: <%= order.status %> (Escrow Released: <%= order.escrow_released ? 'Yes' : 'No' %>)
+                    <br>Buyer Confirmed: <%= order.buyer_confirmed ? 'Yes' : 'No' %> | Seller Confirmed: <%= order.seller_confirmed ? 'Yes' : 'No' %>
+                    <% if (!order.seller_confirmed) { %>
+                        <form action="/order/<%= order.id %>/confirm/seller" method="POST" style="display:inline;">
+                            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                            <button type="submit">Confirm Delivery</button>
+                        </form>
+                    <% } %>
+                </li>
+            <% }); %>
+        </ul>
+    </main>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+</head>
+<body>
+    <h1>Admin Dashboard</h1>
+    <p>Welcome, Admin. <a href="/logout">Logout</a></p>
+
+    <h3>Manage Sellers</h3>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% sellers.forEach(function(seller) { %>
+                <tr>
+                    <td><%= seller.username %></td>
+                    <td>Seller</td>
+                    <td><%= seller.is_blocked ? 'Blocked' : 'Active' %></td>
+                    <td>
+                        <% if (seller.is_blocked) { %>
+                            <form action="/admin/unblock/<%= seller.id %>" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit">Unblock</button>
+                            </form>
+                        <% } else { %>
+                            <form action="/admin/block/<%= seller.id %>" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" style="background: red; color: white;">Block</button>
+                            </form>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+
+    <h3>Manage Buyers</h3>
+    <table border="1">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Role</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <% buyers.forEach(function(buyer) { %>
+                <tr>
+                    <td><%= buyer.username %></td>
+                    <td>Buyer</td>
+                    <td><%= buyer.is_blocked ? 'Blocked' : 'Active' %></td>
+                    <td>
+                        <% if (buyer.is_blocked) { %>
+                            <form action="/admin/unblock/<%= buyer.id %>" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit">Unblock</button>
+                            </form>
+                        <% } else { %>
+                            <form action="/admin/block/<%= buyer.id %>" method="POST">
+                                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                                <button type="submit" style="background: red; color: white;">Block</button>
+                            </form>
+                        <% } %>
+                    </td>
+                </tr>
+            <% }); %>
+        </tbody>
+    </table>
+</body>
+</html>
