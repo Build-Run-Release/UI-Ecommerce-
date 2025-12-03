@@ -15,7 +15,7 @@ const path = require('path');
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY || 'sk_test_placeholder';
 
 const app = express();
-const PORT = process.env||3000;
+const PORT = process.env.PORT||3000;
 
 // Initialize DB
 initDb();
