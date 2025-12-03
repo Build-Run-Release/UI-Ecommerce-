@@ -32,11 +32,27 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
 // Session
+const session = require('express-session');
+const MongoStore = require('connect-mongo'); // Import the store
+
+// Define your MongoDB connection string (replace with your actual URI)
+const MONGO_URI = 'mongodb://localhost:27017/your_database_name'; 
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback_secret',
-    resave: false,
-    saveUninitialized: false,
-    cookie: { httpOnly: true, secure: false, sameSite: 'strict', maxAge: 24 * 60 * 60 * 1000 }
+    secret: 'YOUR_VERY_STRONG_SECRET_KEY', // Use a long, complex, stored secret
+    resave: false, // Don't save session if unmodified
+    saveUninitialized: false, // Don't create session until something is stored
+    store: MongoStore.create({ // <--- THIS IS THE FIX
+        mongoUrl: MONGO_URI,
+        ttl: 24 * 60 * 60, // Optional: Session TTL (Time to Live) in seconds (1 day)
+        autoRemove: 'interval',
+        autoRemoveInterval: 10 // Removes expired sessions every 10 minutes
+    }),
+    cookie: {
+        maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
+        secure: process.env.NODE_ENV === 'production', // Use true for HTTPS/production
+        httpOnly: true // Prevents client-side JS from reading the cookie
+    }
 }));
 
 // CSRF
