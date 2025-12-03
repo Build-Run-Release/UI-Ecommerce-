@@ -32,16 +32,25 @@ app.use(express.static('public'));
 app.set('view engine', 'ejs');
 
 // Session
-// Session Configuration
+const MongoStore = require('connect-mongo'); // Import the store
+
+// Define your MongoDB connection string (replace with your actual URI)
+const MONGO_URI = 'mongodb+srv://bomanear_db_user:Bomane2025@cluster0.3jz8gw1.mongodb.net/'; 
+
 app.use(session({
-    secret: process.env.SESSION_SECRET || 'fallback_secret',
-    resave: false,
-    saveUninitialized: false,
+    secret: 'dfe31be92e5ed9f64f6ed4dfa99a9c3c78b132d9215ff93ec3157dc152f3e071', // Use a long, complex, stored secret
+    resave: false, // Don't save session if unmodified
+    saveUninitialized: false, // Don't create session until something is stored
+    store: MongoStore.create({ // <--- THIS IS THE FIX
+        mongoUrl: MONGO_URI,
+        ttl: 24 * 60 * 60, // Optional: Session TTL (Time to Live) in seconds (1 day)
+        autoRemove: 'interval',
+        autoRemoveInterval: 10 // Removes expired sessions every 10 minutes
+    }),
     cookie: {
-        httpOnly: true,
-        secure: false, // Set to true if using HTTPS (Render uses HTTPS automatically)
-        sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000 // 24 hours
+        maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
+        secure: process.env.NODE_ENV === 'production', // Use true for HTTPS/production
+        httpOnly: true // Prevents client-side JS from reading the cookie
     }
 }));
 
