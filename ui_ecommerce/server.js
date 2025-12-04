@@ -48,7 +48,8 @@ app.use(session({
     // Configure the session store to use MongoDB
     store: MongoStore.create({
         // Use the environment variable for the connection string
-        mongoUrl: MONGO_URI, 
+        mongoUrl: process.env.MONGO_URI, 
+        collectionName: 'sessions',
         ttl: 24 * 60 * 60, // 1 day session TTL
     }),
     cookie: {
