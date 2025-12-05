@@ -123,6 +123,93 @@
         .btn-confirm:hover { background-color: #218838; }
 
     </style>
+    <style>
+    /* Profile Container */
+    .profile-menu {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        margin-left: 20px;
+    }
+
+    /* The Circular Profile Image */
+    .profile-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #ddd;
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+    }
+
+    .profile-img:hover {
+        transform: scale(1.05);
+    }
+
+    /* The Dropdown Box (Hidden by default) */
+    .dropdown-content {
+        display: none; /* Hidden */
+        position: absolute;
+        right: 0;
+        top: 50px;
+        background-color: white;
+        min-width: 200px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        border-radius: 8px;
+        z-index: 1000;
+        overflow: hidden;
+        border: 1px solid #eee;
+    }
+
+    /* Dropdown Links */
+    .dropdown-content a {
+        color: #333;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        font-size: 0.95rem;
+        transition: background 0.2s;
+        display: flex; /* Align icon and text */
+        align-items: center;
+        gap: 10px;
+    }
+
+    .dropdown-content a:hover {
+        background-color: #f1f1f1;
+        color: #007bff;
+    }
+
+    /* Separator Line */
+    .dropdown-divider {
+        height: 1px;
+        background-color: #eee;
+        margin: 0;
+    }
+
+    /* Show class for JS */
+    .show { display: block; }
+</style>
+
+<script>
+    function toggleProfileMenu() {
+        document.getElementById("myDropdown").classList.toggle("show");
+    }
+
+    // Close the dropdown if the user clicks outside of it
+    window.onclick = function(event) {
+        if (!event.target.matches('.profile-img')) {
+            var dropdowns = document.getElementsByClassName("dropdown-content");
+            for (var i = 0; i < dropdowns.length; i++) {
+                var openDropdown = dropdowns[i];
+                if (openDropdown.classList.contains('show')) {
+                    openDropdown.classList.remove('show');
+                }
+            }
+        }
+    }
+</script>
 </head>
 <body>
 
@@ -140,12 +227,40 @@
     <div class="main-content">
         
         <div class="header">
-            <h1>Welcome back, <%= user.username %></h1>
-            <div style="text-align: right;">
-                <span style="color: #666;">Current Date</span><br>
-                <strong><%= new Date().toLocaleDateString() %></strong>
+            <h1>Buyer Dashboard</h1>
+    
+        <div style="display: flex; align-items: center;">
+        <div style="text-align: right; margin-right: 15px;">
+            <small style="color: #666;">Balance</small><br>
+            <strong>₦<%= (user.wallet_balance || 0).toLocaleString() %></strong>
+        </div>
+
+        <div class="profile-menu">
+            <img src="https://ui-avatars.com/api/?name=<%= user.username %>&background=28a745&color=fff" class="profile-img" onclick="toggleProfileMenu()">
+            
+            <div id="myDropdown" class="dropdown-content">
+                <div style="padding: 10px 16px; color: #888; font-size: 0.8rem; border-bottom: 1px solid #eee;">
+                    Signed in as <strong><%= user.username %></strong>
+                </div>
+
+                <a href="/">
+                    <span>🏠</span> Go to Shop
+                </a>
+                <a href="/buyer/orders">
+                    <span>📦</span> My Orders
+                </a>
+                <a href="/settings">
+                    <span>⚙</span> Settings
+                </a>
+                
+                <div class="dropdown-divider"></div>
+                
+                <a href="/logout" style="color: #dc3545;">
+                    <span>wq</span> Logout
+                </a>
             </div>
         </div>
+    </div>
 
         <div class="stats-grid">
             <div class="card" style="border-left: 5px solid #007bff;">
@@ -164,6 +279,43 @@
                     <%= orders.filter(o => !o.buyer_confirmed).length %>
                 </div>
             </div>
+        </div>
+
+        <div class="card" style="margin-bottom: 30px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
+                <h2 style="margin: 0;">My Wishcart</h2>
+                <span style="background: #007bff; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem;">
+                    <%= cartItems.length %> Items
+                </span>
+            </div>
+
+            <% if (cartItems && cartItems.length > 0) { %>
+                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
+                    <% cartItems.forEach(function(item) { %>
+                        <div style="border: 1px solid #eee; border-radius: 8px; overflow: hidden; position: relative;">
+                            
+                            <form action="/cart/remove" method="POST" style="position: absolute; top: 10px; right: 10px; margin: 0;">
+                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                <input type="hidden" name="cart_id" value="<%= item.cart_id %>">
+                                <button type="submit" style="background: rgba(255,255,255,0.9); border: none; color: red; font-weight: bold; cursor: pointer; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center;">&times;</button>
+                            </form>
+
+                            <img src="<%= item.image_url || 'https://via.placeholder.com/300x200' %>" style="width: 100%; height: 150px; object-fit: cover;">
+                            
+                            <div style="padding: 15px;">
+                                <h3 style="margin: 0 0 5px; font-size: 1rem;"><%= item.title || item.name %></h3>
+                                <div style="color: #28a745; font-weight: bold; margin-bottom: 10px;">₦<%= item.price.toLocaleString() %></div>
+                                
+                                <a href="/buy/<%= item.id %>" style="display: block; text-align: center; background: #007bff; color: white; text-decoration: none; padding: 8px; border-radius: 5px;">Buy Now</a>
+                            </div>
+                        </div>
+                    <% }); %>
+                </div>
+            <% } else { %>
+                <div style="text-align: center; color: #999; padding: 20px;">
+                    Your wishcart is empty. <a href="/">Go shopping!</a>
+                </div>
+            <% } %>
         </div>
 
         <div class="card">

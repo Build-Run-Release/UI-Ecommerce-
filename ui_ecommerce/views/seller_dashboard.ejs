@@ -115,6 +115,93 @@
         label { display: block; margin-bottom: 5px; font-weight: bold; color: #555; }
 
     </style>
+    <style>
+    /* Profile Container */
+    .profile-menu {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+        margin-left: 20px;
+    }
+
+    /* The Circular Profile Image */
+    .profile-img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background-color: #ddd;
+        object-fit: cover;
+        border: 2px solid white;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        transition: transform 0.2s;
+    }
+
+    .profile-img:hover {
+        transform: scale(1.05);
+    }
+
+    /* The Dropdown Box (Hidden by default) */
+    .dropdown-content {
+        display: none; /* Hidden */
+        position: absolute;
+        right: 0;
+        top: 50px;
+        background-color: white;
+        min-width: 200px;
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        border-radius: 8px;
+        z-index: 1000;
+        overflow: hidden;
+        border: 1px solid #eee;
+    }
+
+    /* Dropdown Links */
+    .dropdown-content a {
+        color: #333;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        font-size: 0.95rem;
+        transition: 0.2s;
+        display: flex; /* Align icon and text */
+        align-items: center;
+        gap: 10px;
+    }
+
+    .dropdown-content a:hover {
+        background-color: #f1f1f1;
+        color: #007bff;
+    }
+
+    /* Separator Line */
+    .dropdown-divider {
+        height: 1px;
+        background-color: #eee;
+        margin: 0;
+    }
+
+    /* Show class for JS */
+    .show { display: block; }
+    </style>
+
+    <script>
+        function toggleProfileMenu() {
+            document.getElementById("myDropdown").classList.toggle("show");
+        }
+
+        // Close the dropdown if the user clicks outside of it
+        window.onclick = function(event) {
+            if (!event.target.matches('.profile-img')) {
+                var dropdowns = document.getElementsByClassName("dropdown-content");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+    </script>
 </head>
 <body>
 
@@ -134,24 +221,39 @@
     <div class="main-content">
         
         <div class="header">
-            <h1>Hello, <%= user.username %></h1>
-            <div>
-                <strong>Shop Status:</strong> <span style="color: #28a745;">Active</span>
-            </div>
-        </div>
+            <h1>Seller Dashboard</h1>
+    
+            <div style="display: flex; align-items: center;">
+                <div style="text-align: right; margin-right: 15px;">
+                    <small style="color: #666;">Balance</small><br>
+                    <strong>₦<%= (user.wallet_balance || 0).toLocaleString() %></strong>
+                </div>
 
-        <div class="stats-grid">
-            <div class="card" style="border-left: 5px solid #28a745;">
-                <h3>Wallet Balance</h3>
-                <div class="value">₦<%= (user.wallet_balance || 0).toLocaleString() %></div>
-            </div>
-            <div class="card" style="border-left: 5px solid #007bff;">
-                <h3>Active Products</h3>
-                <div class="value"><%= products.length %></div>
-            </div>
-            <div class="card" style="border-left: 5px solid #ffc107;">
-                <h3>Orders to Ship</h3>
-                <div class="value"><%= orders.filter(o => !o.seller_confirmed).length %></div>
+                <div class="profile-menu">
+                    <img src="https://ui-avatars.com/api/?name=<%= user.username %>&background=6610f2&color=fff" class="profile-img" onclick="toggleProfileMenu()">
+            
+                    <div id="myDropdown" class="dropdown-content">
+                        <div style="padding: 10px 16px; color: #888; font-size: 0.8rem; border-bottom: 1px solid #eee;">
+                            Seller: <strong><%= user.username %></strong>
+                        </div>
+
+                        <a href="/">
+                            <span>🏠</span> Go to Shop
+                        </a>
+                        <a href="/ads/buy">
+                            <span>📢</span> Promote Items
+                        </a>
+                        <a href="/settings">
+                            <span>⚙</span> Settings
+                        </a>
+                
+                        <div class="dropdown-divider"></div>
+                
+                        <a href="/logout" style="color: #dc3545;">
+                            <span>wq</span> Logout
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
 

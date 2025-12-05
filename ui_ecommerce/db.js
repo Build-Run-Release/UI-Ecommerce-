@@ -76,6 +76,19 @@ function initDb() {
             else console.log("Ads table ready");
         });
 
+                // - Add this inside db.serialize(() => { ... })
+        db.run(`CREATE TABLE IF NOT EXISTS cart (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            product_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        )`, (err) => {
+            if (err) console.error("Error creating cart table:", err);
+            else console.log("Cart table ready");
+        });
+
         // Create Default Admin
         const adminPass = 'admin123'
         db.run('INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', adminPass, 'admin']);

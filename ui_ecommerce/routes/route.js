@@ -97,20 +97,14 @@ router.post('/seller/product/:id/delete', (req, res) => {
         res.redirect('/seller/dashboard');
     });
 });
-// --- BUYER ROUTES ---
-
-// 1. GET: Buyer Dashboard
+// 1. GET: Buyer Dashboard (Now with Wishcart!)
 router.get('/buyer/dashboard', (req, res) => {
-    // Security: Check if user is logged in
-    if (!req.session.user) {
-        return res.redirect('/login');
-    }
+    if (!req.session.user) return res.redirect('/login');
 
     const buyerId = req.session.user.id;
 
-    // Fetch Orders AND join with Products table to get the product name/image
-    // This makes the dashboard look much better
-    const query = `
+    // A. Fetch Orders
+    const ordersQuery = `
         SELECT orders.*, products.title as product_title, products.image_url 
         FROM orders 
         LEFT JOIN products ON orders.product_id = products.id 
@@ -118,18 +112,27 @@ router.get('/buyer/dashboard', (req, res) => {
         ORDER BY orders.id DESC
     `;
 
-    db.all(query, [buyerId], (err, orders) => {
-        if (err) {
-            console.error(err);
-            orders = [];
-        }
+    db.all(ordersQuery, [buyerId], (err, orders) => {
+        if (err) orders = [];
 
-        // Fetch fresh user data (in case wallet balance changed)
-        db.get("SELECT * FROM users WHERE id = ?", [buyerId], (err, freshUser) => {
-            res.render('buyer_dashboard', {
-                user: freshUser || req.session.user,
-                orders: orders,
-                csrfToken: req.csrfToken ? req.csrfToken() : ''
+        // B. Fetch Wishcart Items (JOIN with Products to get details)
+        const cartQuery = `
+            SELECT cart.id as cart_id, products.* FROM cart 
+            JOIN products ON cart.product_id = products.id 
+            WHERE cart.user_id = ?
+        `;
+
+        db.all(cartQuery, [buyerId], (err, cartItems) => {
+            if (err) cartItems = [];
+
+            // C. Get Fresh User Data
+            db.get("SELECT * FROM users WHERE id = ?", [buyerId], (err, freshUser) => {
+                res.render('buyer_dashboard', {
+                    user: freshUser || req.session.user,
+                    orders: orders,
+                    cartItems: cartItems, // Pass the cart items to the view
+                    csrfToken: req.csrfToken ? req.csrfToken() : ''
+                });
             });
         });
     });
@@ -159,7 +162,37 @@ router.post('/order/:id/confirm/buyer', (req, res) => {
         // Optional: You could write a query here to add money to the Seller's wallet_balance
         // db.run("UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = (SELECT seller_id FROM products ...)")
 
-        res.redirect('/buyer/dashboard');
+        // --- CART / WISHCART ROUTES ---
+
+        // 2. POST: Add to Cart
+        router.post('/cart/add', (req, res) => {
+            if (!req.session.user) return res.redirect('/login');
+            
+            const { product_id } = req.body;
+            const userId = req.session.user.id;
+
+            // Check if already in cart to prevent duplicates
+            db.get("SELECT * FROM cart WHERE user_id = ? AND product_id = ?", [userId, product_id], (err, row) => {
+                if (row) {
+                    // Already added, just go back
+                    return res.redirect('/');
+                }
+                
+                db.run("INSERT INTO cart (user_id, product_id) VALUES (?, ?)", [userId, product_id], (err) => {
+                    res.redirect('/buyer/dashboard'); // Send them to dashboard to see it
+                });
+            });
+        });
+
+        // 3. POST: Remove from Cart
+        router.post('/cart/remove', (req, res) => {
+            if (!req.session.user) return res.redirect('/login');
+            
+            const { cart_id } = req.body;
+            db.run("DELETE FROM cart WHERE id = ?", [cart_id], (err) => {
+                res.redirect('/buyer/dashboard');
+            });
+        });
     });
 });
 
