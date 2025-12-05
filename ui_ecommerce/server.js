@@ -30,17 +30,6 @@ initDb();
 
 // Security Middleware
 
-app.use(
-  helmet.contentSecurityPolicy({
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://js.paystack.co"], // Allow Paystack JS & your <script> tags
-      frameSrc: ["'self'", "https://js.paystack.co"], // Allow Paystack Popup Iframe
-      imgSrc: ["'self'", "data:", "https:", "http:"], // Allow images from URLs
-      connectSrc: ["'self'", "https://js.paystack.co"], // Allow connection to Paystack API
-    },
-  })
-);
 // Allow Paystack and inline scripts by disabling CSP
 app.use(helmet({ contentSecurityPolicy: false }));
 
