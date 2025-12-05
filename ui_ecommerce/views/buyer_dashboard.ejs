@@ -190,6 +190,71 @@
 
     /* Show class for JS */
     .show { display: block; }
+
+        /* Container for the profile section */
+    .user-menu {
+        position: relative;
+        display: inline-block;
+        cursor: pointer;
+    }
+
+    /* The button that looks like "Hi, Admin" */
+    .user-btn {
+        background-color: transparent;
+        border: none;
+        color: #333; /* Dark text */
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        gap: 10px; /* Space between text and icon */
+        cursor: pointer;
+    }
+
+    /* The circular profile picture placeholder */
+    .profile-icon {
+        width: 35px;
+        height: 35px;
+        background-color: #007bff; /* Blue circle */
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+    }
+
+    /* The actual Dropdown Menu (Hidden by default) */
+    .dropdown-content {
+        display: none; /* Hidden! */
+        position: absolute;
+        right: 0; /* Align to the right side of the button */
+        background-color: #f9f9f9;
+        min-width: 160px;
+        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        z-index: 1;
+        border-radius: 5px;
+        overflow: hidden;
+    }
+
+    /* Links inside the dropdown */
+    .dropdown-content a {
+        color: black;
+        padding: 12px 16px;
+        text-decoration: none;
+        display: block;
+        text-align: left;
+    }
+
+    /* Hover effect for links */
+    .dropdown-content a:hover {
+        background-color: #f1f1f1;
+    }
+
+    /* JavaScript will add this class to show the menu */
+    .show {
+        display: block;
+    }
 </style>
 
 <script>
