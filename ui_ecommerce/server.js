@@ -22,6 +22,7 @@ const MONGO_URI = process.env.MONGO_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
 const app = express();
+app.set("trust proxy", 1); // Trust first proxy if behind a reverse proxys
 const PORT = process.env.PORT || 3000;
 
 // Initialize DB (Assuming this is a separate SQL database like SQLite)
