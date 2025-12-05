@@ -3,150 +3,170 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard - UI Ecommerce</title>
+    <title>Admin Dashboard</title>
     <style>
-        /* 1. Base Styles */
+        /* --- 1. Base Reset & Layout --- */
+        * { box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f0f2f5;
             margin: 0;
             display: flex;
             min-height: 100vh;
+            overflow-x: hidden; /* Prevent horizontal scroll when sidebar slides */
         }
 
-        /* 2. Sidebar Navigation (Admin Purple/Dark Theme) */
+        /* --- 2. Sidebar (The Moving Part) --- */
         .sidebar {
             width: 250px;
-            background-color: #1a1a2e; /* Dark Navy/Purple */
-            padding: 20px;
+            background-color: #1a1a2e;
             color: white;
             display: flex;
             flex-direction: column;
+            padding: 20px;
+            
+            /* Fixed position keeps it consistent */
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100%;
+            z-index: 100;
+            
+            /* ANIMATION MAGIC: Smoothly slide in/out */
+            transition: transform 0.3s ease-in-out;
         }
 
+        /* Sidebar Links Styling */
         .brand {
             font-size: 1.5rem;
             font-weight: bold;
-            color: #fff;
-            margin-bottom: 40px;
+            color: white;
             text-decoration: none;
+            margin-bottom: 30px;
+            display: block;
             border-bottom: 1px solid #333;
             padding-bottom: 20px;
         }
-
         .nav-links a {
             display: block;
-            padding: 12px 15px;
+            padding: 12px;
             color: #a0a0c0;
             text-decoration: none;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            transition: background 0.2s;
+            margin-bottom: 5px;
+            border-radius: 6px;
+            transition: 0.2s;
         }
-
         .nav-links a:hover, .nav-links a.active {
             background-color: #16213e;
-            color: #fff;
+            color: white;
         }
+        .logout-btn { margin-top: auto; color: #ff6b6b !important; }
 
-        .logout-btn {
-            margin-top: auto;
-            color: #ff6b6b !important;
-        }
-
-        /* 3. Main Content Area */
+        /* --- 3. Main Content (Resizes based on screen) --- */
         .main-content {
+            /* By default (Desktop), push content to the right of the fixed sidebar */
+            margin-left: 250px; 
             flex: 1;
             padding: 30px;
-            overflow-y: auto;
+            width: calc(100% - 250px);
+            transition: margin-left 0.3s ease-in-out, width 0.3s ease-in-out;
         }
 
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
+        /* --- 4. The Toggle Button --- */
+        .toggle-btn {
+            display: none; /* Hidden on Desktop */
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #1a1a2e;
+            margin-right: 15px;
         }
 
-        /* 4. Stats Cards */
+        /* --- 5. Responsive / Mobile Logic (< 768px) --- */
+        @media (max-width: 768px) {
+            /* Make button visible */
+            .toggle-btn { display: inline-block; }
+
+            /* Hide Sidebar by moving it off-screen to the left */
+            .sidebar {
+                transform: translateX(-100%);
+                box-shadow: none;
+            }
+
+            /* This class is added by JS to bring sidebar back */
+            .sidebar.show-sidebar {
+                transform: translateX(0);
+                box-shadow: 5px 0 15px rgba(0,0,0,0.3);
+            }
+
+            /* Content takes full width on mobile */
+            .main-content {
+                margin-left: 0;
+                width: 100%;
+            }
+
+            /* Overlay effect when menu is open */
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0; left: 0; right: 0; bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 90;
+            }
+            .overlay.active { display: block; }
+        }
+
+        /* --- 6. Table & Card Styles --- */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 30px;
         }
-
-        .card {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .card h3 { margin: 0 0 10px; color: #888; font-size: 0.9rem; font-weight: normal; }
-        .card .value { font-size: 1.8rem; font-weight: bold; color: #333; }
-
-        /* 5. User Table */
-        .table-container {
-            background: white;
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        table { width: 100%; border-collapse: collapse; }
-        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #eee; }
-        th { background-color: #fafafa; color: #666; font-size: 0.9rem; }
-
-        /* Status Badges */
-        .badge {
-            padding: 5px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-            font-weight: bold;
-        }
-        .role-admin { background-color: #000; color: #fff; }
-        .role-seller { background-color: #007bff; color: #fff; }
-        .role-buyer { background-color: #6c757d; color: #fff; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .card h3 { margin: 0 0 10px; color: #888; font-size: 0.9rem; }
+        .card .value { font-size: 1.8rem; font-weight: bold; }
         
-        .status-active { color: #28a745; font-weight: bold; }
-        .status-blocked { color: #dc3545; font-weight: bold; }
-
-        /* Action Buttons */
-        .btn-action {
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85rem;
-            color: white;
+        .table-container {
+            background: white; padding: 20px; border-radius: 12px;
+            overflow-x: auto; /* Allows table scrolling on mobile */
         }
-        .btn-block { background-color: #dc3545; }
-        .btn-unblock { background-color: #28a745; }
-
+        table { width: 100%; border-collapse: collapse; min-width: 600px; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        
+        /* Badges */
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; color: white; }
+        .role-admin { background: #000; } .role-seller { background: #007bff; } .role-buyer { background: #6c757d; }
     </style>
 </head>
 <body>
 
-    <div class="sidebar">
-        <a href="/" class="brand">ADMIN PANEL</a>
-        
+    <div class="overlay" id="overlay" onclick="toggleSidebar()"></div>
+
+    <nav class="sidebar" id="sidebar">
+        <div class="brand">
+            ADMIN PANEL
+            <span onclick="toggleSidebar()" style="float: right; cursor: pointer; display: block; font-size: 1.2rem; margin-top: -5px;" class="mobile-only-close">×</span>
+        </div>
         <div class="nav-links">
             <a href="/admin_dashboard" class="active">Overview</a>
-            <a href="#users" onclick="document.getElementById('users').scrollIntoView({behavior: 'smooth'})">User Management</a>
+            <a href="#users">User Management</a>
             <a href="/">View Live Site</a>
             <a href="/logout" class="logout-btn">Logout</a>
         </div>
-    </div>
+    </nav>
 
-    <div class="main-content">
-        
-        <div class="header">
-            <h1>Admin Dashboard</h1>
-            <div>
-                <strong>System Status:</strong> <span style="color: #28a745;">Operational</span>
+    <main class="main-content">
+        <header style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 30px;">
+            <div style="display: flex; align-items: center;">
+                <button class="toggle-btn" onclick="toggleSidebar()">☰</button>
+                <h1 style="margin: 0; font-size: 1.5rem;">Dashboard</h1>
             </div>
-        </div>
+            <div>
+                <span style="color: green; font-weight: bold; font-size: 0.9rem;">● Online</span>
+            </div>
+        </header>
 
         <div class="stats-grid">
             <div class="card" style="border-left: 5px solid #6610f2;">
@@ -154,66 +174,59 @@
                 <div class="value"><%= users.length %></div>
             </div>
             <div class="card" style="border-left: 5px solid #28a745;">
-                <h3>Platform Revenue</h3>
+                <h3>Revenue</h3>
                 <div class="value">₦<%= (stats.total_revenue || 0).toLocaleString() %></div>
             </div>
             <div class="card" style="border-left: 5px solid #fd7e14;">
-                <h3>Total Orders</h3>
+                <h3>Orders</h3>
                 <div class="value"><%= stats.total_orders || 0 %></div>
             </div>
         </div>
 
-        <div id="users" class="table-container">
-            <h2 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 15px;">User Management</h2>
-            
+        <div class="table-container" id="users">
+            <h3>User Management</h3>
             <table>
                 <thead>
                     <tr>
                         <th>ID</th>
-                        <th>Username</th>
+                        <th>User</th>
                         <th>Role</th>
-                        <th>Wallet</th>
-                        <th>Status</th>
                         <th>Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     <% users.forEach(function(u) { %>
-                        <tr>
-                            <td>#<%= u.id %></td>
-                            <td><%= u.username %></td>
-                            <td>
-                                <span class="badge role-<%= u.role %>"><%= u.role.toUpperCase() %></span>
-                            </td>
-                            <td>₦<%= (u.wallet_balance || 0).toLocaleString() %></td>
-                            <td>
-                                <% if (u.is_blocked) { %>
-                                    <span class="status-blocked">BLOCKED</span>
-                                <% } else { %>
-                                    <span class="status-active">Active</span>
-                                <% } %>
-                            </td>
-                            <td>
-                                <% if (u.role !== 'admin') { %>
-                                    <form action="/admin/user/<%= u.id %>/toggle-block" method="POST">
-                                        <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                        <% if (u.is_blocked) { %>
-                                            <button type="submit" class="btn-action btn-unblock">Unblock</button>
-                                        <% } else { %>
-                                            <button type="submit" class="btn-action btn-block">Block</button>
-                                        <% } %>
-                                    </form>
-                                <% } else { %>
-                                    <span style="color: #ccc;">-</span>
-                                <% } %>
-                            </td>
-                        </tr>
+                    <tr>
+                        <td>#<%= u.id %></td>
+                        <td><%= u.username %></td>
+                        <td><span class="badge role-<%= u.role %>"><%= u.role %></span></td>
+                        <td>
+                            <button style="padding: 5px 10px; cursor: pointer;">Manage</button>
+                        </td>
+                    </tr>
                     <% }); %>
                 </tbody>
             </table>
         </div>
+    </main>
 
-    </div>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            // This toggles the class that changes the CSS 'transform' property
+            sidebar.classList.toggle('show-sidebar');
+            overlay.classList.toggle('active');
+        }
+
+        // Optional: Hide Close "x" button on desktop via JS or just CSS
+        const style = document.createElement('style');
+        style.innerHTML = `
+            @media (min-width: 769px) { .mobile-only-close { display: none !important; } }
+        `;
+        document.head.appendChild(style);
+    </script>
 
 </body>
 </html>

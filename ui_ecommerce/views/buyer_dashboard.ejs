@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buyer Dashboard - UI Ecommerce</title>
     <style>
-        /* 1. Base Styles */
+        /* --- 1. Base Styles --- */
+        * { box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: #f0f2f5;
@@ -14,7 +15,7 @@
             min-height: 100vh;
         }
 
-        /* 2. Sidebar Navigation */
+        /* --- 2. Sidebar Navigation --- */
         .sidebar {
             width: 250px;
             background-color: #fff;
@@ -30,6 +31,7 @@
             color: #333;
             margin-bottom: 40px;
             text-decoration: none;
+            display: block;
         }
 
         .nav-links a {
@@ -49,25 +51,104 @@
         }
 
         .logout-btn {
-            margin-top: auto; /* Pushes to bottom */
+            margin-top: auto; 
             color: #dc3545 !important;
         }
         .logout-btn:hover { background-color: #ffe6e6 !important; }
 
-        /* 3. Main Content Area */
+        /* --- 3. Main Content & Header --- */
         .main-content {
             flex: 1;
             padding: 30px;
+            overflow-x: hidden; /* Prevent horizontal scroll */
         }
 
         .header {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-between; /* Pushes Title left, Profile right */
             align-items: center;
             margin-bottom: 30px;
+            background-color: #f0f2f5; /* Match body bg */
         }
 
-        /* 4. Stats Cards */
+        /* Header Right Section (Balance + Profile) */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        /* --- 4. Profile Dropdown System (The Fix) --- */
+        .profile-dropdown-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        .profile-img {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #fff;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .profile-img:hover {
+            transform: scale(1.05);
+            border-color: #007bff;
+        }
+
+        /* The Dropdown Menu */
+        .dropdown-menu {
+            display: none; /* Hidden by default */
+            position: absolute;
+            right: 0;
+            top: 55px;
+            background-color: white;
+            min-width: 200px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border-radius: 10px;
+            z-index: 1000; /* Ensure it floats ON TOP of other cards */
+            overflow: hidden;
+            border: 1px solid #eee;
+        }
+
+        /* The Class JS adds to show it */
+        .dropdown-menu.show {
+            display: block;
+            animation: fadeIn 0.2s ease-in-out;
+        }
+
+        .dropdown-menu a {
+            color: #333;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.95rem;
+            transition:  0.2s;
+        }
+
+        .dropdown-menu a:hover {
+            background-color: #f8f9fa;
+            color: #007bff;
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background-color: #eee;
+            margin: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- 5. Content Cards & Tables --- */
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -85,205 +166,27 @@
         .card h3 { margin: 0 0 10px; color: #888; font-size: 0.9rem; font-weight: normal; }
         .card .value { font-size: 1.8rem; font-weight: bold; color: #333; }
 
-        /* 5. Orders Table */
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-
-        th, td {
-            text-align: left;
-            padding: 15px;
-            border-bottom: 1px solid #eee;
-        }
-
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { text-align: left; padding: 15px; border-bottom: 1px solid #eee; }
         th { background-color: #fafafa; color: #666; font-size: 0.9rem; }
 
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: bold;
-        }
-        
+        .status-badge { padding: 5px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; }
         .status-pending { background-color: #fff3cd; color: #856404; }
         .status-shipped { background-color: #cce5ff; color: #004085; }
         .status-completed { background-color: #d4edda; color: #155724; }
-
-        .btn-confirm {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        .btn-confirm:hover { background-color: #218838; }
+        
+        .btn-confirm { background-color: #28a745; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; }
 
     </style>
-    <style>
-    /* Profile Container */
-    .profile-menu {
-        position: relative;
-        display: inline-block;
-        cursor: pointer;
-        margin-left: 20px;
-    }
-
-    /* The Circular Profile Image */
-    .profile-img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        background-color: #ddd;
-        object-fit: cover;
-        border: 2px solid white;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-        transition: transform 0.2s;
-    }
-
-    .profile-img:hover {
-        transform: scale(1.05);
-    }
-
-    /* The Dropdown Box (Hidden by default) */
-    .dropdown-content {
-        display: none; /* Hidden */
-        position: absolute;
-        right: 0;
-        top: 50px;
-        background-color: white;
-        min-width: 200px;
-        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-        border-radius: 8px;
-        z-index: 1000;
-        overflow: hidden;
-        border: 1px solid #eee;
-    }
-
-    /* Dropdown Links */
-    .dropdown-content a {
-        color: #333;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-        font-size: 0.95rem;
-        transition: background 0.2s;
-        display: flex; /* Align icon and text */
-        align-items: center;
-        gap: 10px;
-    }
-
-    .dropdown-content a:hover {
-        background-color: #f1f1f1;
-        color: #007bff;
-    }
-
-    /* Separator Line */
-    .dropdown-divider {
-        height: 1px;
-        background-color: #eee;
-        margin: 0;
-    }
-
-    /* Show class for JS */
-    .show { display: block; }
-
-        /* Container for the profile section */
-    .user-menu {
-        position: relative;
-        display: inline-block;
-        cursor: pointer;
-    }
-
-    /* The button that looks like "Hi, Admin" */
-    .user-btn {
-        background-color: transparent;
-        border: none;
-        color: #333; /* Dark text */
-        font-size: 16px;
-        font-weight: bold;
-        display: flex;
-        align-items: center;
-        gap: 10px; /* Space between text and icon */
-        cursor: pointer;
-    }
-
-    /* The circular profile picture placeholder */
-    .profile-icon {
-        width: 35px;
-        height: 35px;
-        background-color: #007bff; /* Blue circle */
-        color: white;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: bold;
-    }
-
-    /* The actual Dropdown Menu (Hidden by default) */
-    .dropdown-content {
-        display: none; /* Hidden! */
-        position: absolute;
-        right: 0; /* Align to the right side of the button */
-        background-color: #f9f9f9;
-        min-width: 160px;
-        box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-        z-index: 1;
-        border-radius: 5px;
-        overflow: hidden;
-    }
-
-    /* Links inside the dropdown */
-    .dropdown-content a {
-        color: black;
-        padding: 12px 16px;
-        text-decoration: none;
-        display: block;
-        text-align: left;
-    }
-
-    /* Hover effect for links */
-    .dropdown-content a:hover {
-        background-color: #f1f1f1;
-    }
-
-    /* JavaScript will add this class to show the menu */
-    .show {
-        display: block;
-    }
-</style>
-
-<script>
-    function toggleProfileMenu() {
-        document.getElementById("myDropdown").classList.toggle("show");
-    }
-
-    // Close the dropdown if the user clicks outside of it
-    window.onclick = function(event) {
-        if (!event.target.matches('.profile-img')) {
-            var dropdowns = document.getElementsByClassName("dropdown-content");
-            for (var i = 0; i < dropdowns.length; i++) {
-                var openDropdown = dropdowns[i];
-                if (openDropdown.classList.contains('show')) {
-                    openDropdown.classList.remove('show');
-                }
-            }
-        }
-    }
-</script>
 </head>
 <body>
 
     <div class="sidebar">
         <a href="/" class="brand">UI Ecommerce</a>
-        
         <div class="nav-links">
             <a href="/buyer/dashboard" class="active">Dashboard</a>
-            <a href="/">Browse Shop</a> <a href="/buyer/orders">My Orders</a>
+            <a href="/">Browse Shop</a> 
+            <a href="/buyer/orders">My Orders</a>
             <a href="/buyer/settings">Settings</a>
             <a href="/logout" class="logout-btn">Logout</a>
         </div>
@@ -294,38 +197,37 @@
         <div class="header">
             <h1>Buyer Dashboard</h1>
     
-        <div style="display: flex; align-items: center;">
-        <div style="text-align: right; margin-right: 15px;">
-            <small style="color: #666;">Balance</small><br>
-            <strong>₦<%= (user.wallet_balance || 0).toLocaleString() %></strong>
-        </div>
-
-        <div class="profile-menu">
-            <img src="https://ui-avatars.com/api/?name=<%= user.username %>&background=28a745&color=fff" class="profile-img" onclick="toggleProfileMenu()">
-            
-            <div id="myDropdown" class="dropdown-content">
-                <div style="padding: 10px 16px; color: #888; font-size: 0.8rem; border-bottom: 1px solid #eee;">
-                    Signed in as <strong><%= user.username %></strong>
+            <div class="header-actions">
+                <div style="text-align: right;">
+                    <small style="color: #666;">Balance</small><br>
+                    <strong style="font-size: 1.1rem;">₦<%= (user.wallet_balance || 0).toLocaleString() %></strong>
                 </div>
 
-                <a href="/">
-                    <span>🏠</span> Go to Shop
-                </a>
-                <a href="/buyer/orders">
-                    <span>📦</span> My Orders
-                </a>
-                <a href="/settings">
-                    <span>⚙</span> Settings
-                </a>
-                
-                <div class="dropdown-divider"></div>
-                
-                <a href="/logout" style="color: #dc3545;">
-                    <span>wq</span> Logout
-                </a>
-            </div>
+                <div class="profile-dropdown-wrapper">
+                    <img 
+                        src="https://ui-avatars.com/api/?name=<%= user.username %>&background=28a745&color=fff&size=128" 
+                        class="profile-img" 
+                        onclick="toggleProfileMenu(event)"
+                        alt="Profile"
+                    >
+                    
+                    <div id="profileDropdown" class="dropdown-menu">
+                        <div style="padding: 15px; border-bottom: 1px solid #eee; background: #fafafa;">
+                            <small style="color: #888;">Signed in as</small><br>
+                            <strong><%= user.username %></strong>
+                        </div>
+
+                        <a href="/"><span>🏠</span> Go to Shop</a>
+                        <a href="/buyer/orders"><span>📦</span> My Orders</a>
+                        <a href="/settings"><span>⚙</span> Settings</a>
+                        
+                        <div class="dropdown-divider"></div>
+                        
+                        <a href="/logout" style="color: #dc3545;"><span>🚪</span> Logout</a>
+                    </div>
+                </div>
+                </div>
         </div>
-    </div>
 
         <div class="stats-grid">
             <div class="card" style="border-left: 5px solid #007bff;">
@@ -370,7 +272,6 @@
                             <div style="padding: 15px;">
                                 <h3 style="margin: 0 0 5px; font-size: 1rem;"><%= item.title || item.name %></h3>
                                 <div style="color: #28a745; font-weight: bold; margin-bottom: 10px;">₦<%= item.price.toLocaleString() %></div>
-                                
                                 <a href="/buy/<%= item.id %>" style="display: block; text-align: center; background: #007bff; color: white; text-decoration: none; padding: 8px; border-radius: 5px;">Buy Now</a>
                             </div>
                         </div>
@@ -401,9 +302,7 @@
                         <% orders.forEach(function(order) { %>
                             <tr>
                                 <td>#<%= order.id %></td>
-                                <td>
-                                    <strong><%= order.product_title || 'Product #' + order.product_id %></strong>
-                                </td>
+                                <td><strong><%= order.product_title || 'Product #' + order.product_id %></strong></td>
                                 <td>₦<%= order.amount.toLocaleString() %></td>
                                 <td>
                                     <% if (order.buyer_confirmed) { %>
@@ -439,6 +338,29 @@
         </div>
 
     </div>
+
+    <script>
+        function toggleProfileMenu(event) {
+            // Prevent the click from bubbling up to the window immediately
+            event.stopPropagation();
+            
+            // Toggle the 'show' class
+            document.getElementById("profileDropdown").classList.toggle("show");
+        }
+
+        // Close the dropdown if the user clicks anywhere outside of it
+        window.onclick = function(event) {
+            if (!event.target.matches('.profile-img')) {
+                var dropdowns = document.getElementsByClassName("dropdown-menu");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    var openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+    </script>
 
 </body>
 </html>
