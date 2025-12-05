@@ -4,14 +4,39 @@ const { db } = require('../db'); // Correctly import the database
 const axios = require('axios');
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_YOUR_KEY_HERE"; 
 
-// --- 1. HOME PAGE ---
+// --- 1. HOME PAGE ROUTE (Now with Search!) ---
 router.get("/", (req, res) => {
     const user = req.session ? req.session.user : null;
-    db.all("SELECT * FROM products", [], (err, products) => {
+    const searchTerm = req.query.search || ""; // Get what they typed (or empty)
+
+    // A. Build the Product Query
+    let productQuery = "SELECT * FROM products";
+    let params = [];
+
+    // If they searched, filter by Title OR Description
+    if (searchTerm) {
+        productQuery += " WHERE title LIKE ? OR description LIKE ?";
+        // The % symbols are wildcards (matches anything before or after)
+        params = [`%${searchTerm}%`, `%${searchTerm}%`];
+    }
+    
+    // Order by newest first
+    productQuery += " ORDER BY id DESC";
+
+    db.all(productQuery, params, (err, products) => {
         if (err) products = [];
-        db.all("SELECT * FROM ads", [], (err, ads) => {
+
+        // B. Fetch Ads (Only active ones)
+        // Note: In a real app, you filter WHERE expiry_date > Date.now()
+        db.all("SELECT * FROM ads WHERE status = 'active'", [], (err, ads) => {
             if (err) ads = [];
-            res.render("index", { user: user, products: products, ads: ads });
+
+            res.render("index", {
+                user: user,
+                products: products,
+                ads: ads,
+                searchTerm: searchTerm // Pass this back so we can show "Clear" button
+            });
         });
     });
 });
@@ -483,6 +508,19 @@ router.get('/ads/paystack/callback', async (req, res) => {
         console.error(error);
         res.redirect('/seller/dashboard');
     }
+});
+
+// GET: Settings Page
+router.get('/settings', (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    
+    // You can create a simple 'settings.ejs' view later.
+    // For now, we just render a simple message.
+    res.send(`
+        <h1>Settings</h1>
+        <p>Profile settings for ${req.session.user.username} coming soon.</p>
+        <a href="/">Go Back</a>
+    `);
 });
 
 module.exports = router;

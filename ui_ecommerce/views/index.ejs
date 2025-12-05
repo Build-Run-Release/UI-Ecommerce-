@@ -275,7 +275,7 @@
                 </div>
             </div>
         </div>
-        
+
     <% } else { %>
         <a href="/login">Login</a>
         <a href="/signup" style="color: #28a745; font-weight: bold;">Sign Up</a>
@@ -286,6 +286,26 @@
     <div class="hero">
         <h1>Welcome to the University of Ibadan Market</h1>
         <p>Buy and sell items conveniently on campus.</p>
+    </div>
+
+    <div class="hero">
+        <h1>Welcome to the University of Ibadan Market</h1>
+        <p>Buy and sell items conveniently on campus.</p>
+
+        <div style="margin-top: 20px; max-width: 600px; margin-left: auto; margin-right: auto;">
+            <form action="/" method="GET" style="display: flex; gap: 10px;">
+                <input type="text" name="search" placeholder="What are you looking for? (e.g. iPhone, CHM 101)" 
+                    style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem;">
+                
+                <button type="submit" style="background-color: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; cursor: pointer;">
+                    Search
+                </button>
+                
+                <% if (typeof searchTerm !== 'undefined' && searchTerm) { %>
+                    <a href="/" style="display: flex; align-items: center; color: #666; text-decoration: none; border: 1px solid #ddd; padding: 0 15px; border-radius: 5px; background: #fff;">Clear</a>
+                <% } %>
+            </form>
+        </div>
     </div>
 
     <div class="container">
