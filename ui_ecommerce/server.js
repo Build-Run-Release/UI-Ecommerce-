@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const session = require('express-session');
 // --- FIX 1: Import connect-mongo for session persistence ---
-const MongoStore = require('connect-mongo')(session);
+const MongoStore = require('connect-mongo');
 const bcrypt = require('bcrypt');
 const axios = require('axios'); // Ensure axios is installed
 const helmet = require('helmet');
@@ -46,9 +46,9 @@ app.use(session({
     resave: false,
     saveUninitialized: false, 
     // Configure the session store to use MongoDB
-    store: new MongoStore({
+    store: MongoStore.create({
         // Use the environment variable for the connection string
-        url: process.env.MONGO_URI, 
+        mongoUrl: process.env.MONGO_URI, 
         ttl: 14 * 24 * 60 * 60, // 1 day session TTL
     }),
     cookie: {
