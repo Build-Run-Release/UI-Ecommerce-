@@ -3,312 +3,286 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UI Ecommerce - Home</title>
+    <title>UI Market - Home</title>
     <style>
-        /* 1. Base Styles & Reset */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f4f4;
-            color: #333;
+        /* --- 1. CSS Variables & Reset --- */
+        :root {
+            --primary: #007bff;
+            --primary-dark: #0056b3;
+            --secondary: #6c757d;
+            --success: #28a745;
+            --danger: #dc3545;
+            --dark: #343a40;
+            --light: #f8f9fa;
+            --text-main: #333;
+            --text-muted: #666;
+            --border-radius: 8px;
+            --shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* 2. Navigation Bar */
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        a { text-decoration: none; color: inherit; }
+
+        /* --- 2. Navigation Bar --- */
         nav {
-            background-color: #343a40; /* Dark Grey */
-            color: white;
-            padding: 15px 20px;
+            background-color: white;
+            padding: 15px 5%;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
 
         .nav-brand {
             font-size: 1.5rem;
-            font-weight: bold;
-            color: #ffffff;
-            text-decoration: none;
+            font-weight: 700;
+            color: var(--dark);
         }
 
-        .nav-links a {
-            color: #ccc;
-            text-decoration: none;
-            margin-left: 20px;
-            transition: color 0.3s;
-        }
-
-        .nav-links a:hover {
-            color: white;
-        }
-
-        .btn-logout {
-            color: #ff6b6b !important; /* Red for logout */
-        }
-
-        /* 3. Hero Section (Welcome Banner) */
-        .hero {
-            background-color: white;
-            padding: 40px 20px;
-            text-align: center;
-            margin-bottom: 30px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .hero h1 { margin: 0 0 10px; color: #2c3e50; }
-        .hero p { color: #666; font-size: 1.1rem; }
-
-        /* 4. Container for Content */
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 0 20px;
-        }
-
-        /* 5. Ads Section (Styled as a yellow notice) */
-        .ads-section {
-            background-color: #fff3cd;
-            border: 1px solid #ffeeba;
-            color: #856404;
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 30px;
-        }
-        .ads-section h3 { margin-top: 0; }
-
-        /* 6. Product Grid Layout */
-        .product-grid {
-            display: grid;
-            /* This creates columns that automatically fit the screen width */
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 25px;
-            padding-bottom: 50px;
-        }
-
-        /* 7. Product Card Design */
-        .product-card {
-            background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            overflow: hidden;
-            transition: transform 0.2s, box-shadow 0.2s;
+        .nav-actions {
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 15px;
         }
 
-        .product-card:hover {
-            transform: translateY(-5px); /* Lift up slightly on hover */
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 200px;
-            background-color: #e9ecef;
-            object-fit: cover; /* Ensures image covers area without stretching */
-        }
-
-        .product-info {
-            padding: 15px;
-            flex-grow: 1; /* Pushes button to bottom */
-            display: flex;
-            flex-direction: column;
-        }
-
-        .product-title {
-            font-size: 1.1rem;
-            margin: 0 0 10px;
-            color: #2c3e50;
-        }
-
-        .product-price {
-            font-size: 1.25rem;
-            font-weight: bold;
-            color: #28a745; /* Green price */
-            margin-bottom: 15px;
-        }
-
-        .btn-buy {
-            margin-top: auto;
-            display: block;
-            width: 100%;
-            padding: 10px;
-            background-color: #007bff;
-            color: white;
-            text-align: center;
-            text-decoration: none;
-            border-radius: 5px;
-            font-weight: bold;
+        .btn-auth {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
             transition: 0.2s;
         }
+        .btn-login { color: var(--text-main); border: 1px solid #ddd; }
+        .btn-login:hover { background-color: var(--light); }
+        .btn-signup { background-color: var(--success); color: white; border: none; }
+        .btn-signup:hover { background-color: #218838; }
 
-        .btn-buy:hover {
-            background-color: #0056b3;
-        }
-    </style>
-    <style>
-        /* Profile Container */
-        .profile-menu {
-            position: relative;
-            display: inline-block;
-            cursor: pointer;
-            margin-left: 20px;
-        }
-
-        /* The Circular Profile Image */
+        /* --- 3. Profile Dropdown --- */
+        .profile-container { position: relative; display: flex; align-items: center; gap: 10px; cursor: pointer; }
+        
         .profile-img {
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             border-radius: 50%;
-            background-color: #ddd;
             object-fit: cover;
             border: 2px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
-            transition: transform 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
 
-        .profile-img:hover {
-            transform: scale(1.05);
-        }
-
-        /* The Dropdown Box (Hidden by default) */
-        .dropdown-content {
-            display: none; /* Hidden */
+        .dropdown-menu {
+            display: none;
             position: absolute;
             right: 0;
             top: 50px;
             background-color: white;
             min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            border-radius: 8px;
-            z-index: 1000;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
+            border-radius: var(--border-radius);
             overflow: hidden;
             border: 1px solid #eee;
+            z-index: 1000;
+        }
+        .dropdown-menu.show { display: block; animation: fadeIn 0.2s; }
+        
+        .dropdown-menu a {
+            padding: 12px 15px;
+            display: flex; align-items: center; gap: 10px;
+            font-size: 0.95rem; color: var(--text-main);
+            transition: background 0.2s;
+        }
+        .dropdown-menu a:hover { background-color: #f8f9fa; color: var(--primary); }
+
+        /* --- 4. Hero Section --- */
+        .hero {
+            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
+            color: white;
+            padding: 60px 20px;
+            text-align: center;
+            margin-bottom: 40px;
         }
 
-        /* Dropdown Links */
-        .dropdown-content a {
-            color: #333;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            font-size: 0.95rem;
-            transition: 0.2s;
-            display: flex; /* Align icon and text */
-            align-items: center;
-            gap: 10px;
+        .hero h1 { margin: 0 0 10px; font-size: 2.5rem; }
+        .hero p { opacity: 0.9; font-size: 1.1rem; margin-bottom: 30px; }
+
+        .search-container {
+            max-width: 600px;
+            margin: 0 auto;
+            display: flex;
+            background: white;
+            border-radius: 30px;
+            padding: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .search-input {
+            flex: 1; border: none; padding: 12px 20px;
+            font-size: 1rem; outline: none; border-radius: 30px;
+        }
+        
+        .search-btn {
+            background-color: var(--primary); color: white; border: none;
+            padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer;
+            transition: background 0.2s;
+        }
+        .search-btn:hover { background-color: var(--primary-dark); }
+
+        /* --- 5. Main Layout --- */
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px 60px 20px; }
+
+        .ads-banner {
+            background-color: #fff3cd; color: #856404;
+            padding: 15px; border-radius: var(--border-radius);
+            margin-bottom: 30px; border: 1px solid #ffeeba;
         }
 
-        .dropdown-content a:hover {
-            background-color: #f1f1f1;
-            color: #007bff;
+        .section-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px;
+        }
+        .section-title { font-size: 1.5rem; color: var(--dark); margin: 0; }
+
+        /* --- 6. Product Grid --- */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+            gap: 25px;
         }
 
-        /* Separator Line */
-        .dropdown-divider {
-            height: 1px;
-            background-color: #eee;
-            margin: 0;
+        .product-card {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.2s;
+            display: flex; flex-direction: column;
+        }
+        .product-card:hover { transform: translateY(-5px); }
+
+        .product-image {
+            width: 100%; height: 180px;
+            object-fit: cover; background-color: #eee;
         }
 
-        /* Show class for JS */
-        .show { display: block; }
+        .product-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
+        
+        .product-title {
+            font-size: 1.05rem; margin: 0 0 5px;
+            font-weight: 600; color: var(--dark);
+        }
+        
+        .product-desc {
+            font-size: 0.85rem; color: var(--text-muted);
+            margin-bottom: 15px;
+            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+        }
+
+        .product-footer {
+            margin-top: auto;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+
+        .price { font-size: 1.2rem; font-weight: bold; color: var(--success); }
+
+        .btn-view {
+            background-color: var(--primary); color: white;
+            padding: 8px 15px; border-radius: 5px; font-size: 0.9rem;
+        }
+        .btn-view:hover { background-color: var(--primary-dark); }
+
+        /* --- 7. Quick Wishcart (Moved Outside Loop) --- */
+        .wishcart-section { margin-top: 50px; }
+        .wishcart-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: white; padding: 10px; border-bottom: 1px solid #eee;
+        }
+        .wishcart-item:last-child { border-bottom: none; }
+
+        /* Animations */
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .hero h1 { font-size: 1.8rem; }
+            .nav-actions span { display: none; } /* Hide "Hi, Name" on mobile */
+            .product-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
+            .product-image { height: 140px; }
+        }
     </style>
-
-    <script>
-        function toggleProfileMenu() {
-            document.getElementById("myDropdown").classList.toggle("show");
-        }
-
-        // Close the dropdown if the user clicks outside of it
-        window.onclick = function(event) {
-            if (!event.target.matches('.profile-img')) {
-                var dropdowns = document.getElementsByClassName("dropdown-content");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    var openDropdown = dropdowns[i];
-                    if (openDropdown.classList.contains('show')) {
-                        openDropdown.classList.remove('show');
-                    }
-                }
-            }
-        }
-    </script>
 </head>
 <body>
 
     <nav>
-        <a href="/" class="nav-brand">UI Ecommerce</a>
-        <div class="nav-links">
-            <% if (typeof user !== 'undefined' && user) { %>
+        <a href="/" class="nav-brand">UI Market</a>
         
-            <span style="color: #ccc; margin-right: 10px;">Hi, <%= user.username %></span>
+        <div class="nav-actions">
+            <% if (typeof user !== 'undefined' && user) { %>
+                <span style="color: #666; font-size: 0.9rem;">Hi, <%= user.username %></span>
 
-            <div class="profile-menu">
-                <img src="https://ui-avatars.com/api/?name=<%= user.username %>&background=0D8ABC&color=fff" class="profile-img" onclick="toggleProfileMenu()">
-            
-                <div id="myDropdown" class="dropdown-content">
-                
-                    <% if (user.role === 'seller') { %>
-                    <a href="/seller/dashboard">
-                        <span>📊</span> Seller Dashboard
-                    </a>
-                    <% } else if (user.role === 'buyer') { %>
-                    <a href="/buyer/dashboard">
-                        <span>🛍</span> Buyer Dashboard
-                    </a>
-                    <% } else if (user.role === 'admin') { %>
-                    <a href="/admin_dashboard">
-                        <span>🛡</span> Admin Panel
-                    </a>
-                    <% } %>
+                <div class="profile-container" onclick="toggleProfileMenu(event)">
+                    <img src="<%= user.profile_image ? '/uploads/' + user.profile_image : 'https://ui-avatars.com/api/?name=' + user.username + '&background=007bff&color=fff' %>" class="profile-img">
+                    
+                    <div id="profileDropdown" class="dropdown-menu">
+                        <div style="padding: 10px 15px; border-bottom: 1px solid #eee; font-weight: bold; color: var(--dark);">
+                            <%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Account
+                        </div>
 
-                    <a href="/settings">
-                        <span>⚙</span> Settings
-                    </a>
-                
-                    <div class="dropdown-divider"></div>
-                
-                    <a href="/logout" style="color: #dc3545;">
-                        <span>wq</span> Logout
-                    </a>
+                        <% if (user.role === 'seller') { %>
+                            <a href="/seller/dashboard"><span>📊</span> Seller Dashboard</a>
+                        <% } else if (user.role === 'buyer') { %>
+                            <a href="/buyer/dashboard"><span>🛍</span> Buyer Dashboard</a>
+                        <% } else if (user.role === 'admin') { %>
+                            <a href="/admin_dashboard"><span>🛡</span> Admin Panel</a>
+                        <% } %>
+
+                        <a href="/settings"><span>⚙</span> Settings</a>
+                        <div style="height: 1px; background: #eee; margin: 0;"></div>
+                        <a href="/logout" style="color: var(--danger);"><span>🚪</span> Logout</a>
+                    </div>
                 </div>
-            </div>
-        </div>
 
-    <% } else { %>
-        <a href="/login">Login</a>
-        <a href="/signup" style="color: #28a745; font-weight: bold;">Sign Up</a>
-    <% } %>
-</div>
+            <% } else { %>
+                <a href="/login" class="btn-auth btn-login">Login</a>
+                <a href="/signup" class="btn-auth btn-signup">Sign Up</a>
+            <% } %>
+        </div>
     </nav>
 
-    <div class="hero">
-        <h1>Welcome to the University of Ibadan Market</h1>
-        <p>Buy and sell items conveniently on campus.</p>
+    <header class="hero">
+        <h1>University of Ibadan Market</h1>
+        <p>The safest way to buy and sell items on campus.</p>
 
-        <div style="margin-top: 20px; max-width: 600px; margin-left: auto; margin-right: auto;">
-            <form action="/" method="GET" style="display: flex; gap: 10px;">
-                <input type="text" name="search" placeholder="What are you looking for? (e.g. iPhone, CHM 101)" 
-                    style="flex: 1; padding: 12px; border: 1px solid #ccc; border-radius: 5px; font-size: 1rem;">
-                
-                <button type="submit" style="background-color: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 5px; font-weight: bold; cursor: pointer;">
-                    Search
-                </button>
-                
-                <% if (typeof searchTerm !== 'undefined' && searchTerm) { %>
-                    <a href="/" style="display: flex; align-items: center; color: #666; text-decoration: none; border: 1px solid #ddd; padding: 0 15px; border-radius: 5px; background: #fff;">Clear</a>
-                <% } %>
+        <div class="search-container">
+            <form action="/" method="GET" style="width: 100%; display: flex;">
+                <input type="text" name="search" class="search-input" placeholder="What are you looking for? (e.g. MTH 101, iPhone 12)" value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
+                <button type="submit" class="search-btn">Search</button>
             </form>
         </div>
-    </div>
+        <% if (typeof searchTerm !== 'undefined' && searchTerm) { %>
+            <div style="margin-top: 10px;">
+                <a href="/" style="color: rgba(255,255,255,0.8); text-decoration: underline;">Clear Search</a>
+            </div>
+        <% } %>
+    </header>
 
     <div class="container">
         
         <% if (typeof ads !== 'undefined' && ads && ads.length > 0) { %>
-            <div class="ads-section">
-                <h3>📢 Sponsored Messages</h3>
-                <ul>
+            <div class="ads-banner">
+                <h3 style="margin-top: 0; font-size: 1.1rem;">📢 Campus Updates</h3>
+                <ul style="padding-left: 20px; margin-bottom: 0;">
                     <% ads.forEach(function(ad) { %>
                         <li><%= ad.message %></li>
                     <% }); %>
@@ -316,64 +290,86 @@
             </div>
         <% } %>
 
-        <h2 style="margin-bottom: 20px;">Latest Products</h2>
+        <div class="section-header">
+            <h2 class="section-title">Latest Products</h2>
+        </div>
         
         <div class="product-grid">
             <% if (typeof products !== 'undefined' && products.length > 0) { %>
                 <% products.forEach(function(product) { %>
                     <div class="product-card">
-                        <img src="<%= product.image || 'https://via.placeholder.com/300x200?text=No+Image' %>" alt="Product Image" class="product-image">
+                        <img 
+                            src="<%= product.image && !product.image.startsWith('http') ? '/uploads/' + product.image : (product.image || 'https://via.placeholder.com/300x200?text=No+Image') %>" 
+                            alt="<%= product.name %>" 
+                            class="product-image"
+                        >
                         
                         <div class="product-info">
                             <h3 class="product-title"><%= product.name || product.title %></h3>
-                            <p style="color: #666; font-size: 0.9rem;"><%= product.description || 'No description available' %></p>
-                            <div class="product-price">₦<%= product.price %></div>
-                            <a href="/buy/<%= product.id %>" class="btn-buy">Buy Now</a>
-                        </div>
-                        <div class="card" style="margin-bottom: 30px;">
-            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; padding-bottom: 15px; margin-bottom: 15px;">
-                <h2 style="margin: 0;">My Wishcart</h2>
-                <span style="background: #007bff; color: white; padding: 2px 8px; border-radius: 10px; font-size: 0.8rem;">
-                    <%= cartItems.length %> Items
-                </span>
-            </div>
-
-            <% if (cartItems && cartItems.length > 0) { %>
-                <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px;">
-                    <% cartItems.forEach(function(item) { %>
-                        <div style="border: 1px solid #eee; border-radius: 8px; overflow: hidden; position: relative;">
+                            <p class="product-desc"><%= product.description || 'No description available.' %></p>
                             
-                            <form action="/cart/remove" method="POST" style="position: absolute; top: 10px; right: 10px; margin: 0;">
-                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                <input type="hidden" name="cart_id" value="<%= item.cart_id %>">
-                                <button type="submit" style="background: rgba(255,255,255,0.9); border: none; color: red; font-weight: bold; cursor: pointer; border-radius: 50%; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center;">&times;</button>
-                            </form>
-
-                            <img src="<%= item.image_url || 'https://via.placeholder.com/300x200' %>" style="width: 100%; height: 150px; object-fit: cover;">
-                            
-                            <div style="padding: 15px;">
-                                <h3 style="margin: 0 0 5px; font-size: 1rem;"><%= item.title || item.name %></h3>
-                                <div style="color: #28a745; font-weight: bold; margin-bottom: 10px;">₦<%= item.price.toLocaleString() %></div>
-                                
-                                <a href="/buy/<%= item.id %>" style="display: block; text-align: center; background: #007bff; color: white; text-decoration: none; padding: 8px; border-radius: 5px;">Buy Now</a>
+                            <div class="product-footer">
+                                <span class="price">₦<%= parseInt(product.price).toLocaleString() %></span>
+                                <a href="/buy/<%= product.id %>" class="btn-view">View</a>
                             </div>
                         </div>
-                    <% }); %>
-                </div>
-            <% } else { %>
-                <div style="text-align: center; color: #999; padding: 20px;">
-                    Your wishcart is empty. <a href="/">Go shopping!</a>
-                </div>
-            <% } %>
-        </div>
                     </div>
                 <% }); %>
             <% } else { %>
-                <p>No products available right now. Check back later!</p>
+                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
+                    <h3>No products found.</h3>
+                    <p>Check back later or try a different search term.</p>
+                </div>
             <% } %>
         </div>
 
+        <% if (typeof user !== 'undefined' && user && typeof cartItems !== 'undefined' && cartItems.length > 0) { %>
+            <div class="wishcart-section">
+                <div class="section-header">
+                    <h2 class="section-title">Your Wishcart (<%= cartItems.length %>)</h2>
+                    <a href="/buyer/dashboard" style="color: var(--primary); font-weight: bold;">Manage Cart &rarr;</a>
+                </div>
+                
+                <div style="background: white; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden;">
+                    <% cartItems.slice(0, 3).forEach(function(item) { %>
+                        <div class="wishcart-item">
+                            <div style="display: flex; align-items: center; gap: 10px;">
+                                <img src="<%= item.image_url || 'https://via.placeholder.com/50' %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
+                                <div>
+                                    <div style="font-weight: bold;"><%= item.title || item.name %></div>
+                                    <div style="color: var(--success);">₦<%= item.price.toLocaleString() %></div>
+                                </div>
+                            </div>
+                            <a href="/buy/<%= item.id %>" style="font-size: 0.85rem; color: white; background: var(--primary); padding: 5px 10px; border-radius: 4px;">Buy Now</a>
+                        </div>
+                    <% }); %>
+                    <% if(cartItems.length > 3) { %>
+                        <div style="padding: 10px; text-align: center; background: #f8f9fa;">
+                            <a href="/buyer/dashboard" style="color: var(--text-muted); font-size: 0.9rem;">View all items...</a>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
+        <% } %>
+
     </div>
 
+    <script>
+        function toggleProfileMenu(event) {
+            event.stopPropagation();
+            document.getElementById("profileDropdown").classList.toggle("show");
+        }
+
+        window.onclick = function(event) {
+            if (!event.target.closest('.profile-container')) {
+                var dropdowns = document.getElementsByClassName("dropdown-menu");
+                for (var i = 0; i < dropdowns.length; i++) {
+                    if (dropdowns[i].classList.contains('show')) {
+                        dropdowns[i].classList.remove('show');
+                    }
+                }
+            }
+        }
+    </script>
 </body>
 </html>
