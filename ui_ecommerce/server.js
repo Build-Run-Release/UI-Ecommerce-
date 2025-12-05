@@ -41,6 +41,8 @@ app.use(
     },
   })
 );
+// Allow Paystack and inline scripts by disabling CSP
+app.use(helmet({ contentSecurityPolicy: false }));
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use(limiter);
