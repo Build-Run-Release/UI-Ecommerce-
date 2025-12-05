@@ -9,7 +9,6 @@
         :root {
             --primary: #007bff;
             --primary-dark: #0056b3;
-            --secondary: #6c757d;
             --success: #28a745;
             --danger: #dc3545;
             --dark: #343a40;
@@ -17,7 +16,6 @@
             --text-main: #333;
             --text-muted: #666;
             --border-radius: 8px;
-            --shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
         * { box-sizing: border-box; }
@@ -59,53 +57,32 @@
             gap: 15px;
         }
 
+        /* Simple Button Styles */
         .btn-auth {
             padding: 8px 16px;
-            border-radius: 20px;
+            border-radius: 6px;
             font-weight: 600;
             font-size: 0.9rem;
             transition: 0.2s;
+            display: inline-block;
         }
+        
         .btn-login { color: var(--text-main); border: 1px solid #ddd; }
         .btn-login:hover { background-color: var(--light); }
+        
         .btn-signup { background-color: var(--success); color: white; border: none; }
         .btn-signup:hover { background-color: #218838; }
 
-        /* --- 3. Profile Dropdown --- */
-        .profile-container { position: relative; display: flex; align-items: center; gap: 10px; cursor: pointer; }
-        
-        .profile-img {
-            width: 40px; height: 40px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-        }
+        .btn-settings { color: var(--text-main); border: 1px solid #ddd; }
+        .btn-settings:hover { background-color: var(--light); border-color: #ccc; }
 
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            right: 0;
-            top: 50px;
-            background-color: white;
-            min-width: 200px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.15);
-            border-radius: var(--border-radius);
-            overflow: hidden;
-            border: 1px solid #eee;
-            z-index: 1000;
-        }
-        .dropdown-menu.show { display: block; animation: fadeIn 0.2s; }
-        
-        .dropdown-menu a {
-            padding: 12px 15px;
-            display: flex; align-items: center; gap: 10px;
-            font-size: 0.95rem; color: var(--text-main);
-            transition: background 0.2s;
-        }
-        .dropdown-menu a:hover { background-color: #f8f9fa; color: var(--primary); }
+        .btn-logout { background-color: var(--danger); color: white; border: none; }
+        .btn-logout:hover { background-color: #c82333; }
 
-        /* --- 4. Hero Section --- */
+        .btn-dashboard { background-color: var(--primary); color: white; border: none; }
+        .btn-dashboard:hover { background-color: var(--primary-dark); }
+
+        /* --- 3. Hero Section --- */
         .hero {
             background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
             color: white;
@@ -118,12 +95,8 @@
         .hero p { opacity: 0.9; font-size: 1.1rem; margin-bottom: 30px; }
 
         .search-container {
-            max-width: 600px;
-            margin: 0 auto;
-            display: flex;
-            background: white;
-            border-radius: 30px;
-            padding: 5px;
+            max-width: 600px; margin: 0 auto; display: flex;
+            background: white; border-radius: 30px; padding: 5px;
             box-shadow: 0 5px 15px rgba(0,0,0,0.2);
         }
         
@@ -139,7 +112,7 @@
         }
         .search-btn:hover { background-color: var(--primary-dark); }
 
-        /* --- 5. Main Layout --- */
+        /* --- 4. Main Layout --- */
         .container { max-width: 1200px; margin: 0 auto; padding: 0 20px 60px 20px; }
 
         .ads-banner {
@@ -154,7 +127,7 @@
         }
         .section-title { font-size: 1.5rem; color: var(--dark); margin: 0; }
 
-        /* --- 6. Product Grid --- */
+        /* --- 5. Product Grid --- */
         .product-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -162,38 +135,26 @@
         }
 
         .product-card {
-            background: white;
-            border-radius: var(--border-radius);
-            box-shadow: var(--shadow);
-            overflow: hidden;
-            transition: transform 0.2s;
-            display: flex; flex-direction: column;
+            background: white; border-radius: var(--border-radius);
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;
+            transition: transform 0.2s; display: flex; flex-direction: column;
         }
         .product-card:hover { transform: translateY(-5px); }
 
         .product-image {
-            width: 100%; height: 180px;
-            object-fit: cover; background-color: #eee;
+            width: 100%; height: 180px; object-fit: cover; background-color: #eee;
         }
 
         .product-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
         
-        .product-title {
-            font-size: 1.05rem; margin: 0 0 5px;
-            font-weight: 600; color: var(--dark);
-        }
-        
+        .product-title { font-size: 1.05rem; margin: 0 0 5px; font-weight: 600; color: var(--dark); }
         .product-desc {
-            font-size: 0.85rem; color: var(--text-muted);
-            margin-bottom: 15px;
+            font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;
             display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+            line-clamp: 2;
         }
 
-        .product-footer {
-            margin-top: auto;
-            display: flex; justify-content: space-between; align-items: center;
-        }
-
+        .product-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
         .price { font-size: 1.2rem; font-weight: bold; color: var(--success); }
 
         .btn-view {
@@ -202,7 +163,7 @@
         }
         .btn-view:hover { background-color: var(--primary-dark); }
 
-        /* --- 7. Quick Wishcart (Moved Outside Loop) --- */
+        /* --- 6. Wishcart --- */
         .wishcart-section { margin-top: 50px; }
         .wishcart-item {
             display: flex; align-items: center; justify-content: space-between;
@@ -210,13 +171,11 @@
         }
         .wishcart-item:last-child { border-bottom: none; }
 
-        /* Animations */
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
-
         /* Responsive */
         @media (max-width: 600px) {
             .hero h1 { font-size: 1.8rem; }
-            .nav-actions span { display: none; } /* Hide "Hi, Name" on mobile */
+            .nav-actions { gap: 10px; }
+            .btn-auth { padding: 6px 12px; font-size: 0.85rem; }
             .product-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
             .product-image { height: 140px; }
         }
@@ -229,29 +188,17 @@
         
         <div class="nav-actions">
             <% if (typeof user !== 'undefined' && user) { %>
-                <span style="color: #666; font-size: 0.9rem;">Hi, <%= user.username %></span>
+                <% if (user.role === 'seller') { %>
+                    <a href="/seller/dashboard" class="btn-auth btn-dashboard">Dashboard</a>
+                <% } else if (user.role === 'buyer') { %>
+                    <a href="/buyer/dashboard" class="btn-auth btn-dashboard">Dashboard</a>
+                <% } else if (user.role === 'admin') { %>
+                    <a href="/admin_dashboard" class="btn-auth btn-dashboard">Admin</a>
+                <% } %>
 
-                <div class="profile-container" onclick="toggleProfileMenu(event)">
-                    <img src="<%= user.profile_image ? '/uploads/' + user.profile_image : 'https://ui-avatars.com/api/?name=' + user.username + '&background=007bff&color=fff' %>" class="profile-img">
-                    
-                    <div id="profileDropdown" class="dropdown-menu">
-                        <div style="padding: 10px 15px; border-bottom: 1px solid #eee; font-weight: bold; color: var(--dark);">
-                            <%= user.role.charAt(0).toUpperCase() + user.role.slice(1) %> Account
-                        </div>
+                <a href="/settings" class="btn-auth btn-settings">Settings</a>
 
-                        <% if (user.role === 'seller') { %>
-                            <a href="/seller/dashboard"><span>📊</span> Seller Dashboard</a>
-                        <% } else if (user.role === 'buyer') { %>
-                            <a href="/buyer/dashboard"><span>🛍</span> Buyer Dashboard</a>
-                        <% } else if (user.role === 'admin') { %>
-                            <a href="/admin_dashboard"><span>🛡</span> Admin Panel</a>
-                        <% } %>
-
-                        <a href="/settings"><span>⚙</span> Settings</a>
-                        <div style="height: 1px; background: #eee; margin: 0;"></div>
-                        <a href="/logout" style="color: var(--danger);"><span>🚪</span> Logout</a>
-                    </div>
-                </div>
+                <a href="/logout" class="btn-auth btn-logout">Logout</a>
 
             <% } else { %>
                 <a href="/login" class="btn-auth btn-login">Login</a>
@@ -330,7 +277,7 @@
                     <a href="/buyer/dashboard" style="color: var(--primary); font-weight: bold;">Manage Cart &rarr;</a>
                 </div>
                 
-                <div style="background: white; border-radius: 8px; box-shadow: var(--shadow); overflow: hidden;">
+                <div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;">
                     <% cartItems.slice(0, 3).forEach(function(item) { %>
                         <div class="wishcart-item">
                             <div style="display: flex; align-items: center; gap: 10px;">
@@ -354,22 +301,5 @@
 
     </div>
 
-    <script>
-        function toggleProfileMenu(event) {
-            event.stopPropagation();
-            document.getElementById("profileDropdown").classList.toggle("show");
-        }
-
-        window.onclick = function(event) {
-            if (!event.target.closest('.profile-container')) {
-                var dropdowns = document.getElementsByClassName("dropdown-menu");
-                for (var i = 0; i < dropdowns.length; i++) {
-                    if (dropdowns[i].classList.contains('show')) {
-                        dropdowns[i].classList.remove('show');
-                    }
-                }
-            }
-        }
-    </script>
 </body>
 </html>
