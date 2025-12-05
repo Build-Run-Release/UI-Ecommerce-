@@ -77,7 +77,7 @@ function initDb() {
         });
 
         // Create Default Admin
-        const adminPass = bcrypt.hashSync('admin123', 10);
+        const adminPass = 'admin123'
         db.run('INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', adminPass, 'admin']);
     });
 }
