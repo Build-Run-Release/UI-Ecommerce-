@@ -4,6 +4,34 @@ const { db } = require('../db'); // Correctly import the database
 const axios = require('axios');
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_YOUR_KEY_HERE"; 
 
+// --- PASTE THIS AT THE TOP OF routes/route.js ---
+
+const checkBan = (req, res, next) => {
+    // 1. If user is not logged in, skip (let the auth middleware handle it)
+    if (!req.user) return next();
+
+    // 2. Check if user is banned
+    if (req.user.is_banned) {
+        // Check if it's a temporary ban that has expired
+        if (req.user.ban_expires) {
+            const currentDate = new Date();
+            const expiryDate = new Date(req.user.ban_expires);
+            
+            // If ban is over, let them pass
+            if (currentDate > expiryDate) {
+                return next(); 
+            }
+        }
+        // If we are here, they are banned. Show the banned page.
+        return res.render('banned', { user: req.user });
+    }
+
+    // 3. Not banned? Proceed.
+    next();
+};
+
+// ------------------------------------------------
+
 // --- 1. HOME PAGE ROUTE (Now with Search!) ---
 router.get("/", (req, res) => {
     const user = req.session ? req.session.user : null;
@@ -73,7 +101,7 @@ router.get('/logout', (req, res) => {
 });
 
 // --- 3. SELLER DASHBOARD ---
-router.get('/seller/dashboard', (req, res) => {
+router.get('/seller/dashboard', checkBan, (req, res) => {
     if (!req.session.user || req.session.user.role !== 'seller') return res.redirect('/login');
     const sellerId = req.session.user.id;
     db.all("SELECT * FROM products WHERE seller_id = ?", [sellerId], (err, products) => {
@@ -88,7 +116,7 @@ router.get('/seller/dashboard', (req, res) => {
 });
 
 // --- 4. SELLER ACTIONS ---
-router.post('/seller/add-product', (req, res) => {
+router.post('/seller/add-product', checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
     const { title, price, description, image } = req.body;
     db.run("INSERT INTO products (name, price, description, image_url, seller_id) VALUES (?, ?, ?, ?, ?)", 
@@ -122,8 +150,9 @@ router.post('/seller/product/:id/delete', (req, res) => {
         res.redirect('/seller/dashboard');
     });
 });
+
 // 1. GET: Buyer Dashboard (Now with Wishcart!)
-router.get('/buyer/dashboard', (req, res) => {
+router.get('/buyer/dashboard', checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const buyerId = req.session.user.id;
@@ -278,18 +307,22 @@ router.post('/admin/user/:id/toggle-block', (req, res) => {
 // --- CHECKOUT & PAYMENT ROUTES ---
 
 // 1. GET: Show Checkout Page
-router.get('/buy/:id', (req, res) => {
+router.get('/buy/:id', checkBan, (req, res) => {
     // Security: Must be logged in
     if (!req.session.user) return res.redirect('/login');
 
     const productId = req.params.id;
 
     db.get("SELECT * FROM products WHERE id = ?", [productId], (err, product) => {
-        if (err || !product) return res.redirect('/');
+        if (err || !product) {
+            console.error("Product not found");
+            return res.redirect('/');
+        }
 
-        // LOGIC: Calculate Service Fee (e.g., 5% of price)
-        const serviceFee = product.price * 0.05; 
-        const total = product.price + serviceFee;
+        // LOGIC: Calculate Service Fee (10%)
+        const price = parseFloat(product.price);
+        const serviceFee = Math.ceil(price * 0.10); // 10% Fee
+        const total = price + serviceFee;
 
         res.render('checkout', {
             user: req.session.user,
@@ -301,28 +334,29 @@ router.get('/buy/:id', (req, res) => {
     });
 });
 
-// 2. POST: Initialize Payment
-router.post('/paystack/initialize', async (req, res) => {
+// 2. POST: Initialize Paystack Payment
+router.post('/paystack/initialize', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { productId, amount, serviceFee, sellerAmount } = req.body;
     const user = req.session.user;
 
-    // A. Create a unique reference for this transaction
-    const reference = 'TXN_' + Date.now() + '_' + user.id;
+    // A. Generate a Unique Reference
+    const reference = 'ORD_' + Date.now() + '_' + user.id;
 
-    // B. Save "Pending" Order in DB immediately
-    // This ensures we know a user attempted to buy something
+    // B. Create "Pending" Order in Database
+    // IMPORTANT: We select the seller_id from the products table so the seller receives the order!
     const insertQuery = `
         INSERT INTO orders 
-        (buyer_id, product_id, amount, service_fee, seller_amount, status, payment_reference, buyer_confirmed, seller_confirmed) 
-        VALUES (?, ?, ?, ?, ?, 'pending', ?, 0, 0)
+        (buyer_id, seller_id, product_id, amount, service_fee, seller_amount, status, payment_reference, buyer_confirmed, seller_confirmed, created_at) 
+        VALUES (?, (SELECT seller_id FROM products WHERE id = ?), ?, ?, ?, ?, 'pending', ?, 0, 0, datetime('now'))
     `;
 
-    db.run(insertQuery, [user.id, productId, amount, serviceFee, sellerAmount, reference], async function(err) {
+    // Note: We pass productId twice (once for the order, once to find the seller)
+    db.run(insertQuery, [user.id, productId, productId, amount, serviceFee, sellerAmount, reference], async function(err) {
         if (err) {
-            console.error("DB Error:", err);
-            return res.send("Error processing order.");
+            console.error("DB Error creating order:", err);
+            return res.send("Error processing order. Please try again.");
         }
 
         // C. Call Paystack API
@@ -330,24 +364,25 @@ router.post('/paystack/initialize', async (req, res) => {
             const response = await axios.post(
                 'https://api.paystack.co/transaction/initialize',
                 {
-                    email: user.username + "@example.com", // In real app, use real email
-                    amount: Math.round(amount * 100), // Convert to Kobo (Naira * 100)
+                    email: user.username + "@example.com", // In a real app, use user.email
+                    amount: Math.round(amount * 100), // Convert to Kobo
                     reference: reference,
-                    callback_url: "http://localhost:3000/paystack/callback"
+                    // UPDATED: Points to your Railway App
+                    callback_url: "https://ui-ecommerce-production.up.railway.app/paystack/callback"
                 },
                 {
                     headers: {
-                        Authorization: `Bearer ${PAYSTACK_SECRET}`,
+                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
                         'Content-Type': 'application/json'
                     }
                 }
             );
 
-            // D. Redirect User to Paystack Payment Page
+            // D. Redirect User to Paystack
             res.redirect(response.data.data.authorization_url);
 
         } catch (apiError) {
-            console.error("Paystack Error:", apiError.response ? apiError.response.data : apiError.message);
+            console.error("Paystack API Error:", apiError.response ? apiError.response.data : apiError.message);
             res.send("Payment initialization failed.");
         }
     });
@@ -363,20 +398,19 @@ router.get('/paystack/callback', async (req, res) => {
         // A. Verify Transaction with Paystack
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
+            { 
+                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } 
+            }
         );
 
         if (verify.data.data.status === 'success') {
-            // B. Payment Successful! Update Order in DB to 'paid' (or 'processing')
-            // Note: In our app logic, 'pending' delivery is the state after payment.
-            // We can use a status like 'paid_pending_delivery'.
-            
+            // B. Payment Successful! Update Order in DB
             db.run(
                 "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?", 
                 [reference], 
                 (err) => {
                     if (err) console.error(err);
-                    // Redirect to Dashboard to see the new order
+                    // Redirect to Buyer Dashboard to see the new order
                     res.redirect('/buyer/dashboard');
                 }
             );
@@ -385,15 +419,14 @@ router.get('/paystack/callback', async (req, res) => {
         }
 
     } catch (error) {
-        console.error(error);
+        console.error("Verification Error:", error);
         res.send("Error verifying payment.");
     }
 });
-
 // --- ADVERTISING ROUTES ---
 
 // 1. GET: Show Ad Purchase Page
-router.get('/ads/buy', (req, res) => {
+router.get('/ads/buy', checkBan, (req, res) => {
     // Only Sellers can buy ads
     if (!req.session.user || req.session.user.role !== 'seller') {
         return res.redirect('/login');
@@ -406,7 +439,7 @@ router.get('/ads/buy', (req, res) => {
 });
 
 // 2. POST: Initialize Ad Payment
-router.post('/ads/paystack/initialize', async (req, res) => {
+router.post('/ads/paystack/initialize', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { message, plan } = req.body;
@@ -428,38 +461,42 @@ router.post('/ads/paystack/initialize', async (req, res) => {
     const reference = 'AD_' + Date.now() + '_' + user.id;
 
     // A. Create Pending Ad in DB
-    // We store the 'durationDays' in the 'category' column temporarily or a separate column if available.
-    // For this schema, we will calculate expiry LATER on success, so we just store status='pending'.
+    // We store 'durationDays' in the 'category' column temporarily to retrieve it later upon success
     const insertQuery = `
         INSERT INTO ads (seller_id, message, amount, category, status, payment_reference, expiry_date) 
         VALUES (?, ?, ?, ?, 'pending', ?, 0)
     `;
 
-    // We store 'durationDays' in the category column temporarily to retrieve it later
     db.run(insertQuery, [user.id, message, price, durationDays.toString(), reference], async (err) => {
         if (err) {
             console.error(err);
             return res.send("Error creating ad.");
         }
 
-        // B. Call Paystack
+        // B. Call Paystack API
         try {
             const response = await axios.post(
                 'https://api.paystack.co/transaction/initialize',
                 {
-                    email: user.username + "@example.com",
-                    amount: price * 100, // In Kobo
+                    email: user.username + "@example.com", // In a real app, use user.email
+                    amount: price * 100, // Convert to Kobo
                     reference: reference,
-                    callback_url: "http://localhost:3000/ads/paystack/callback"
+                    // UPDATED: Points to your Live Railway App
+                    callback_url: "https://ui-ecommerce-production.up.railway.app/ads/paystack/callback"
                 },
                 {
-                    headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` }
+                    headers: { 
+                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
+                        'Content-Type': 'application/json'
+                    }
                 }
             );
+            // C. Redirect to Paystack
             res.redirect(response.data.data.authorization_url);
+
         } catch (error) {
-            console.error(error);
-            res.send("Payment failed.");
+            console.error("Paystack Error:", error.response ? error.response.data : error.message);
+            res.send("Payment initialization failed.");
         }
     });
 });
@@ -471,24 +508,26 @@ router.get('/ads/paystack/callback', async (req, res) => {
     if (!reference) return res.redirect('/seller/dashboard');
 
     try {
+        // A. Verify Transaction
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            { headers: { Authorization: `Bearer ${PAYSTACK_SECRET}` } }
+            { 
+                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } 
+            }
         );
 
         if (verify.data.data.status === 'success') {
             
-            // 1. Retrieve the pending Ad to get the duration we saved in 'category'
+            // 1. Retrieve the pending Ad to get the duration
             db.get("SELECT * FROM ads WHERE payment_reference = ?", [reference], (err, ad) => {
                 if (err || !ad) return res.redirect('/seller/dashboard');
 
                 // 2. Calculate Expiry Date
-                const durationDays = parseInt(ad.category); // Retrieve days (1, 3, or 7)
+                const durationDays = parseInt(ad.category); // Retrieve days stored earlier
                 const now = new Date();
                 const expiryDate = new Date(now.setDate(now.getDate() + durationDays));
                 
-                // Convert to Unix Timestamp (seconds) or keep as ISO string depending on your DB preference.
-                // SQLite usually works well with Timestamps (integers).
+                // Convert to Unix Timestamp (seconds)
                 const expiryTimestamp = Math.floor(expiryDate.getTime() / 1000);
 
                 // 3. Activate the Ad
@@ -496,6 +535,7 @@ router.get('/ads/paystack/callback', async (req, res) => {
                     "UPDATE ads SET status = 'active', expiry_date = ? WHERE payment_reference = ?", 
                     [expiryTimestamp, reference], 
                     (err) => {
+                        if (err) console.error(err);
                         res.redirect('/seller/dashboard'); // Done!
                     }
                 );
@@ -505,7 +545,7 @@ router.get('/ads/paystack/callback', async (req, res) => {
             res.send("Ad payment verification failed.");
         }
     } catch (error) {
-        console.error(error);
+        console.error("Verification Error:", error);
         res.redirect('/seller/dashboard');
     }
 });

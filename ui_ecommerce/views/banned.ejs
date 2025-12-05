@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Suspended - UI Market</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+            border-top: 6px solid #dc3545; /* Red top border */
+        }
+
+        .icon {
+            font-size: 4rem;
+            color: #dc3545;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0 0 10px;
+            color: #333;
+            font-size: 1.8rem;
+        }
+
+        p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .ban-details {
+            background-color: #fff5f5;
+            border: 1px solid #ffc9c9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            text-align: left;
+        }
+
+        .ban-details strong {
+            color: #dc3545;
+            display: block;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+        }
+
+        .ban-details span {
+            color: #333;
+            font-size: 0.95rem;
+        }
+
+        .actions {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 0.9rem;
+            transition: 0.2s;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-logout {
+            background-color: #333;
+            color: white;
+        }
+        .btn-logout:hover { background-color: #555; }
+
+        .btn-support {
+            background-color: transparent;
+            color: #007bff;
+            border: 1px solid #007bff;
+        }
+        .btn-support:hover { background-color: #e6f0ff; }
+
+        .timer {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #e67e22; /* Orange for temp ban */
+            margin-bottom: 15px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="icon">🚫</div>
+        
+        <% if (user.ban_expires && new Date(user.ban_expires) > new Date()) { %>
+            <h1>Temporary Suspension</h1>
+            <p>Your access to <strong>UI Market</strong> has been temporarily suspended due to a violation of our terms.</p>
+            
+            <div class="timer">
+                Lifted on: <%= new Date(user.ban_expires).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) %>
+            </div>
+        <% } else { %>
+            <h1>Account Banned</h1>
+            <p>Your account has been permanently banned from <strong>UI Market</strong>. You can no longer access your dashboard or make transactions.</p>
+        <% } %>
+
+        <div class="ban-details">
+            <strong>Reason for Suspension:</strong>
+            <span><%= user.ban_reason || 'Violation of Community Guidelines' %></span>
+        </div>
+
+        <p style="font-size: 0.85rem; color: #888;">
+            If you believe this is a mistake, please contact support with your User ID: <strong>#<%= user.id %></strong>
+        </p>
+
+        <div class="actions">
+            <a href="/logout" class="btn btn-logout">Logout</a>
+            <a href="mailto:support@uimarket.com?subject=Appeal Ban (User #<%= user.id %>)" class="btn btn-support">Appeal Ban</a>
+        </div>
+    </div>
+
+</body>
+</html>
