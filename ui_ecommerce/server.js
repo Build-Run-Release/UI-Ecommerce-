@@ -29,7 +29,19 @@ const PORT = process.env.PORT || 3000;
 initDb();
 
 // Security Middleware
-app.use(helmet());
+
+app.use(
+  helmet.contentSecurityPolicy({
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://js.paystack.co"], // Allow Paystack JS & your <script> tags
+      frameSrc: ["'self'", "https://js.paystack.co"], // Allow Paystack Popup Iframe
+      imgSrc: ["'self'", "data:", "https:", "http:"], // Allow images from URLs
+      connectSrc: ["'self'", "https://js.paystack.co"], // Allow connection to Paystack API
+    },
+  })
+);
+
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use(limiter);
 
