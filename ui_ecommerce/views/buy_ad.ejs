@@ -3,225 +3,165 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Seller Dashboard - UI Ecommerce</title>
+    <title>Promote Your Items - UI Ecommerce</title>
     <style>
-        /* 1. Base Styling */
+        /* 1. Base Styles */
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            margin: 0;
-            padding: 0;
-            color: #333;
-        }
-
-        /* 2. Navigation */
-        nav {
-            background-color: #343a40;
-            color: white;
-            padding: 15px 20px;
+            background-color: #f0f2f5;
             display: flex;
-            justify-content: space-between;
+            justify-content: center;
             align-items: center;
-        }
-        nav a { color: #fff; text-decoration: none; margin-left: 15px; }
-        nav a:hover { color: #ccc; }
-
-        /* 3. Layout Grid */
-        .dashboard-container {
-            max-width: 1200px;
-            margin: 30px auto;
-            padding: 0 20px;
-            display: grid;
-            grid-template-columns: 1fr 2fr; /* Sidebar & Main Content */
-            gap: 25px;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
         }
 
-        /* 4. Cards */
-        .card {
+        /* 2. Container */
+        .ad-container {
             background: white;
+            width: 100%;
+            max-width: 500px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            padding: 30px;
+            color: white;
+            text-align: center;
+        }
+
+        .header h1 { margin: 0; font-size: 1.5rem; }
+        .header p { margin: 10px 0 0; opacity: 0.9; }
+
+        .body { padding: 30px; }
+
+        /* 3. Form Elements */
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #444;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
             border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            padding: 25px;
+            box-sizing: border-box;
+            font-family: inherit;
+            resize: vertical;
+            margin-bottom: 20px;
+        }
+
+        /* 4. Pricing Options (Radio Cards) */
+        .pricing-options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
             margin-bottom: 25px;
         }
 
-        .card h2 { margin-top: 0; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; font-size: 1.2rem; }
-        
-        /* 5. Wallet Box */
-        .wallet-box {
-            background: linear-gradient(135deg, #28a745, #218838);
-            color: white;
-            padding: 20px;
+        .price-option {
+            display: flex;
+            align-items: center;
+            border: 1px solid #eee;
+            padding: 15px;
             border-radius: 8px;
-            text-align: center;
-            margin-bottom: 20px;
-        }
-        .wallet-balance { font-size: 2rem; font-weight: bold; margin: 10px 0; }
-
-        /* 6. Forms */
-        form label { display: block; margin-top: 15px; font-weight: 500; }
-        form input, form textarea {
-            width: 100%;
-            padding: 10px;
-            margin-top: 5px;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            box-sizing: border-box;
-        }
-        form button {
-            background-color: #007bff;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            margin-top: 15px;
-            border-radius: 5px;
             cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .price-option:hover {
+            border-color: #764ba2;
+            background-color: #f8f9fa;
+        }
+
+        .price-option input { margin-right: 15px; transform: scale(1.2); }
+        
+        .option-details { flex: 1; }
+        .option-title { font-weight: bold; color: #333; }
+        .option-price { color: #28a745; font-weight: bold; }
+
+        /* 5. Pay Button */
+        .btn-pay {
+            background-color: #28a745;
+            color: white;
             width: 100%;
-            font-size: 1rem;
-        }
-        form button:hover { background-color: #0056b3; }
-
-        /* 7. Tables (For Products & Orders) */
-        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
-        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #eee; }
-        th { background-color: #f8f9fa; color: #666; font-size: 0.9rem; }
-        
-        .status-badge {
-            padding: 5px 10px;
-            border-radius: 12px;
-            font-size: 0.8rem;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
             font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
         }
-        .status-pending { background-color: #fff3cd; color: #856404; }
-        .status-completed { background-color: #d4edda; color: #155724; }
-        
-        .btn-action {
-            padding: 5px 10px;
-            font-size: 0.8rem;
-            width: auto;
-            margin: 0;
-        }
+        .btn-pay:hover { background-color: #218838; }
 
-        /* Mobile Responsive */
-        @media (max-width: 768px) {
-            .dashboard-container { grid-template-columns: 1fr; }
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #666;
+            text-decoration: none;
         }
     </style>
 </head>
 <body>
 
-    <nav>
-        <div style="font-size: 1.2rem; font-weight: bold;">Seller Center</div>
-        <div>
-            <a href="/">Go to Shop</a>
-            <a href="/logout" style="color: #ff6b6b;">Logout</a>
+    <div class="ad-container">
+        <div class="header">
+            <h1>Boost Your Sales</h1>
+            <p>Get your message pinned to the Homepage.</p>
         </div>
-    </nav>
 
-    <div class="dashboard-container">
-        
-        <div class="sidebar">
-            <div class="card">
-                <h2>My Wallet</h2>
-                <div class="wallet-box">
-                    <div>Available Balance</div>
-                    <div class="wallet-balance">₦<%= (user.wallet_balance || 0).toLocaleString() %></div>
-                    <small>Withdrawals are processed weekly</small>
+        <div class="body">
+            <form action="/ads/paystack/initialize" method="POST">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                
+                <label>Ad Message</label>
+                <textarea name="message" rows="3" placeholder="e.g. 50% OFF on all Laptops this weekend! Visit my profile." required maxlength="100"></textarea>
+
+                <label>Select Duration</label>
+                <div class="pricing-options">
+                    
+                    <label class="price-option">
+                        <input type="radio" name="plan" value="1_day_500" checked>
+                        <div class="option-details">
+                            <div class="option-title">24 Hours Boost</div>
+                            <small style="color: #666;">Great for flash sales</small>
+                        </div>
+                        <div class="option-price">₦500</div>
+                    </label>
+
+                    <label class="price-option">
+                        <input type="radio" name="plan" value="3_day_1200">
+                        <div class="option-details">
+                            <div class="option-title">3 Days Boost</div>
+                            <small style="color: #666;">Best value for weekend</small>
+                        </div>
+                        <div class="option-price">₦1,200</div>
+                    </label>
+
+                    <label class="price-option">
+                        <input type="radio" name="plan" value="7_day_2500">
+                        <div class="option-details">
+                            <div class="option-title">7 Days Boost</div>
+                            <small style="color: #666;">Maximum visibility</small>
+                        </div>
+                        <div class="option-price">₦2,500</div>
+                    </label>
+
                 </div>
-                <a href="/ads/buy" style="display:block; text-align:center; color:#007bff; text-decoration:none;">Promote Items (Buy Ads)</a>
-            </div>
 
-            <div class="card">
-                <h2>Payout Settings</h2>
-                <p style="font-size:0.9rem; color:#666;">Enter your bank details to receive payments.</p>
-                <form action="/seller/onboard" method="POST">
-                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                    
-                    <label>Bank Name</label>
-                    <input type="text" name="bank_name" placeholder="e.g. GTBank" value="<%= user.bank_name || '' %>" required>
+                <button type="submit" class="btn-pay">Pay & Publish Ad</button>
+            </form>
 
-                    <label>Account Number</label>
-                    <input type="text" name="account_number" value="<%= user.account_number || '' %>" required>
-
-                    <label>Bank Code</label>
-                    <input type="text" name="bank_code" placeholder="e.g. 058" value="<%= user.bank_code || '' %>" required>
-
-                    <button type="submit">Save Details</button>
-                </form>
-            </div>
-        </div>
-
-        <div class="main-content">
-            
-            <div class="card">
-                <h2>Add New Product</h2>
-                <form action="/seller/add-product" method="POST">
-                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                    
-                    <div style="display: flex; gap: 15px;">
-                        <div style="flex: 2;">
-                            <label>Product Title</label>
-                            <input type="text" name="title" required>
-                        </div>
-                        <div style="flex: 1;">
-                            <label>Price (₦)</label>
-                            <input type="number" name="price" required>
-                        </div>
-                    </div>
-
-                    <label>Description</label>
-                    <textarea name="description" rows="3" required></textarea>
-
-                    <label>Image URL</label>
-                    <input type="text" name="image" placeholder="https://...">
-
-                    <button type="submit">Publish Product</button>
-                </form>
-            </div>
-
-            <div class="card">
-                <h2>Incoming Orders</h2>
-                <% if (orders && orders.length > 0) { %>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Order ID</th>
-                                <th>Item</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% orders.forEach(function(order) { %>
-                                <tr>
-                                    <td>#<%= order.id %></td>
-                                    <td>Item #<%= order.product_id %></td>
-                                    <td>₦<%= order.seller_amount %></td>
-                                    <td>
-                                        <span class="status-badge <%= order.status === 'completed' ? 'status-completed' : 'status-pending' %>">
-                                            <%= order.status %>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <% if (!order.seller_confirmed) { %>
-                                            <form action="/order/<%= order.id %>/confirm/seller" method="POST" style="margin:0;">
-                                                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                <button type="submit" class="btn-action">Confirm Sent</button>
-                                            </form>
-                                        <% } else { %>
-                                            <span>Waiting for Buyer</span>
-                                        <% } %>
-                                    </td>
-                                </tr>
-                            <% }); %>
-                        </tbody>
-                    </table>
-                <% } else { %>
-                    <p style="text-align:center; color:#888; margin-top:20px;">No active orders yet.</p>
-                <% } %>
-            </div>
-
+            <a href="/seller/dashboard" class="back-link">Cancel and Go Back</a>
         </div>
     </div>
 

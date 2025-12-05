@@ -1,26 +1,171 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Checkout</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Checkout - UI Ecommerce</title>
+    <style>
+        /* 1. Base Styles */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+
+        /* 2. Checkout Container (Split Layout) */
+        .checkout-container {
+            display: flex;
+            background: white;
+            width: 100%;
+            max-width: 900px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        /* Left Side: Product Details */
+        .product-section {
+            flex: 1;
+            padding: 40px;
+            background-color: #fff;
+            border-right: 1px solid #eee;
+        }
+
+        /* Right Side: Payment Details */
+        .payment-section {
+            flex: 0.8;
+            padding: 40px;
+            background-color: #fafafa;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        h2 { margin-top: 0; color: #333; }
+        .label { font-size: 0.9rem; color: #888; margin-bottom: 5px; display: block; }
+        .value { font-size: 1.1rem; color: #333; font-weight: 500; margin-bottom: 20px; }
+
+        /* 3. Product Image */
+        .product-preview {
+            width: 100%;
+            height: 200px;
+            background-color: #eee;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+
+        /* 4. Cost Breakdown */
+        .cost-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .total-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #ddd;
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #28a745;
+        }
+
+        /* 5. Pay Button */
+        .btn-pay {
+            background-color: #3bb75e; /* Paystack Green */
+            color: white;
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 30px;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .btn-pay:hover { background-color: #2a9d48; }
+
+        /* Mobile Responsive */
+        @media (max-width: 768px) {
+            .checkout-container { flex-direction: column; }
+            .product-section { border-right: none; border-bottom: 1px solid #eee; }
+        }
+    </style>
 </head>
 <body>
-    <h1>Checkout</h1>
-    <h3>Product: <%= product.title %></h3>
-    <p><%= product.description %></p>
-    <p>Price: $<%= product.price %></p>
-    <p><em>(Includes 10% Service Fee of $<%= serviceFee.toFixed(2) %> which is handled internally)</em></p>
-    
-    <div style="border: 1px solid #ccc; padding: 20px; text-align: center;">
-        <img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Paystack.png" alt="Paystack" width="150" style="margin-bottom: 20px;">
-        <p>Secure Payment via Paystack</p>
+
+    <div class="checkout-container">
         
-        <form action="/paystack/initialize" method="POST">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
-            <input type="hidden" name="productId" value="<%= product.id %>">
-            <button type="submit" style="background-color: #3bb75e; color: white; padding: 10px 20px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer;">
-                Pay $<%= product.price %> with Paystack
-            </button>
-        </form>
+        <div class="product-section">
+            <a href="/" style="text-decoration: none; color: #666; font-size: 0.9rem;">&larr; Cancel and go back</a>
+            <h2 style="margin-top: 20px;">Order Summary</h2>
+            
+            <img src="<%= product.image_url || 'https://via.placeholder.com/400x200' %>" class="product-preview">
+
+            <span class="label">Product Name</span>
+            <div class="value"><%= product.name || product.title %></div>
+
+            <span class="label">Description</span>
+            <div class="value" style="font-size: 0.95rem; line-height: 1.5;"><%= product.description %></div>
+        </div>
+
+        <div class="payment-section">
+            <h2>Payment Details</h2>
+            <p style="color: #666; font-size: 0.9rem; margin-bottom: 30px;">
+                Complete your purchase securely. The funds will be held in Escrow until you confirm receipt.
+            </p>
+
+            <div class="cost-row">
+                <span>Subtotal</span>
+                <span>₦<%= product.price.toLocaleString() %></span>
+            </div>
+            <div class="cost-row">
+                <span>Service Fee (5%)</span>
+                <span>₦<%= serviceFee.toLocaleString() %></span>
+            </div>
+            
+            <div class="total-row">
+                <span>Total</span>
+                <span>₦<%= total.toLocaleString() %></span>
+            </div>
+
+            <form action="/paystack/initialize" method="POST">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                
+                <input type="hidden" name="productId" value="<%= product.id %>">
+                <input type="hidden" name="amount" value="<%= total %>">
+                <input type="hidden" name="serviceFee" value="<%= serviceFee %>">
+                <input type="hidden" name="sellerAmount" value="<%= product.price %>">
+
+                <button type="submit" class="btn-pay">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                    Pay Now
+                </button>
+            </form>
+
+            <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #999;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/1/1f/Paystack.png" height="15" style="vertical-align: middle; opacity: 0.6;">
+                <br>Secured by Paystack
+            </div>
+        </div>
+
     </div>
+
 </body>
 </html>
