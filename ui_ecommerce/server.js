@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 // --- FIX 1: Import connect-mongo for session persistence ---
 const axios = require("axios"); // Ensure axios is installed
-const helmet = require("helmet");
+//const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const csurf = require("csurf");
@@ -31,7 +31,7 @@ initDb();
 // Security Middleware
 
 // Allow Paystack and inline scripts by disabling CSP
-app.use(helmet({ contentSecurityPolicy: false }));
+//app.use(helmet({ contentSecurityPolicy: false }));
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use(limiter);
