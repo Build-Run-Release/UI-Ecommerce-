@@ -1,3 +1,8 @@
+import * as sqlite3 from 'sqlite3'
+import * as express from 'express'
+import * as session from 'express-session'
+import sqliteStoreFactory from 'express-session-sqlite'
+
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -41,23 +46,29 @@ app.set('view engine', 'ejs');
 // --- FIX 3: Configure express-session with MongoStore ---
 // This ensures sessions are persistent, handle server restarts, and allow for scaling.
 app.use(session({
-    // Use the environment variable for the secret key
-    secret: SESSION_SECRET, 
-    resave: false,
-    saveUninitialized: false, 
-    // Configure the session store to use MongoDB
-    store: MongoStore.create({
-        // Use the environment variable for the connection string
-        mongoUrl: process.env.MONGO_URI, 
-        ttl: 14 * 24 * 60 * 60, // 1 day session TTL
+    store: new SqliteStore({
+      // Database library to use. Any library is fine as long as the API is compatible
+      // with sqlite3, such as sqlite3-offline
+      driver: sqlite3.Database,
+      // for in-memory database
+      // path: ':memory:'
+      path: '/tmp/sqlite.db',
+      // Session TTL in milliseconds
+      ttl: 1234,
+      // (optional) Session id prefix. Default is no prefix.
+      prefix: 'sess:',
+      // (optional) Adjusts the cleanup timer in milliseconds for deleting expired session rows.
+      // Default is 5 minutes.
+      cleanupInterval: 300000
     }),
+    //... don't forget other expres-session options you might need
     cookie: {
         maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
         // secure should only be true when running over HTTPS (i.e., in production)
         secure: process.env.NODE_ENV === 'production', 
         httpOnly: true 
     }
-}));
+}))
 
 // CSRF
 const csrfProtection = csurf({ cookie: true });
