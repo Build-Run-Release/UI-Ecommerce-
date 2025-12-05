@@ -1,50 +1,62 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <title>University of Ibadan Ecommerce</title>
-</head>
-<body>
-    <header>
-        <h1>Welcome to UI Ecommerce</h1>
-        <% if (user) { %>
+    <head>
+        <title>University of Ibadan Ecommerce</title>
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
+        />
+    </head>
+    <body>
+        <header>
+            <h1>Welcome to UI Ecommerce</h1>
+            <% if (user) { %>
             <p>Welcome, <%= user.username %> (<%= user.role %>)</p>
             <a href="/logout">Logout</a>
             <% if (user.role === 'seller') { %>
-                <a href="/seller/dashboard">Seller Dashboard</a>
+            <a href="/seller/dashboard">Seller Dashboard</a>
             <% } else if (user.role === 'buyer') { %>
-                <a href="/buyer/dashboard">Buyer Dashboard</a>
-            <% } %>
-        <% } else { %>
+            <a href="/buyer/dashboard">Buyer Dashboard</a>
+            <% } %> <% } else { %>
             <a href="/login">Login</a> | <a href="/signup">Sign Up</a>
-        <% } %>
-    </header>
+            <% } %>
+        </header>
 
-    <main>
-        <% if (ads && ads.length > 0) { %>
-            <section style="background: #fff3cd; padding: 15px; border: 1px solid #ffeeba; margin-bottom: 20px;">
+        <main>
+            <% if (ads && ads.length > 0) { %>
+            <section
+                style="
+                    background: #fff3cd;
+                    padding: 15px;
+                    border: 1px solid #ffeeba;
+                    margin-bottom: 20px;
+                "
+            >
                 <h3>Sponsored</h3>
                 <ul>
                     <% ads.forEach(function(ad) { %>
-                        <li><strong>Ad:</strong> <%= ad.message %></li>
+                    <li><strong>Ad:</strong> <%= ad.message %></li>
                     <% }); %>
                 </ul>
             </section>
-        <% } %>
+            <% } %>
 
-        <h2>Products</h2>
-        <div class="products">
-            <% products.forEach(function(product) { %>
-                <div class="product" style="border: 1px solid #ccc; padding: 10px; margin: 10px;">
+            <h2>Products</h2>
+            <div class="products">
+                <% products.forEach(function(product) { %>
+                <div
+                    class="product"
+                    style="border: 1px solid #ccc; padding: 10px; margin: 10px"
+                >
                     <h3><%= product.title %></h3>
                     <p><%= product.description %></p>
                     <p>Price: $<%= product.price %></p>
                     <a href="/buy/<%= product.id %>">Buy Now</a>
                 </div>
-            <% }); %>
-            <% if (products.length === 0) { %>
+                <% }); %> <% if (products.length === 0) { %>
                 <p>No products available yet.</p>
-            <% } %>
-        </div>
-    </main>
-</body>
+                <% } %>
+            </div>
+        </main>
+    </body>
 </html>

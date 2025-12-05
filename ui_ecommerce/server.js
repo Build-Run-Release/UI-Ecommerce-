@@ -1,33 +1,28 @@
-import * as sqlite3 from 'sqlite3'
-import * as express from 'express'
-import * as session from 'express-session'
-import sqliteStoreFactory from 'express-session-sqlite'
-
-require('dotenv').config();
-const express = require('express');
-const bodyParser = require('body-parser');
-const session = require('express-session');
+require("dotenv").config();
+const express = require("express");
+const bodyParser = require("body-parser");
+const session = require("express-session");
 // --- FIX 1: Import connect-mongo for session persistence ---
-const MongoStore = require('connect-mongo');
-const bcrypt = require('bcrypt');
-const axios = require('axios'); // Ensure axios is installed
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
-const cookieParser = require('cookie-parser');
-const csurf = require('csurf');
-const { body, validationResult } = require('express-validator');
-const { db, initDb } = require('./db');
-const path = require('path');
+const axios = require("axios"); // Ensure axios is installed
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
+const cookieParser = require("cookie-parser");
+const csurf = require("csurf");
+const { body, validationResult } = require("express-validator");
+const { db, initDb } = require("./db");
+const path = require("path");
+const router = require("./routes/route");
+
+var MongoDBStore = require("connect-mongodb-session")(session);
 
 // --- FIX 2: Use environment variables for ALL secrets ---
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 // The MONGO_URI and Session Secret MUST come from your .env file in production.
-const MONGO_URI = process.env.MONGO_URI; 
+const MONGO_URI = process.env.MONGO_URI;
 const SESSION_SECRET = process.env.SESSION_SECRET;
 
-
 const app = express();
-const PORT = process.env.PORT||3000;
+const PORT = process.env.PORT || 3000;
 
 // Initialize DB (Assuming this is a separate SQL database like SQLite)
 initDb();
@@ -40,35 +35,31 @@ app.use(limiter);
 // General Middleware
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(express.static('public'));
-app.set('view engine', 'ejs');
+app.use(express.static("public"));
+app.set("view engine", "ejs");
+
+var store = new MongoDBStore({
+    uri: process.env.MONGO_URI,
+    collection: "mySessions",
+});
 
 // --- FIX 3: Configure express-session with MongoStore ---
 // This ensures sessions are persistent, handle server restarts, and allow for scaling.
-app.use(session({
-    store: new SqliteStore({
-      // Database library to use. Any library is fine as long as the API is compatible
-      // with sqlite3, such as sqlite3-offline
-      driver: sqlite3.Database,
-      // for in-memory database
-      // path: ':memory:'
-      path: '/tmp/sqlite.db',
-      // Session TTL in milliseconds
-      ttl: 1234,
-      // (optional) Session id prefix. Default is no prefix.
-      prefix: 'sess:',
-      // (optional) Adjusts the cleanup timer in milliseconds for deleting expired session rows.
-      // Default is 5 minutes.
-      cleanupInterval: 300000
-    }),
-    //... don't forget other expres-session options you might need
-    cookie: {
-        maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
-        // secure should only be true when running over HTTPS (i.e., in production)
-        secure: process.env.NODE_ENV === 'production', 
-        httpOnly: true 
-    }
-}))
+app.use(
+    session({
+        store,
+        cookie: {
+            maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
+            secure: process.env.NODE_ENV === "production",
+            httpOnly: true,
+        },
+        resave: true,
+        secret:
+            process.env.SESSION_SECRET ||
+            "6bc55868-1c42-4eed-b5f9-4e1108ad47f9",
+        saveUninitialized: true,
+    })
+);
 
 // CSRF
 const csrfProtection = csurf({ cookie: true });
@@ -81,14 +72,20 @@ app.use((req, res, next) => {
 // Blocked Check Middleware
 const checkBlocked = (req, res, next) => {
     if (req.session.user) {
-        db.get('SELECT is_blocked FROM users WHERE id = ?', [req.session.user.id], (err, user) => {
-            if (err) return next(err);
-            if (user && user.is_blocked) {
-                req.session.destroy();
-                return res.send("Your account has been blocked by the admin. Please contact support.");
+        db.get(
+            "SELECT is_blocked FROM users WHERE id = ?",
+            [req.session.user.id],
+            (err, user) => {
+                if (err) return next(err);
+                if (user && user.is_blocked) {
+                    req.session.destroy();
+                    return res.send(
+                        "Your account has been blocked by the admin. Please contact support."
+                    );
+                }
+                next();
             }
-            next();
-        });
+        );
     } else {
         next();
     }
@@ -103,19 +100,23 @@ async function verifyPayment(reference) {
             {
                 headers: {
                     // Paystack secret key from environment variables
-                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`, 
+                    Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
                 },
             }
         );
         return response.data;
     } catch (error) {
-        console.error("Paystack verification error:", error.response?.data || error.message);
+        console.error(
+            "Paystack verification error:",
+            error.response?.data || error.message
+        );
         return null;
     }
 }
 // ---------------------------
 
 // ... (Rest of the routes remain the same) ...
+app.use("/", router);
 
 // Start Server
 app.listen(PORT, () => {
