@@ -1,32 +1,146 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <title>UI Ecommerce - Sign Up</title>
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
-        />
-    </head>
-    <body>
-        <h1>Sign Up</h1>
+<head>
+    <title>UI Ecommerce - Sign Up</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <style>
+        /* 1. General Page Styling */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        /* 2. The Signup Card */
+        .signup-container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px; /* Kept narrow for readability */
+            text-align: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        /* 3. Form Layout */
+        form {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        label {
+            margin-top: 15px;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+
+        /* 4. Input & Select Styling */
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 16px;
+            background-color: #fff;
+        }
+
+        input:focus, select:focus {
+            border-color: #28a745; /* Green focus for signup (positive action) */
+            outline: none;
+        }
+
+        /* 5. Button Styling */
+        button {
+            margin-top: 25px;
+            width: 100%;
+            padding: 12px;
+            background-color: #28a745; /* Green button for "Start/Go" */
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background-color: #218838;
+        }
+
+        /* 6. Links and Errors */
+        .links {
+            margin-top: 20px;
+            font-size: 14px;
+        }
+        
+        .links a {
+            color: #28a745;
+            text-decoration: none;
+        }
+
+        .links a:hover {
+            text-decoration: underline;
+        }
+
+        .error-message {
+            background-color: #ffe6e6;
+            color: #d8000c;
+            border: 1px solid #d8000c;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="signup-container">
+        <h1>Create Account</h1>
+
+        <% if (typeof error !== 'undefined' && error) { %>
+            <div class="error-message">
+                <%= error %>
+            </div>
+        <% } %>
+
         <form action="/signup" method="POST">
-            <input type="hidden" name="_csrf" value="<%= csrfToken %>" />
-            <label
-                >Username: <input type="text" name="username" required /></label
-            ><br />
-            <label
-                >Password:
-                <input type="password" name="password" required /></label
-            ><br />
-            <label
-                >Role:
-                <select name="role">
-                    <option value="buyer">Buyer</option>
-                    <option value="seller">Seller</option>
-                </select> </label
-            ><br />
+            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" placeholder="Choose a username" required>
+
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" placeholder="Create a password" required>
+
+            <label for="role">I am a:</label>
+            <select id="role" name="role">
+                <option value="buyer">Buyer (I want to shop)</option>
+                <option value="seller">Seller (I want to sell)</option>
+            </select>
+
             <button type="submit">Sign Up</button>
         </form>
-        <a href="/login">Login</a>
-    </body>
+
+        <div class="links">
+            Already have an account? <a href="/login">Login here</a>
+        </div>
+    </div>
+
+</body>
 </html>

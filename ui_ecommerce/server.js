@@ -11,7 +11,7 @@ const csurf = require("csurf");
 const { body, validationResult } = require("express-validator");
 const { db, initDb } = require("./db");
 const path = require("path");
-const router = require("./routes/route");
+const mainRoutes = require("./routes/route");
 
 var MongoDBStore = require("connect-mongodb-session")(session);
 
@@ -114,56 +114,8 @@ async function verifyPayment(reference) {
     }
 }
 // ---------------------------
-
+app.use('/', mainRoutes);
 // ... (Rest of the routes remain the same) ...
-app.use("/", router);
-// --- LOGIN ROUTES ---
-
-// 1. GET Route: Shows the Login Page
-app.get('/login', (req, res) => {
-    // We pass 'error: null' so the page doesn't crash trying to read an undefined variable
-    res.render('login', { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' });
-});
-
-// 2. POST Route: Handles the Form Submission
-app.post('/login', (req, res) => {
-    const { username, password } = req.body;
-
-    // Database Logic: Find the user
-    // Note: Since I can't see your db.js, this uses standard SQLite syntax.
-    // If you are using a different DB setup, let me know!
-    const query = "SELECT * FROM users WHERE username = ?";
-    
-    db.get(query, [username], (err, user) => {
-        if (err) {
-            console.error(err);
-            return res.render('login', { error: "System error, try again.", csrfToken: req.csrfToken ? req.csrfToken() : '' });
-        }
-
-        // Check if user exists
-        if (!user) {
-            return res.render('login', { error: "User not found!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
-        }
-
-        // Check if password matches (Using simple comparison for now)
-        // In a real app, you should use: if (bcrypt.compareSync(password, user.password_hash))
-        if (user.password !== password) {
-            return res.render('login', { error: "Invalid password!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
-        }
-
-        // SUCCESS! Save user to session
-        req.session.userId = user.id;
-        req.session.username = user.username;
-        req.session.role = user.role; // Assuming your DB has a 'role' column (admin/buyer)
-
-        // Redirect based on Role
-        if (user.role === 'admin') {
-            res.redirect('/admin_dashboard');
-        } else {
-            res.redirect('/'); // Buyers go to the home page
-        }
-    });
-});
 // Start Server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

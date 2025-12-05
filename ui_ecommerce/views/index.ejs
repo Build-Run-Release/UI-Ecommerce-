@@ -1,62 +1,215 @@
 <!DOCTYPE html>
-<html>
-    <head>
-        <title>University of Ibadan Ecommerce</title>
-        <link
-            rel="stylesheet"
-            href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css"
-        />
-    </head>
-    <body>
-        <header>
-            <h1>Welcome to UI Ecommerce</h1>
-            <% if (user) { %>
-            <p>Welcome, <%= user.username %> (<%= user.role %>)</p>
-            <a href="/logout">Logout</a>
-            <% if (user.role === 'seller') { %>
-            <a href="/seller/dashboard">Seller Dashboard</a>
-            <% } else if (user.role === 'buyer') { %>
-            <a href="/buyer/dashboard">Buyer Dashboard</a>
-            <% } %> <% } else { %>
-            <a href="/login">Login</a> | <a href="/signup">Sign Up</a>
-            <% } %>
-        </header>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>UI Ecommerce - Home</title>
+    <style>
+        /* 1. Base Styles & Reset */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
 
-        <main>
-            <% if (ads && ads.length > 0) { %>
-            <section
-                style="
-                    background: #fff3cd;
-                    padding: 15px;
-                    border: 1px solid #ffeeba;
-                    margin-bottom: 20px;
-                "
-            >
-                <h3>Sponsored</h3>
+        /* 2. Navigation Bar */
+        nav {
+            background-color: #343a40; /* Dark Grey */
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .nav-brand {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #ffffff;
+            text-decoration: none;
+        }
+
+        .nav-links a {
+            color: #ccc;
+            text-decoration: none;
+            margin-left: 20px;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: white;
+        }
+
+        .btn-logout {
+            color: #ff6b6b !important; /* Red for logout */
+        }
+
+        /* 3. Hero Section (Welcome Banner) */
+        .hero {
+            background-color: white;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .hero h1 { margin: 0 0 10px; color: #2c3e50; }
+        .hero p { color: #666; font-size: 1.1rem; }
+
+        /* 4. Container for Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* 5. Ads Section (Styled as a yellow notice) */
+        .ads-section {
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            color: #856404;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 30px;
+        }
+        .ads-section h3 { margin-top: 0; }
+
+        /* 6. Product Grid Layout */
+        .product-grid {
+            display: grid;
+            /* This creates columns that automatically fit the screen width */
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            padding-bottom: 50px;
+        }
+
+        /* 7. Product Card Design */
+        .product-card {
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: transform 0.2s, box-shadow 0.2s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px); /* Lift up slightly on hover */
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            background-color: #e9ecef;
+            object-fit: cover; /* Ensures image covers area without stretching */
+        }
+
+        .product-info {
+            padding: 15px;
+            flex-grow: 1; /* Pushes button to bottom */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .product-title {
+            font-size: 1.1rem;
+            margin: 0 0 10px;
+            color: #2c3e50;
+        }
+
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: bold;
+            color: #28a745; /* Green price */
+            margin-bottom: 15px;
+        }
+
+        .btn-buy {
+            margin-top: auto;
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background-color: #007bff;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+
+        .btn-buy:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <a href="/" class="nav-brand">UI Ecommerce</a>
+        <div class="nav-links">
+            <% if (typeof user !== 'undefined' && user) { %>
+                <span>Welcome, <strong><%= user.username %></strong></span>
+                
+                <% if (user.role === 'seller') { %>
+                    <a href="/seller/dashboard">Seller Dashboard</a>
+                <% } else if (user.role === 'buyer') { %>
+                    <a href="/buyer/dashboard">Buyer Dashboard</a>
+                <% } %>
+                
+                <a href="/logout" class="btn-logout">Logout</a>
+            <% } else { %>
+                <a href="/login">Login</a>
+                <a href="/signup" style="color: #28a745; font-weight: bold;">Sign Up</a>
+            <% } %>
+        </div>
+    </nav>
+
+    <div class="hero">
+        <h1>Welcome to the University of Ibadan Market</h1>
+        <p>Buy and sell items conveniently on campus.</p>
+    </div>
+
+    <div class="container">
+        
+        <% if (typeof ads !== 'undefined' && ads && ads.length > 0) { %>
+            <div class="ads-section">
+                <h3>📢 Sponsored Messages</h3>
                 <ul>
                     <% ads.forEach(function(ad) { %>
-                    <li><strong>Ad:</strong> <%= ad.message %></li>
+                        <li><%= ad.message %></li>
                     <% }); %>
                 </ul>
-            </section>
-            <% } %>
-
-            <h2>Products</h2>
-            <div class="products">
-                <% products.forEach(function(product) { %>
-                <div
-                    class="product"
-                    style="border: 1px solid #ccc; padding: 10px; margin: 10px"
-                >
-                    <h3><%= product.title %></h3>
-                    <p><%= product.description %></p>
-                    <p>Price: $<%= product.price %></p>
-                    <a href="/buy/<%= product.id %>">Buy Now</a>
-                </div>
-                <% }); %> <% if (products.length === 0) { %>
-                <p>No products available yet.</p>
-                <% } %>
             </div>
-        </main>
-    </body>
+        <% } %>
+
+        <h2 style="margin-bottom: 20px;">Latest Products</h2>
+        
+        <div class="product-grid">
+            <% if (typeof products !== 'undefined' && products.length > 0) { %>
+                <% products.forEach(function(product) { %>
+                    <div class="product-card">
+                        <img src="<%= product.image || 'https://via.placeholder.com/300x200?text=No+Image' %>" alt="Product Image" class="product-image">
+                        
+                        <div class="product-info">
+                            <h3 class="product-title"><%= product.name || product.title %></h3>
+                            <p style="color: #666; font-size: 0.9rem;"><%= product.description || 'No description available' %></p>
+                            <div class="product-price">₦<%= product.price %></div>
+                            <a href="/buy/<%= product.id %>" class="btn-buy">Buy Now</a>
+                        </div>
+                    </div>
+                <% }); %>
+            <% } else { %>
+                <p>No products available right now. Check back later!</p>
+            <% } %>
+        </div>
+
+    </div>
+
+</body>
 </html>
