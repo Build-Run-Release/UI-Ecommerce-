@@ -65,6 +65,13 @@ app.use(
     })
 );
 app.use((req, res, next) => {
+    res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self' https://js.paystack.co/v1/inline.js 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.paystack.co"
+    );
+    next();
+});
+app.use((req, res, next) => {
     res.locals.user = req.session.user;
     next();
 });
