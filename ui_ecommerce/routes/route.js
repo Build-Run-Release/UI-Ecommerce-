@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const { db } = require('../db'); // Correctly import the database
 const axios = require('axios');
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_YOUR_KEY_HERE"; 
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_YOUR_KEY_HERE";
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
@@ -33,10 +33,10 @@ const checkBan = (req, res, next) => {
         if (req.user.ban_expires) {
             const currentDate = new Date();
             const expiryDate = new Date(req.user.ban_expires);
-            
+
             // If ban is over, let them pass
             if (currentDate > expiryDate) {
-                return next(); 
+                return next();
             }
         }
         // If we are here, they are banned. Show the banned page.
@@ -64,7 +64,7 @@ router.get("/", (req, res) => {
         // The % symbols are wildcards (matches anything before or after)
         params = [`%${searchTerm}%`, `%${searchTerm}%`];
     }
-    
+
     // Order by newest first
     productQuery += " ORDER BY id DESC";
 
@@ -135,19 +135,19 @@ router.get('/seller/dashboard', checkBan, (req, res) => {
 // --- SELLER: ADD PRODUCT ROUTE (With Image Upload) ---
 // Notice we added 'upload.single('image')' middleware
 router.post('/seller/add-product', checkBan, upload.single('image'), (req, res) => {
-    
+
     // 1. Security Check
     if (!req.session.user) return res.redirect('/login');
 
     const { title, price, description } = req.body;
-    
+
     // 2. Get the filename if an image was uploaded
     const imageFilename = req.file ? req.file.filename : null;
 
     // 3. Insert into Database
     db.run(
-        "INSERT INTO products (name, price, description, image_url, seller_id) VALUES (?, ?, ?, ?, ?)", 
-        [title, price, description, imageFilename, req.session.user.id], 
+        "INSERT INTO products (title, price, description, image_url, seller_id) VALUES (?, ?, ?, ?, ?)",
+        [title, price, description, imageFilename, req.session.user.id],
         (err) => {
             if (err) {
                 console.error("Error adding product:", err);
@@ -158,13 +158,33 @@ router.post('/seller/add-product', checkBan, upload.single('image'), (req, res) 
     );
 });
 
+// --- SELLER: EDIT PRODUCT ROUTE ---
+router.post('/seller/product/:id/edit', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const { title, price, description } = req.body;
+    const productId = req.params.id;
+    const sellerId = req.session.user.id;
+
+    // Update query
+    const query = "UPDATE products SET title = ?, price = ?, description = ? WHERE id = ? AND seller_id = ?";
+
+    db.run(query, [title, price, description, productId, sellerId], (err) => {
+        if (err) {
+            console.error("Error updating product:", err);
+            return res.send("Error updating product.");
+        }
+        res.redirect('/seller/dashboard');
+    });
+});
+
 router.post('/seller/onboard', (req, res) => {
     if (!req.session.user) return res.redirect('/login');
     const { bank_name, account_number, bank_code } = req.body;
-    db.run("UPDATE users SET bank_name = ?, account_number = ?, bank_code = ? WHERE id = ?", 
+    db.run("UPDATE users SET bank_name = ?, account_number = ?, bank_code = ? WHERE id = ?",
         [bank_name, account_number, bank_code, req.session.user.id], (err) => {
-        res.redirect('/seller/dashboard');
-    });
+            res.redirect('/seller/dashboard');
+        });
 });
 // --- SELLER: DELETE PRODUCT ROUTE ---
 router.post('/seller/product/:id/delete', (req, res) => {
@@ -176,7 +196,7 @@ router.post('/seller/product/:id/delete', (req, res) => {
 
     // 2. Delete the product ONLY if it belongs to this seller
     const query = "DELETE FROM products WHERE id = ? AND seller_id = ?";
-    
+
     db.run(query, [productId, sellerId], (err) => {
         if (err) console.error("Error deleting product:", err);
         res.redirect('/seller/dashboard');
@@ -221,7 +241,7 @@ router.get('/buyer/dashboard', checkBan, (req, res) => {
                     cartItems: cartItems,
                     csrfToken: req.csrfToken ? req.csrfToken() : '',
                     // PASS THE PAYSTACK KEY HERE
-                    paystackKey: process.env.PAYSTACK_PUBLIC_KEY 
+                    paystackKey: process.env.PAYSTACK_PUBLIC_KEY
                 });
             });
         });
@@ -241,9 +261,9 @@ router.post('/order/:id/confirm/buyer', checkBan, (req, res) => {
         WHERE id = ? AND buyer_id = ?
     `;
 
-    db.run(updateQuery, [orderId, req.session.user.id], function(err) {
+    db.run(updateQuery, [orderId, req.session.user.id], function (err) {
         if (err) console.error(err);
-        
+
         // Redirect back to dashboard to update the UI
         res.redirect('/buyer/dashboard');
     });
@@ -254,7 +274,7 @@ router.post('/order/:id/confirm/buyer', checkBan, (req, res) => {
 // 3. POST: Add to Cart
 router.post('/cart/add', checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
-    
+
     const { product_id } = req.body;
     const userId = req.session.user.id;
 
@@ -264,10 +284,10 @@ router.post('/cart/add', checkBan, (req, res) => {
             // Already added, just go back
             return res.redirect('/');
         }
-        
+
         db.run("INSERT INTO cart (user_id, product_id) VALUES (?, ?)", [userId, product_id], (err) => {
             // Send them to dashboard to see their cart
-            res.redirect('/buyer/dashboard'); 
+            res.redirect('/buyer/dashboard');
         });
     });
 });
@@ -275,9 +295,9 @@ router.post('/cart/add', checkBan, (req, res) => {
 // 4. POST: Remove from Cart
 router.post('/cart/remove', checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
-    
+
     const { cart_id } = req.body;
-    
+
     db.run("DELETE FROM cart WHERE id = ?", [cart_id], (err) => {
         res.redirect('/buyer/dashboard');
     });
@@ -298,7 +318,7 @@ router.get('/admin_dashboard', (req, res) => {
         // B. Fetch Platform Stats (Total Orders & Total Revenue from Service Fees)
         // 'service_fee' is the column in your orders table
         const statsQuery = "SELECT COUNT(*) as total_orders, SUM(service_fee) as total_revenue FROM orders";
-        
+
         db.get(statsQuery, [], (err, stats) => {
             if (err) stats = { total_orders: 0, total_revenue: 0 };
 
@@ -385,7 +405,7 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
     `;
 
     // Note: We pass productId twice (once for the order, once to find the seller)
-    db.run(insertQuery, [user.id, productId, productId, amount, serviceFee, sellerAmount, reference], async function(err) {
+    db.run(insertQuery, [user.id, productId, productId, amount, serviceFee, sellerAmount, reference], async function (err) {
         if (err) {
             console.error("DB Error creating order:", err);
             return res.send("Error processing order. Please try again.");
@@ -429,8 +449,8 @@ router.get('/paystack/verify', async (req, res) => {
         // A. Verify the Transaction with Paystack
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            { 
-                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } 
+            {
+                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` }
             }
         );
 
@@ -444,8 +464,8 @@ router.get('/paystack/verify', async (req, res) => {
                 if (order) {
                     // --- SCENARIO 1: IT IS A PRODUCT PURCHASE ---
                     db.run(
-                        "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?", 
-                        [reference], 
+                        "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?",
+                        [reference],
                         (err) => {
                             if (err) console.error(err);
                             res.redirect('/buyer/dashboard');
@@ -454,13 +474,13 @@ router.get('/paystack/verify', async (req, res) => {
                 } else {
                     // --- SCENARIO 2: IT IS WALLET FUNDING ---
                     // Since it's not in the orders table, we add the money to the user's wallet
-                    
+
                     // Security: Ensure user is logged in
                     if (!currentUser) return res.redirect('/login');
 
                     db.run(
-                        "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", 
-                        [amountPaid, currentUser.id], 
+                        "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?",
+                        [amountPaid, currentUser.id],
                         (err) => {
                             if (err) console.error(err);
                             console.log(`Wallet funded: +₦${amountPaid} for User ${currentUser.id}`);
@@ -541,7 +561,7 @@ router.post('/ads/paystack/initialize', checkBan, async (req, res) => {
                     callback_url: "https://ui-ecommerce-production.up.railway.app/ads/paystack/callback"
                 },
                 {
-                    headers: { 
+                    headers: {
                         Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
                         'Content-Type': 'application/json'
                     }
@@ -567,13 +587,13 @@ router.get('/ads/paystack/callback', async (req, res) => {
         // A. Verify Transaction
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            { 
-                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } 
+            {
+                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` }
             }
         );
 
         if (verify.data.data.status === 'success') {
-            
+
             // 1. Retrieve the pending Ad to get the duration
             db.get("SELECT * FROM ads WHERE payment_reference = ?", [reference], (err, ad) => {
                 if (err || !ad) return res.redirect('/seller/dashboard');
@@ -582,14 +602,14 @@ router.get('/ads/paystack/callback', async (req, res) => {
                 const durationDays = parseInt(ad.category); // Retrieve days stored earlier
                 const now = new Date();
                 const expiryDate = new Date(now.setDate(now.getDate() + durationDays));
-                
+
                 // Convert to Unix Timestamp (seconds)
                 const expiryTimestamp = Math.floor(expiryDate.getTime() / 1000);
 
                 // 3. Activate the Ad
                 db.run(
-                    "UPDATE ads SET status = 'active', expiry_date = ? WHERE payment_reference = ?", 
-                    [expiryTimestamp, reference], 
+                    "UPDATE ads SET status = 'active', expiry_date = ? WHERE payment_reference = ?",
+                    [expiryTimestamp, reference],
                     (err) => {
                         if (err) console.error(err);
                         res.redirect('/seller/dashboard'); // Done!
@@ -609,7 +629,7 @@ router.get('/ads/paystack/callback', async (req, res) => {
 // GET: Settings Page
 router.get('/settings', (req, res) => {
     if (!req.session.user) return res.redirect('/login');
-    
+
     // You can create a simple 'settings.ejs' view later.
     // For now, we just render a simple message.
     res.send(`
