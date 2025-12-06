@@ -151,7 +151,9 @@ router.post('/seller/product/:id/delete', (req, res) => {
     });
 });
 
-// 1. GET: Buyer Dashboard (Now with Wishcart!)
+// --- BUYER DASHBOARD & ACTIONS ---
+
+// 1. GET: Buyer Dashboard
 router.get('/buyer/dashboard', checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
@@ -169,7 +171,7 @@ router.get('/buyer/dashboard', checkBan, (req, res) => {
     db.all(ordersQuery, [buyerId], (err, orders) => {
         if (err) orders = [];
 
-        // B. Fetch Wishcart Items (JOIN with Products to get details)
+        // B. Fetch Wishcart Items
         const cartQuery = `
             SELECT cart.id as cart_id, products.* FROM cart 
             JOIN products ON cart.product_id = products.id 
@@ -179,31 +181,28 @@ router.get('/buyer/dashboard', checkBan, (req, res) => {
         db.all(cartQuery, [buyerId], (err, cartItems) => {
             if (err) cartItems = [];
 
-            // C. Get Fresh User Data
+            // C. Get Fresh User Data & Render
             db.get("SELECT * FROM users WHERE id = ?", [buyerId], (err, freshUser) => {
                 res.render('buyer_dashboard', {
                     user: freshUser || req.session.user,
                     orders: orders,
-                    cartItems: cartItems, // Pass the cart items to the view
-                    csrfToken: req.csrfToken ? req.csrfToken() : ''
+                    cartItems: cartItems,
+                    csrfToken: req.csrfToken ? req.csrfToken() : '',
+                    // PASS THE PAYSTACK KEY HERE
+                    paystackKey: process.env.PAYSTACK_PUBLIC_KEY 
                 });
             });
         });
     });
 });
 
-// 2. POST: Buyer Confirms Receipt (The "Release Money" Button)
-router.post('/order/:id/confirm/buyer', (req, res) => {
+// 2. POST: Buyer Confirms Receipt
+router.post('/order/:id/confirm/buyer', checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const orderId = req.params.id;
 
-    // Logic:
-    // 1. Mark order as buyer_confirmed = 1
-    // 2. Mark order as escrow_released = 1
-    // 3. Move money from 'Pending' to Seller's 'Wallet' (This would be a transaction in a real bank app)
-    
-    // For now, we update the status flags in the database
+    // Mark as confirmed and released
     const updateQuery = `
         UPDATE orders 
         SET buyer_confirmed = 1, escrow_released = 1, status = 'completed' 
@@ -213,43 +212,44 @@ router.post('/order/:id/confirm/buyer', (req, res) => {
     db.run(updateQuery, [orderId, req.session.user.id], function(err) {
         if (err) console.error(err);
         
-        // Optional: You could write a query here to add money to the Seller's wallet_balance
-        // db.run("UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = (SELECT seller_id FROM products ...)")
+        // Redirect back to dashboard to update the UI
+        res.redirect('/buyer/dashboard');
+    });
+});
 
-        // --- CART / WISHCART ROUTES ---
+// --- CART / WISHCART ROUTES (Now properly separated) ---
 
-        // 2. POST: Add to Cart
-        router.post('/cart/add', (req, res) => {
-            if (!req.session.user) return res.redirect('/login');
-            
-            const { product_id } = req.body;
-            const userId = req.session.user.id;
+// 3. POST: Add to Cart
+router.post('/cart/add', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    
+    const { product_id } = req.body;
+    const userId = req.session.user.id;
 
-            // Check if already in cart to prevent duplicates
-            db.get("SELECT * FROM cart WHERE user_id = ? AND product_id = ?", [userId, product_id], (err, row) => {
-                if (row) {
-                    // Already added, just go back
-                    return res.redirect('/');
-                }
-                
-                db.run("INSERT INTO cart (user_id, product_id) VALUES (?, ?)", [userId, product_id], (err) => {
-                    res.redirect('/buyer/dashboard'); // Send them to dashboard to see it
-                });
-            });
-        });
-
-        // 3. POST: Remove from Cart
-        router.post('/cart/remove', (req, res) => {
-            if (!req.session.user) return res.redirect('/login');
-            
-            const { cart_id } = req.body;
-            db.run("DELETE FROM cart WHERE id = ?", [cart_id], (err) => {
-                res.redirect('/buyer/dashboard');
-            });
+    // Check if already in cart to prevent duplicates
+    db.get("SELECT * FROM cart WHERE user_id = ? AND product_id = ?", [userId, product_id], (err, row) => {
+        if (row) {
+            // Already added, just go back
+            return res.redirect('/');
+        }
+        
+        db.run("INSERT INTO cart (user_id, product_id) VALUES (?, ?)", [userId, product_id], (err) => {
+            // Send them to dashboard to see their cart
+            res.redirect('/buyer/dashboard'); 
         });
     });
 });
 
+// 4. POST: Remove from Cart
+router.post('/cart/remove', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    
+    const { cart_id } = req.body;
+    
+    db.run("DELETE FROM cart WHERE id = ?", [cart_id], (err) => {
+        res.redirect('/buyer/dashboard');
+    });
+});
 // --- ADMIN ROUTES ---
 
 // 1. GET: Admin Dashboard

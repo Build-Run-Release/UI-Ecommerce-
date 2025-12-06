@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="frame-src 'self' https://js.paystack.co https://checkout.paystack.com; ... (other directives)">
     <title>Buyer Dashboard - UI Market</title>
     <style>
         /* --- 1. Base Reset --- */
@@ -179,7 +178,7 @@
 
     <script>
         // REPLACE WITH YOUR PUBLIC KEY
-        const PAYSTACK_PUBLIC_KEY = 'pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'; 
+        const PAYSTACK_PUBLIC_KEY = '<%= paystackKey %>'; 
 
         function initiatePayment() {
             const amountStr = prompt("Enter amount to fund (₦):");
