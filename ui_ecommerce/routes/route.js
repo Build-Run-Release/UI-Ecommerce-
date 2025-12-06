@@ -388,14 +388,13 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
     });
 });
 
-// 3. GET: Paystack Callback (Verification)
+// // 3. GET: Paystack Verification (Handles BOTH Orders & Wallet Funding)
 router.get('/paystack/verify', async (req, res) => {
     const reference = req.query.reference;
-
     if (!reference) return res.redirect('/');
 
     try {
-        // A. Verify Transaction with Paystack
+        // A. Verify the Transaction with Paystack
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
             { 
@@ -404,22 +403,47 @@ router.get('/paystack/verify', async (req, res) => {
         );
 
         if (verify.data.data.status === 'success') {
-            // B. Payment Successful! Update Order in DB
-            db.run(
-                "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?", 
-                [reference], 
-                (err) => {
-                    if (err) console.error(err);
-                    // Redirect to Buyer Dashboard to see the new order
-                    res.redirect('/buyer/dashboard');
+            // Paystack returns amount in Kobo, convert to Naira
+            const amountPaid = verify.data.data.amount / 100;
+            const currentUser = req.session.user;
+
+            // B. Check if this reference belongs to an existing ORDER
+            db.get("SELECT * FROM orders WHERE payment_reference = ?", [reference], (err, order) => {
+                if (order) {
+                    // --- SCENARIO 1: IT IS A PRODUCT PURCHASE ---
+                    db.run(
+                        "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?", 
+                        [reference], 
+                        (err) => {
+                            if (err) console.error(err);
+                            res.redirect('/buyer/dashboard');
+                        }
+                    );
+                } else {
+                    // --- SCENARIO 2: IT IS WALLET FUNDING ---
+                    // Since it's not in the orders table, we add the money to the user's wallet
+                    
+                    // Security: Ensure user is logged in
+                    if (!currentUser) return res.redirect('/login');
+
+                    db.run(
+                        "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", 
+                        [amountPaid, currentUser.id], 
+                        (err) => {
+                            if (err) console.error(err);
+                            console.log(`Wallet funded: +₦${amountPaid} for User ${currentUser.id}`);
+                            res.redirect('/buyer/dashboard');
+                        }
+                    );
                 }
-            );
+            });
+
         } else {
             res.send("Payment verification failed.");
         }
 
     } catch (error) {
-        console.error("Verification Error:", error);
+        console.error("Verification Error:", error.message);
         res.send("Error verifying payment.");
     }
 });
