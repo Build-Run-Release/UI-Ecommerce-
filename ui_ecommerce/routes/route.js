@@ -6,6 +6,23 @@ const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_YOUR_KEY_HER
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
+// --- 1. SETUP MULTER FOR IMAGE UPLOADS ---
+const multer = require('multer');
+const path = require('path');
+
+// Configure where to save images
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        cb(null, 'uploads/'); // Save to 'uploads' folder
+    },
+    filename: function (req, file, cb) {
+        // Rename file to avoid duplicates (e.g., image-123456789.jpg)
+        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
+    }
+});
+
+const upload = multer({ storage: storage });
+
 const checkBan = (req, res, next) => {
     // 1. If user is not logged in, skip (let the auth middleware handle it)
     if (!req.user) return next();
@@ -115,15 +132,30 @@ router.get('/seller/dashboard', checkBan, (req, res) => {
     });
 });
 
-// --- 4. SELLER ACTIONS ---
-router.post('/seller/add-product', checkBan, (req, res) => {
+// --- SELLER: ADD PRODUCT ROUTE (With Image Upload) ---
+// Notice we added 'upload.single('image')' middleware
+router.post('/seller/add-product', checkBan, upload.single('image'), (req, res) => {
+    
+    // 1. Security Check
     if (!req.session.user) return res.redirect('/login');
-    const { title, price, description, image } = req.body;
-    db.run("INSERT INTO products (name, price, description, image_url, seller_id) VALUES (?, ?, ?, ?, ?)", 
-        [title, price, description, image, req.session.user.id], (err) => {
-        if (err) console.log(err);
-        res.redirect('/seller/dashboard');
-    });
+
+    const { title, price, description } = req.body;
+    
+    // 2. Get the filename if an image was uploaded
+    const imageFilename = req.file ? req.file.filename : null;
+
+    // 3. Insert into Database
+    db.run(
+        "INSERT INTO products (name, price, description, image_url, seller_id) VALUES (?, ?, ?, ?, ?)", 
+        [title, price, description, imageFilename, req.session.user.id], 
+        (err) => {
+            if (err) {
+                console.error("Error adding product:", err);
+                return res.send("Error publishing product.");
+            }
+            res.redirect('/seller/dashboard');
+        }
+    );
 });
 
 router.post('/seller/onboard', (req, res) => {
