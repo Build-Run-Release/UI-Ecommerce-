@@ -389,7 +389,7 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
 });
 
 // 3. GET: Paystack Callback (Verification)
-router.get('/paystack/callback', async (req, res) => {
+router.get('/paystack/verify', async (req, res) => {
     const reference = req.query.reference;
 
     if (!reference) return res.redirect('/');
