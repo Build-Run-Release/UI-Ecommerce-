@@ -118,6 +118,18 @@ function initDb() {
             else console.log("Cart table ready");
         });
 
+        db.run(`CREATE TABLE IF NOT EXISTS wishlist (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            product_id INTEGER,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id),
+            FOREIGN KEY(product_id) REFERENCES products(id)
+        )`, (err) => {
+            if (err) console.error("Error creating wishlist table:", err);
+            else console.log("Wishlist table ready");
+        });
+
         // Create Default Admin
         const adminPass = 'admin123'
         db.run('INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', adminPass, 'admin']);

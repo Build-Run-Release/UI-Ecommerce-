@@ -164,6 +164,51 @@
             </div>
             <% } %>
 
+                <% if (typeof wishlistItems !=='undefined' && wishlistItems.length> 0) { %>
+                    <div class="card">
+                        <h2>My Wishlist</h2>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Price</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% wishlistItems.forEach(function(item) { %>
+                                        <tr>
+                                            <td>
+                                                <%= item.title %>
+                                            </td>
+                                            <td>₦<%= item.price %>
+                                            </td>
+                                            <td>
+                                                <div style="display: flex; gap: 10px;">
+                                                    <form action="/cart/add" method="POST">
+                                                        <input type="hidden" name="product_id" value="<%= item.id %>">
+                                                        <input type="hidden" name="_csrf"
+                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                        <button class="btn btn-primary btn-sm">Move to Cart</button>
+                                                    </form>
+                                                    <form action="/wishlist/remove" method="POST">
+                                                        <input type="hidden" name="wishlist_id"
+                                                            value="<%= item.wishlist_id %>">
+                                                        <input type="hidden" name="_csrf"
+                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                        <button class="btn btn-danger btn-sm">×</button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <% } %>
+
     </div>
 
     <!-- Paystack Inline Script -->

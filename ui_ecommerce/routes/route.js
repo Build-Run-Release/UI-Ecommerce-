@@ -293,15 +293,27 @@ router.get('/buyer/dashboard', noCache, checkBan, (req, res) => {
         db.all(cartQuery, [buyerId], (err, cartItems) => {
             if (err) cartItems = [];
 
-            // C. Get Fresh User Data & Render
-            db.get("SELECT * FROM users WHERE id = ?", [buyerId], (err, freshUser) => {
-                res.render('buyer_dashboard', {
-                    user: freshUser || req.session.user,
-                    orders: orders,
-                    cartItems: cartItems,
-                    csrfToken: req.csrfToken ? req.csrfToken() : '',
-                    // PASS THE PAYSTACK KEY HERE
-                    paystackKey: process.env.PAYSTACK_PUBLIC_KEY
+            // D. Fetch Wishlist Items
+            const wishlistQuery = `
+                SELECT wishlist.id as wishlist_id, products.* FROM wishlist 
+                JOIN products ON wishlist.product_id = products.id 
+                WHERE wishlist.user_id = ?
+            `;
+
+            db.all(wishlistQuery, [buyerId], (err, wishlistItems) => {
+                if (err) wishlistItems = [];
+
+                // C. Get Fresh User Data & Render
+                db.get("SELECT * FROM users WHERE id = ?", [buyerId], (err, freshUser) => {
+                    res.render('buyer_dashboard', {
+                        user: freshUser || req.session.user,
+                        orders: orders,
+                        cartItems: cartItems,
+                        wishlistItems: wishlistItems,
+                        csrfToken: req.csrfToken ? req.csrfToken() : '',
+                        // PASS THE PAYSTACK KEY HERE
+                        paystackKey: process.env.PAYSTACK_PUBLIC_KEY
+                    });
                 });
             });
         });
@@ -326,6 +338,25 @@ router.post('/order/:id/confirm/buyer', checkBan, (req, res) => {
 
         // Redirect back to dashboard to update the UI
         res.redirect('/buyer/dashboard');
+    });
+});
+
+// 3. POST: Seller Confirms Sending
+router.post('/order/:id/confirm/seller', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const orderId = req.params.id;
+
+    // Mark as seller_confirmed
+    const updateQuery = `
+        UPDATE orders 
+        SET seller_confirmed = 1, status = 'shipped' 
+        WHERE id = ? AND seller_id = ?
+    `;
+
+    db.run(updateQuery, [orderId, req.session.user.id], (err) => {
+        if (err) console.error(err);
+        res.redirect('/seller/dashboard');
     });
 });
 
@@ -360,6 +391,35 @@ router.post('/cart/remove', checkBan, (req, res) => {
 
     db.run("DELETE FROM cart WHERE id = ?", [cart_id], (err) => {
         res.redirect('/buyer/dashboard');
+    });
+});
+
+// 5. POST: Add to Wishlist
+router.post('/wishlist/add', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const { product_id } = req.body;
+    const userId = req.session.user.id;
+
+    // Check if already in wishlist
+    db.get("SELECT * FROM wishlist WHERE user_id = ? AND product_id = ?", [userId, product_id], (err, row) => {
+        if (row) return res.redirect('/');
+
+        db.run("INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)", [userId, product_id], (err) => {
+            // Success! We can redirect to home or dashboard
+            res.redirect('/buyer/dashboard?tab=wishlist');
+        });
+    });
+});
+
+// 6. POST: Remove from Wishlist
+router.post('/wishlist/remove', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const { wishlist_id } = req.body;
+
+    db.run("DELETE FROM wishlist WHERE id = ?", [wishlist_id], (err) => {
+        res.redirect('/buyer/dashboard?tab=wishlist');
     });
 });
 
@@ -737,17 +797,6 @@ router.get('/ads/paystack/callback', async (req, res) => {
     }
 });
 
-// GET: Settings Page
-router.get('/settings', (req, res) => {
-    if (!req.session.user) return res.redirect('/login');
 
-    // You can create a simple 'settings.ejs' view later.
-    // For now, we just render a simple message.
-    res.send(`
-        <h1>Settings</h1>
-        <p>Profile settings for ${req.session.user.username} coming soon.</p>
-        <a href="/">Go Back</a>
-    `);
-});
 
 module.exports = router;

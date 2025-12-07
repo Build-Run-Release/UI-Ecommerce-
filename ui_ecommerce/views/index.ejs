@@ -250,6 +250,24 @@
                         </div>
 
                         <a href="/buy/<%= product.id %>" class="btn-buy">View Details</a>
+
+                        <div style="display: flex; gap: 10px; margin-top: 10px;">
+                            <form action="/cart/add" method="POST" style="flex: 1;">
+                                <input type="hidden" name="product_id" value="<%= product.id %>">
+                                <input type="hidden" name="_csrf"
+                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                <button type="submit" class="btn btn-primary" style="width: 100%; border-radius: 8px;">+
+                                    Cart</button>
+                            </form>
+
+                            <form action="/wishlist/add" method="POST">
+                                <input type="hidden" name="product_id" value="<%= product.id %>">
+                                <input type="hidden" name="_csrf"
+                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                <button type="submit" class="btn btn-outline"
+                                    style="border-radius: 8px; padding: 10px;">♥</button>
+                            </form>
+                        </div>
                     </div>
                 </div>
                 <% }); %>
