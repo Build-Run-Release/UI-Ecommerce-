@@ -40,6 +40,7 @@ app.use(limiter);
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
 app.use(express.static("public"));
+app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 app.set("view engine", "ejs");
 
 var store = new MongoDBStore({

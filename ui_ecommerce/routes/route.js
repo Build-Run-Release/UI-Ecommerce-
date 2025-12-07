@@ -325,19 +325,46 @@ router.post('/order/:id/confirm/buyer', checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const orderId = req.params.id;
+    const buyerId = req.session.user.id;
 
-    // Mark as confirmed and released
-    const updateQuery = `
-        UPDATE orders 
-        SET buyer_confirmed = 1, escrow_released = 1, status = 'completed' 
-        WHERE id = ? AND buyer_id = ?
-    `;
+    // 1. Get the order details to find the seller and the amount
+    db.get("SELECT * FROM orders WHERE id = ? AND buyer_id = ?", [orderId, buyerId], (err, order) => {
+        if (err || !order) {
+            console.error("Order not found or access denied");
+            return res.redirect('/buyer/dashboard');
+        }
 
-    db.run(updateQuery, [orderId, req.session.user.id], function (err) {
-        if (err) console.error(err);
+        if (order.status === 'completed') {
+            return res.redirect('/buyer/dashboard');
+        }
 
-        // Redirect back to dashboard to update the UI
-        res.redirect('/buyer/dashboard');
+        const sellerId = order.seller_id;
+        const sellerAmount = order.seller_amount;
+
+        // 2. Wrap updates in serialize to ensure they run partially together
+        db.serialize(() => {
+            // A. Mark Order as Completed
+            const updateOrder = `
+                UPDATE orders 
+                SET buyer_confirmed = 1, escrow_released = 1, status = 'completed' 
+                WHERE id = ?
+            `;
+            db.run(updateOrder, [orderId], (err) => {
+                if (err) {
+                    console.error("Error updating order:", err);
+                    return res.redirect('/buyer/dashboard?error=update_failed');
+                }
+
+                // B. Credit Seller's Wallet
+                const updateWallet = "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?";
+                db.run(updateWallet, [sellerAmount, sellerId], (err) => {
+                    if (err) console.error("Error updating seller wallet:", err);
+
+                    console.log(`Verified Order #${orderId}: Released ₦${sellerAmount} to Seller #${sellerId}`);
+                    res.redirect('/buyer/dashboard');
+                });
+            });
+        });
     });
 });
 
