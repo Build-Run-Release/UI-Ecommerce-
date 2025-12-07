@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +8,7 @@
     <!-- Link to Modern CSS -->
     <link rel="stylesheet" href="/css/modern.css">
 </head>
+
 <body>
 
     <div class="overlay" onclick="toggleSidebar()"></div>
@@ -17,7 +19,7 @@
             <span>Seller Center</span>
             <button class="close-sidebar" onclick="toggleSidebar()">×</button>
         </div>
-        
+
         <div class="nav-links">
             <a href="/seller/dashboard" class="active">Dashboard</a>
             <a href="#" onclick="toggleModal('addProductModal')">＋ List New Item</a>
@@ -33,36 +35,37 @@
 
     <!-- Main Content -->
     <div class="main-content">
-        
+
         <!-- Header -->
         <div class="header">
             <div class="header-left">
                 <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
                 <h1 style="margin: 0; font-size: 1.5rem;">Dashboard</h1>
             </div>
-    
+
             <div class="header-actions" style="display: flex; align-items: center; gap: 20px;">
                 <button class="btn btn-primary" onclick="toggleModal('addProductModal')">
-                    <span>＋</span> <span style="display: none; @media(min-width: 600px){ display: inline; }">List Item</span>
+                    <span>＋</span> <span style="display: none; @media(min-width: 600px){ display: inline; }">List
+                        Item</span>
                 </button>
 
                 <div style="text-align: right;">
                     <small style="color: var(--text-muted);">Earnings</small><br>
-                    <strong style="color: var(--success-color);">₦<%= (user.wallet_balance || 0).toLocaleString() %></strong>
+                    <strong style="color: var(--success-color);">₦<%= (user.wallet_balance || 0).toLocaleString() %>
+                    </strong>
                 </div>
 
                 <div class="profile-actions">
-                    <img 
-                        src="<%= user.profile_image ? '/uploads/' + user.profile_image : 'https://ui-avatars.com/api/?name=' + user.username + '&background=4f46e5&color=fff' %>" 
-                        class="profile-img"
-                        onclick="toggleProfileMenu(event)"
-                    >
+                    <img src="<%= user.profile_image ? '/uploads/' + user.profile_image : 'https://ui-avatars.com/api/?name=' + user.username + '&background=4f46e5&color=fff' %>"
+                        class="profile-img" onclick="toggleProfileMenu(event)">
                     <!-- Simple absolute upload trigger for profile pic if needed, hidden for clean look -->
-                    
+
                     <div id="profileDropdown" class="dropdown-menu">
                         <div class="dropdown-header">
                             <small>Signed in as</small><br>
-                            <strong><%= user.username %></strong>
+                            <strong>
+                                <%= user.username %>
+                            </strong>
                         </div>
                         <a href="/">🏠 Go to Shop</a>
                         <a href="/ads/buy">📢 Promote Items</a>
@@ -81,23 +84,27 @@
             </div>
             <div class="card stat-card">
                 <span class="stat-label">Active Listings</span>
-                <span class="stat-value"><%= products ? products.length : 0 %></span>
+                <span class="stat-value">
+                    <%= products ? products.length : 0 %>
+                </span>
             </div>
             <div class="card stat-card">
                 <span class="stat-label">Pending Orders</span>
-                <% let pendingCount = 0; if(orders){ orders.forEach(o => { if(!o.seller_confirmed) pendingCount++; }); } %>
-                <span class="stat-value" style="color: var(--warning-color);"><%= pendingCount %></span>
+                <% let pendingCount=0; if(orders){ orders.forEach(o=> { if(!o.seller_confirmed) pendingCount++; }); } %>
+                    <span class="stat-value" style="color: var(--warning-color);">
+                        <%= pendingCount %>
+                    </span>
             </div>
         </div>
 
         <!-- Content Grid -->
         <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(350px, 1fr)); gap: 24px;">
-            
+
             <!-- Orders Card -->
             <div id="orders" class="card" style="grid-column: 1 / -1;">
                 <h2>Incoming Orders</h2>
                 <div class="table-responsive">
-                    <% if (orders && orders.length > 0) { %>
+                    <% if (orders && orders.length> 0) { %>
                         <table>
                             <thead>
                                 <tr>
@@ -111,47 +118,53 @@
                             <tbody>
                                 <% orders.forEach(function(order) { %>
                                     <tr>
-                                        <td>#<%= order.id %></td>
-                                        <td>Item #<%= order.product_id %></td>
-                                        <td>₦<%= order.seller_amount %></td>
+                                        <td>#<%= order.id %>
+                                        </td>
+                                        <td>Item #<%= order.product_id %>
+                                        </td>
+                                        <td>₦<%= order.seller_amount %>
+                                        </td>
                                         <td>
                                             <% if (order.buyer_confirmed) { %>
                                                 <span class="badge badge-success">Completed</span>
-                                            <% } else if (order.seller_confirmed) { %>
-                                                <span class="badge badge-blue">Shipped</span>
-                                            <% } else { %>
-                                                <span class="badge badge-warning">Pending</span>
-                                            <% } %>
+                                                <% } else if (order.seller_confirmed) { %>
+                                                    <span class="badge badge-blue">Shipped</span>
+                                                    <% } else { %>
+                                                        <span class="badge badge-warning">Pending</span>
+                                                        <% } %>
                                         </td>
                                         <td>
                                             <% if (!order.seller_confirmed) { %>
                                                 <form action="/order/<%= order.id %>/confirm/seller" method="POST">
-                                                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                    <button type="submit" class="btn btn-primary btn-sm">Mark Sent</button>
+                                                    <input type="hidden" name="_csrf"
+                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                    <button type="submit" class="btn btn-primary btn-sm">Mark
+                                                        Sent</button>
                                                 </form>
-                                            <% } else { %>
-                                                <span style="color: var(--success-color);">✓</span>
-                                            <% } %>
+                                                <% } else { %>
+                                                    <span style="color: var(--success-color);">✓</span>
+                                                    <% } %>
                                         </td>
                                     </tr>
-                                <% }); %>
+                                    <% }); %>
                             </tbody>
                         </table>
-                    <% } else { %>
-                        <p style="color: var(--text-muted); padding: 10px;">No active orders.</p>
-                    <% } %>
+                        <% } else { %>
+                            <p style="color: var(--text-muted); padding: 10px;">No active orders.</p>
+                            <% } %>
                 </div>
             </div>
 
             <!-- Inventory Card -->
             <div id="inventory" class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
+                <div
+                    style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
                     <h2 style="border: none; margin: 0; padding: 0;">Inventory</h2>
                     <button class="btn btn-outline btn-sm" onclick="toggleModal('addProductModal')">+ Add</button>
                 </div>
-                
+
                 <div class="table-responsive">
-                    <% if (products && products.length > 0) { %>
+                    <% if (products && products.length> 0) { %>
                         <table>
                             <thead>
                                 <tr>
@@ -165,46 +178,55 @@
                                     <tr>
                                         <td>
                                             <div style="display: flex; align-items: center; gap: 10px;">
-                                                <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || 'https://via.placeholder.com/40') %>" 
-                                                     width="40" height="40" style="border-radius: 6px; object-fit: cover;">
-                                                <div style="font-weight: 500;"><%= product.title %></div>
+                                                <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || 'https://via.placeholder.com/40') %>"
+                                                    width="40" height="40"
+                                                    style="border-radius: 6px; object-fit: cover;">
+                                                <div style="font-weight: 500;">
+                                                    <%= product.title %>
+                                                </div>
                                             </div>
                                         </td>
-                                        <td>₦<%= product.price %></td>
+                                        <td>₦<%= product.price %>
+                                        </td>
                                         <td>
                                             <div style="display: flex; gap: 8px;">
-                                                <button class="btn btn-outline btn-sm" 
-                                                    onclick="openEditModal('<%= product.id %>', '<%= product.title %>', '<%= product.price %>', '<%= product.description %>')">
+                                                <button class="btn btn-outline btn-sm"
+                                                    onclick="openEditModal('<%= product.id %>', '<%= product.title %>', '<%= product.price %>', '<%= product.description %>', '<%= product.category %>')">
                                                     ✎
                                                 </button>
-                                                <form action="/seller/product/<%= product.id %>/delete" method="POST" onsubmit="return confirm('Delete this item?');">
-                                                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                <form action="/seller/product/<%= product.id %>/delete" method="POST"
+                                                    onsubmit="return confirm('Delete this item?');">
+                                                    <input type="hidden" name="_csrf"
+                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                                                     <button type="submit" class="btn btn-danger btn-sm">×</button>
                                                 </form>
                                             </div>
                                         </td>
                                     </tr>
-                                <% }); %>
+                                    <% }); %>
                             </tbody>
                         </table>
-                    <% } else { %>
-                        <p style="color: var(--text-muted);">No products listed yet.</p>
-                    <% } %>
+                        <% } else { %>
+                            <p style="color: var(--text-muted);">No products listed yet.</p>
+                            <% } %>
                 </div>
             </div>
 
             <!-- Settings Card -->
             <div id="settings" class="card">
                 <h2>Payout Details</h2>
-                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: -10px;">Where should we send your money?</p>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: -10px;">Where should we send your
+                    money?</p>
                 <form action="/seller/onboard" method="POST">
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                    
+
                     <label>Bank Name</label>
-                    <input type="text" name="bank_name" value="<%= user.bank_name || '' %>" placeholder="e.g. GTBank" required>
+                    <input type="text" name="bank_name" value="<%= user.bank_name || '' %>" placeholder="e.g. GTBank"
+                        required>
 
                     <label>Account Number</label>
-                    <input type="text" name="account_number" value="<%= user.account_number || '' %>" placeholder="0123456789" required>
+                    <input type="text" name="account_number" value="<%= user.account_number || '' %>"
+                        placeholder="0123456789" required>
 
                     <label>Bank Code</label>
                     <input type="text" name="bank_code" value="<%= user.bank_code || '' %>" placeholder="058" required>
@@ -221,10 +243,10 @@
         <div class="modal-content">
             <span class="close-modal" onclick="toggleModal('addProductModal')">&times;</span>
             <h2>List New Product</h2>
-            
-            <form action="/seller/add-product?_csrf=<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>" method="POST" enctype="multipart/form-data">
+
+            <form action="/seller/add-product" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                
+
                 <label>Product Title</label>
                 <input type="text" name="title" required placeholder="e.g. iPhone 12">
 
@@ -234,15 +256,27 @@
                 <label>Description</label>
                 <textarea name="description" rows="3" required placeholder="Condition, color, defects..."></textarea>
 
+                <label>Category</label>
+                <select name="category" required>
+                    <option value="" disabled selected>Select Category</option>
+                    <option value="Textbooks">Textbooks</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Fashion">Fashion</option>
+                    <option value="Furniture">Furniture</option>
+                    <option value="Other">Other</option>
+                </select>
+
                 <label>Product Image</label>
                 <div class="file-upload-box" onclick="document.getElementById('prodImg').click()">
                     <span style="font-size: 2rem;">☁</span><br>
                     <span>Click to Upload</span>
-                    <input type="file" name="image" id="prodImg" accept="image/*" style="display: none;" onchange="previewFile()">
+                    <input type="file" name="image" id="prodImg" accept="image/*" style="display: none;"
+                        onchange="previewFile()">
                 </div>
-                
+
                 <div id="previewContainer" style="display: none; text-align: center; margin-top: 15px;">
-                    <img id="imgPreview" src="" style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
+                    <img id="imgPreview" src=""
+                        style="width: 100px; height: 100px; object-fit: cover; border-radius: 8px;">
                 </div>
 
                 <div style="margin-top: 20px;">
@@ -257,10 +291,10 @@
         <div class="modal-content">
             <span class="close-modal" onclick="toggleModal('editProductModal')">&times;</span>
             <h2>Edit Product</h2>
-            
+
             <form id="editForm" action="" method="POST">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                
+
                 <label>Product Title</label>
                 <input type="text" id="editTitle" name="title" required>
 
@@ -269,6 +303,15 @@
 
                 <label>Description</label>
                 <textarea id="editDesc" name="description" rows="3" required></textarea>
+
+                <label>Category</label>
+                <select id="editCategory" name="category" required>
+                    <option value="Textbooks">Textbooks</option>
+                    <option value="Electronics">Electronics</option>
+                    <option value="Fashion">Fashion</option>
+                    <option value="Furniture">Furniture</option>
+                    <option value="Other">Other</option>
+                </select>
 
                 <p style="font-size: 0.8rem; color: var(--text-muted);">* Image update not supported in quick edit.</p>
 
@@ -313,18 +356,19 @@
         }
 
         // Populate Edit Modal
-        function openEditModal(id, title, price, description) {
+        function openEditModal(id, title, price, description, category) {
             document.getElementById('editTitle').value = title;
             document.getElementById('editPrice').value = price;
             document.getElementById('editDesc').value = description;
-            
+            document.getElementById('editCategory').value = category || 'Other';
+
             // Set Form Action Dynamically
             document.getElementById('editForm').action = "/seller/product/" + id + "/edit";
-            
+
             toggleModal('editProductModal');
         }
 
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             if (!event.target.closest('.profile-actions')) {
                 const dropdowns = document.getElementsByClassName("dropdown-menu");
                 for (let i = 0; i < dropdowns.length; i++) {
@@ -339,4 +383,5 @@
         }
     </script>
 </body>
+
 </html>

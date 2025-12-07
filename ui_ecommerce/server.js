@@ -76,13 +76,13 @@ app.use((req, res, next) => {
     next();
 });
 
-// CSRF
-const csrfProtection = csurf({ cookie: true });
-app.use(csrfProtection);
-app.use((req, res, next) => {
-    res.locals.csrfToken = req.csrfToken();
-    next();
-});
+// CSRF is now handled in routes/route.js to support file uploads
+// const csrfProtection = csurf({ cookie: true });
+// app.use(csrfProtection);
+// app.use((req, res, next) => {
+//     res.locals.csrfToken = req.csrfToken();
+//     next();
+// });
 
 // Blocked Check Middleware
 const checkBlocked = (req, res, next) => {

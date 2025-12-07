@@ -1,305 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>UI Market - Home</title>
+    <link rel="stylesheet" href="/css/modern.css">
     <style>
-        /* --- 1. CSS Variables & Reset --- */
-        :root {
-            --primary: #007bff;
-            --primary-dark: #0056b3;
-            --success: #28a745;
-            --danger: #dc3545;
-            --dark: #343a40;
-            --light: #f8f9fa;
-            --text-main: #333;
-            --text-muted: #666;
-            --border-radius: 8px;
+        /* Specific Home Page Styles */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color) 0%, #4361ee 100%);
+            color: white;
+            padding: 80px 20px 60px;
+            text-align: center;
+            border-radius: 0 0 50% 50% / 20px;
+            margin-bottom: 40px;
         }
 
-        * { box-sizing: border-box; }
+        .search-container {
+            max-width: 600px;
+            margin: 20px auto 0;
+            background: white;
+            border-radius: 50px;
+            padding: 5px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            display: flex;
+        }
 
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            color: var(--text-main);
-            min-height: 100vh;
+        .search-input {
+            flex: 1;
+            border: none;
+            padding: 15px 25px;
+            font-size: 1rem;
+            outline: none;
+            border-radius: 50px;
+        }
+
+        .search-btn {
+            background-color: var(--dark-color);
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 30px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .search-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* Category Scroll */
+        .category-scroll {
+            display: flex;
+            gap: 15px;
+            padding: 10px 5%;
+            overflow-x: auto;
+            border-bottom: 1px solid var(--border-color);
+            background: white;
+            white-space: nowrap;
+            scrollbar-width: none;
+        }
+
+        .category-scroll::-webkit-scrollbar {
+            display: none;
+        }
+
+        .cat-tag {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            background: var(--bg-color);
+            transition: all 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .cat-tag:hover,
+        .cat-tag.active {
+            background: var(--primary-color);
+            color: white;
+            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
+        }
+
+        /* Product Grid adjustments */
+        .product-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 25px;
+            padding: 20px 5%;
+        }
+
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            border: 1px solid var(--border-color);
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background-color: #f3f4f6;
+        }
+
+        .product-info {
+            padding: 15px;
+            flex: 1;
             display: flex;
             flex-direction: column;
         }
 
-        a { text-decoration: none; color: inherit; }
+        .product-title {
+            margin: 0 0 5px;
+            font-size: 1.1rem;
+            color: var(--text-main);
+        }
 
-        /* --- 2. Navigation Bar --- */
-        nav {
-            background-color: white;
-            padding: 15px 5%;
+        .product-cat {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .product-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--dark-color);
+            margin-top: auto;
+        }
+
+        .btn-buy {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            margin-top: 15px;
+            background: var(--light-color);
+            color: var(--primary-color);
+            text-align: center;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .btn-buy:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .nav {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-        }
-
-        .nav-brand {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--dark);
-        }
-
-        .nav-actions {
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        /* Simple Button Styles */
-        .btn-auth {
-            padding: 8px 16px;
-            border-radius: 6px;
-            font-weight: 600;
-            font-size: 0.9rem;
-            transition: 0.2s;
-            display: inline-block;
-        }
-        
-        .btn-login { color: var(--text-main); border: 1px solid #ddd; }
-        .btn-login:hover { background-color: var(--light); }
-        
-        .btn-signup { background-color: var(--success); color: white; border: none; }
-        .btn-signup:hover { background-color: #218838; }
-
-        .btn-settings { color: var(--text-main); border: 1px solid #ddd; }
-        .btn-settings:hover { background-color: var(--light); border-color: #ccc; }
-
-        .btn-logout { background-color: var(--danger); color: white; border: none; }
-        .btn-logout:hover { background-color: #c82333; }
-
-        .btn-dashboard { background-color: var(--primary); color: white; border: none; }
-        .btn-dashboard:hover { background-color: var(--primary-dark); }
-
-        /* --- 3. Hero Section --- */
-        .hero {
-            background: linear-gradient(135deg, #2c3e50 0%, #4ca1af 100%);
-            color: white;
-            padding: 60px 20px;
-            text-align: center;
-            margin-bottom: 40px;
-        }
-
-        .hero h1 { margin: 0 0 10px; font-size: 2.5rem; }
-        .hero p { opacity: 0.9; font-size: 1.1rem; margin-bottom: 30px; }
-
-        .search-container {
-            max-width: 600px; margin: 0 auto; display: flex;
-            background: white; border-radius: 30px; padding: 5px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-        }
-        
-        .search-input {
-            flex: 1; border: none; padding: 12px 20px;
-            font-size: 1rem; outline: none; border-radius: 30px;
-        }
-        
-        .search-btn {
-            background-color: var(--primary); color: white; border: none;
-            padding: 10px 25px; border-radius: 25px; font-weight: bold; cursor: pointer;
-            transition: background 0.2s;
-        }
-        .search-btn:hover { background-color: var(--primary-dark); }
-
-        /* --- 4. Main Layout --- */
-        .container { max-width: 1200px; margin: 0 auto; padding: 0 20px 60px 20px; }
-
-        .ads-banner {
-            background-color: #fff3cd; color: #856404;
-            padding: 15px; border-radius: var(--border-radius);
-            margin-bottom: 30px; border: 1px solid #ffeeba;
-        }
-
-        .section-header {
-            display: flex; justify-content: space-between; align-items: center;
-            margin-bottom: 25px; border-bottom: 2px solid #eee; padding-bottom: 10px;
-        }
-        .section-title { font-size: 1.5rem; color: var(--dark); margin: 0; }
-
-        /* --- 5. Product Grid --- */
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-            gap: 25px;
-        }
-
-        .product-card {
-            background: white; border-radius: var(--border-radius);
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;
-            transition: transform 0.2s; display: flex; flex-direction: column;
-        }
-        .product-card:hover { transform: translateY(-5px); }
-
-        .product-image {
-            width: 100%; height: 180px; object-fit: cover; background-color: #eee;
-        }
-
-        .product-info { padding: 15px; flex: 1; display: flex; flex-direction: column; }
-        
-        .product-title { font-size: 1.05rem; margin: 0 0 5px; font-weight: 600; color: var(--dark); }
-        .product-desc {
-            font-size: 0.85rem; color: var(--text-muted); margin-bottom: 15px;
-            display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-            line-clamp: 2;
-        }
-
-        .product-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: center; }
-        .price { font-size: 1.2rem; font-weight: bold; color: var(--success); }
-
-        .btn-view {
-            background-color: var(--primary); color: white;
-            padding: 8px 15px; border-radius: 5px; font-size: 0.9rem;
-        }
-        .btn-view:hover { background-color: var(--primary-dark); }
-
-        /* --- 6. Wishcart --- */
-        .wishcart-section { margin-top: 50px; }
-        .wishcart-item {
-            display: flex; align-items: center; justify-content: space-between;
-            background: white; padding: 10px; border-bottom: 1px solid #eee;
-        }
-        .wishcart-item:last-child { border-bottom: none; }
-
-        /* Responsive */
-        @media (max-width: 600px) {
-            .hero h1 { font-size: 1.8rem; }
-            .nav-actions { gap: 10px; }
-            .btn-auth { padding: 6px 12px; font-size: 0.85rem; }
-            .product-grid { grid-template-columns: 1fr 1fr; gap: 15px; }
-            .product-image { height: 140px; }
+            padding: 15px 5%;
+            background: white;
         }
     </style>
 </head>
+
 <body>
 
-    <nav>
-        <a href="/" class="nav-brand">UI Market</a>
-        
-        <div class="nav-actions">
-            <% if (typeof user !== 'undefined' && user) { %>
-                <% if (user.role === 'seller') { %>
-                    <a href="/seller/dashboard" class="btn-auth btn-dashboard">Dashboard</a>
-                <% } else if (user.role === 'buyer') { %>
-                    <a href="/buyer/dashboard" class="btn-auth btn-dashboard">Dashboard</a>
-                <% } else if (user.role === 'admin') { %>
-                    <a href="/admin_dashboard" class="btn-auth btn-dashboard">Admin</a>
-                <% } %>
-
-                <a href="/settings" class="btn-auth btn-settings">Settings</a>
-
-                <a href="/logout" class="btn-auth btn-logout">Logout</a>
-
-            <% } else { %>
-                <a href="/login" class="btn-auth btn-login">Login</a>
-                <a href="/signup" class="btn-auth btn-signup">Sign Up</a>
-            <% } %>
+    <!-- Navbar -->
+    <nav class="nav">
+        <a href="/" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">UI Market</a>
+        <div style="display: flex; gap: 15px;">
+            <% if (typeof user !=='undefined' && user) { %>
+                <% if (user.role==='seller' ) { %>
+                    <a href="/seller/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
+                    <% } else if (user.role==='buyer' ) { %>
+                        <a href="/buyer/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
+                        <% } else if (user.role==='admin' ) { %>
+                            <a href="/admin_dashboard" class="btn btn-outline btn-sm">Admin</a>
+                            <% } %>
+                                <a href="/logout" class="btn btn-danger btn-sm">Logout</a>
+                                <% } else { %>
+                                    <a href="/login" class="btn btn-outline btn-sm">Login</a>
+                                    <a href="/signup" class="btn btn-primary btn-sm">Sign Up</a>
+                                    <% } %>
         </div>
     </nav>
 
-    <header class="hero">
-        <h1>University of Ibadan Market</h1>
-        <p>The safest way to buy and sell items on campus.</p>
-
-        <div class="search-container">
-            <form action="/" method="GET" style="width: 100%; display: flex;">
-                <input type="text" name="search" class="search-input" placeholder="What are you looking for? (e.g. MTH 101, iPhone 12)" value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
-                <button type="submit" class="search-btn">Search</button>
-            </form>
-        </div>
-        <% if (typeof searchTerm !== 'undefined' && searchTerm) { %>
-            <div style="margin-top: 10px;">
-                <a href="/" style="color: rgba(255,255,255,0.8); text-decoration: underline;">Clear Search</a>
-            </div>
-        <% } %>
-    </header>
-
-    <div class="container">
-        
-        <% if (typeof ads !== 'undefined' && ads && ads.length > 0) { %>
-            <div class="ads-banner">
-                <h3 style="margin-top: 0; font-size: 1.1rem;">📢 Campus Updates</h3>
-                <ul style="padding-left: 20px; margin-bottom: 0;">
-                    <% ads.forEach(function(ad) { %>
-                        <li><%= ad.message %></li>
-                    <% }); %>
-                </ul>
-            </div>
-        <% } %>
-
-        <div class="section-header">
-            <h2 class="section-title">Latest Products</h2>
-        </div>
-        
-        <div class="product-grid">
-            <% if (typeof products !== 'undefined' && products.length > 0) { %>
-                <% products.forEach(function(product) { %>
-                    <div class="product-card">
-                        <img 
-                            src="<%= product.image && !product.image.startsWith('http') ? '/uploads/' + product.image : (product.image || 'https://via.placeholder.com/300x200?text=No+Image') %>" 
-                            alt="<%= product.name %>" 
-                            class="product-image"
-                        >
-                        
-                        <div class="product-info">
-                            <h3 class="product-title"><%= product.name || product.title %></h3>
-                            <p class="product-desc"><%= product.description || 'No description available.' %></p>
-                            
-                            <div class="product-footer">
-                                <span class="price">₦<%= parseInt(product.price).toLocaleString() %></span>
-                                <a href="/buy/<%= product.id %>" class="btn-view">View</a>
-                            </div>
-                        </div>
-                    </div>
-                <% }); %>
-            <% } else { %>
-                <div style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-muted);">
-                    <h3>No products found.</h3>
-                    <p>Check back later or try a different search term.</p>
-                </div>
-            <% } %>
-        </div>
-
-        <% if (typeof user !== 'undefined' && user && typeof cartItems !== 'undefined' && cartItems.length > 0) { %>
-            <div class="wishcart-section">
-                <div class="section-header">
-                    <h2 class="section-title">Your Wishcart (<%= cartItems.length %>)</h2>
-                    <a href="/buyer/dashboard" style="color: var(--primary); font-weight: bold;">Manage Cart &rarr;</a>
-                </div>
-                
-                <div style="background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); overflow: hidden;">
-                    <% cartItems.slice(0, 3).forEach(function(item) { %>
-                        <div class="wishcart-item">
-                            <div style="display: flex; align-items: center; gap: 10px;">
-                                <img src="<%= item.image_url || 'https://via.placeholder.com/50' %>" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-                                <div>
-                                    <div style="font-weight: bold;"><%= item.title || item.name %></div>
-                                    <div style="color: var(--success);">₦<%= item.price.toLocaleString() %></div>
-                                </div>
-                            </div>
-                            <a href="/buy/<%= item.id %>" style="font-size: 0.85rem; color: white; background: var(--primary); padding: 5px 10px; border-radius: 4px;">Buy Now</a>
-                        </div>
-                    <% }); %>
-                    <% if(cartItems.length > 3) { %>
-                        <div style="padding: 10px; text-align: center; background: #f8f9fa;">
-                            <a href="/buyer/dashboard" style="color: var(--text-muted); font-size: 0.9rem;">View all items...</a>
-                        </div>
-                    <% } %>
-                </div>
-            </div>
-        <% } %>
-
+    <!-- Categories -->
+    <div class="category-scroll">
+        <a href="/" class="cat-tag <%= !currentCategory ? 'active' : '' %>">All</a>
+        <a href="/?category=Textbooks"
+            class="cat-tag <%= currentCategory === 'Textbooks' ? 'active' : '' %>">Textbooks</a>
+        <a href="/?category=Electronics"
+            class="cat-tag <%= currentCategory === 'Electronics' ? 'active' : '' %>">Electronics</a>
+        <a href="/?category=Fashion" class="cat-tag <%= currentCategory === 'Fashion' ? 'active' : '' %>">Fashion</a>
+        <a href="/?category=Furniture"
+            class="cat-tag <%= currentCategory === 'Furniture' ? 'active' : '' %>">Furniture</a>
+        <a href="/?category=Other" class="cat-tag <%= currentCategory === 'Other' ? 'active' : '' %>">Other</a>
     </div>
 
+    <!-- Hero -->
+    <header class="hero">
+        <h1 style="margin: 0; font-size: 2.5rem;">Buy & Sell on Campus</h1>
+        <p style="opacity: 0.9; font-size: 1.1rem; margin-top: 10px;">Safe, fast, and reliable marketplace for UI
+            students.</p>
+
+        <% if (typeof user==='undefined' || !user) { %>
+            <div style="margin-bottom: 25px;">
+                <a href="/signup" class="btn btn-primary"
+                    style="background: white; color: var(--primary-color); padding: 12px 30px; border-radius: 30px; font-weight: bold; font-size: 1.1rem;">Get
+                    Started</a>
+            </div>
+            <% } %>
+
+                <div class="search-container">
+                    <form action="/" method="GET" style="width: 100%; display: flex;">
+                        <input type="text" name="search" class="search-input"
+                            placeholder="Search for books, phones, etc..."
+                            value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
+                        <button type="submit" class="search-btn">Search</button>
+                    </form>
+                </div>
+    </header>
+
+    <!-- Products -->
+    <div class="product-grid">
+        <% if (typeof products !=='undefined' && products.length> 0) { %>
+            <% products.forEach(function(product) { %>
+                <div class="product-card">
+                    <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || 'https://via.placeholder.com/300x200?text=No+Image') %>"
+                        alt="<%= product.title %>" class="product-image">
+
+                    <div class="product-info">
+                        <span class="product-cat">
+                            <%= product.category || 'Item' %>
+                        </span>
+                        <h3 class="product-title">
+                            <%= product.title %>
+                        </h3>
+
+                        <div class="product-price">₦<%= parseInt(product.price).toLocaleString() %>
+                        </div>
+
+                        <a href="/buy/<%= product.id %>" class="btn-buy">View Details</a>
+                    </div>
+                </div>
+                <% }); %>
+                    <% } else { %>
+                        <div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-muted);">
+                            <h3>No items found here.</h3>
+                            <p>Try clearing filters or searching for something else.</p>
+                            <br>
+                            <a href="/" class="btn btn-outline">Clear Filters</a>
+                        </div>
+                        <% } %>
+    </div>
+
+    <% if (typeof ads !=='undefined' && ads && ads.length> 0) { %>
+        <div
+            style="position: fixed; bottom: 20px; right: 20px; background: #fff3cd; color: #856404; padding: 15px; border-radius: 12px; border: 1px solid #ffeeba; max-width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
+            <strong>📢 Campus Updates</strong>
+            <ul style="padding-left: 20px; margin: 5px 0 0;">
+                <% ads.forEach(function(ad) { %>
+                    <li>
+                        <%= ad.message %>
+                    </li>
+                    <% }); %>
+            </ul>
+            <button onclick="this.parentElement.style.display='none'"
+                style="position: absolute; top: 5px; right: 8px; background: none; border: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
+        </div>
+        <% } %>
+
 </body>
+
 </html>

@@ -1,89 +1,140 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Secure Checkout - UI Market</title>
+    <link rel="stylesheet" href="/css/modern.css">
     <style>
-        /* Base Styles */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex; justify-content: center; align-items: center;
-            min-height: 100vh; margin: 0; padding: 20px;
+            background-color: var(--bg-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
         }
 
         .checkout-container {
-            display: flex; background: white; width: 100%; max-width: 900px;
-            border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden;
+            display: flex;
+            background: white;
+            width: 100%;
+            max-width: 900px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
         }
 
-        /* Layout Columns */
-        .product-section { flex: 1; padding: 40px; background-color: #fff; border-right: 1px solid #eee; }
-        .payment-section { flex: 0.8; padding: 40px; background-color: #fafafa; display: flex; flex-direction: column; justify-content: center; }
+        .product-section {
+            flex: 1;
+            padding: 40px;
+            background: white;
+            border-right: 1px solid var(--border-color);
+        }
 
-        h2 { margin-top: 0; color: #333; }
-        .label { font-size: 0.9rem; color: #888; margin-bottom: 5px; display: block; }
-        .value { font-size: 1.1rem; color: #333; font-weight: 500; margin-bottom: 20px; }
+        .payment-section {
+            flex: 0.8;
+            padding: 40px;
+            background-color: #fafbfc;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
 
         .product-preview {
-            width: 100%; height: 200px; background-color: #eee;
-            border-radius: 8px; margin-bottom: 20px; object-fit: cover;
+            width: 100%;
+            height: 220px;
+            background-color: #f3f4f6;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            object-fit: cover;
         }
 
-        /* Cost Breakdown */
-        .cost-row { display: flex; justify-content: space-between; margin-bottom: 12px; color: #666; font-size: 0.95rem; }
+        .label {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .value {
+            font-size: 1.2rem;
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        .cost-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 12px;
+            color: var(--text-muted);
+        }
+
         .total-row {
-            display: flex; justify-content: space-between; margin-top: 20px; padding-top: 20px;
-            border-top: 2px dashed #ddd; font-size: 1.4rem; font-weight: bold; color: #28a745;
+            display: flex;
+            justify-content: space-between;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed var(--border-color);
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--success-color);
         }
-
-        /* Buttons */
-        .btn-pay {
-            background-color: #3bb75e; color: white; width: 100%; padding: 15px;
-            border: none; border-radius: 6px; font-size: 1.1rem; font-weight: bold;
-            cursor: pointer; margin-top: 30px; transition: background 0.2s;
-            display: flex; align-items: center; justify-content: center; gap: 10px;
-        }
-        .btn-pay:hover { background-color: #2a9d48; }
 
         @media (max-width: 768px) {
-            .checkout-container { flex-direction: column; }
-            .product-section { border-right: none; border-bottom: 1px solid #eee; }
+            .checkout-container {
+                flex-direction: column;
+                margin: 20px;
+            }
+
+            .product-section {
+                border-right: none;
+                border-bottom: 1px solid var(--border-color);
+                padding: 30px;
+            }
+
+            .payment-section {
+                padding: 30px;
+            }
         }
     </style>
 </head>
+
 <body>
 
     <div class="checkout-container">
-        
-        <div class="product-section">
-            <a href="/" style="text-decoration: none; color: #666; font-size: 0.9rem;">&larr; Cancel and go back</a>
-            <h2 style="margin-top: 20px;">Order Summary</h2>
-            
-            <img 
-                src="<%= product.image && !product.image.startsWith('http') ? '/uploads/' + product.image : (product.image || 'https://via.placeholder.com/400x200') %>" 
-                class="product-preview"
-            >
 
-            <span class="label">Product Name</span>
-            <div class="value"><%= product.name || product.title %></div>
+        <div class="product-section">
+            <a href="/"
+                style="text-decoration: none; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; display: inline-block;">&larr;
+                Cancel and go back</a>
+            <h2 style="margin-top: 0;">Order Summary</h2>
+
+            <img src="<%= product.image && !product.image.startsWith('http') ? '/uploads/' + product.image : (product.image || 'https://via.placeholder.com/400x200') %>"
+                class="product-preview">
+
+            <span class="label">Product</span>
+            <div class="value">
+                <%= product.name || product.title %>
+            </div>
 
             <span class="label">Description</span>
-            <div class="value" style="font-size: 0.95rem; line-height: 1.5; color: #555;">
+            <div class="value" style="font-size: 1rem; color: #555;">
                 <%= product.description || 'No description provided.' %>
             </div>
-            
-            <div style="margin-top: 30px; padding: 15px; background: #eef7fe; border-radius: 8px; color: #004085; font-size: 0.9rem;">
-                <strong>🛡 Escrow Protection:</strong><br>
-                Funds are held securely until you confirm receipt.
+
+            <div
+                style="margin-top: 30px; padding: 15px; background: #e0f2fe; border-radius: 8px; color: #0369a1; font-size: 0.9rem; border: 1px solid #bae6fd;">
+                <strong>🛡 Safe & Secure:</strong> Funds are held in escrow until you receive your item.
             </div>
         </div>
 
         <div class="payment-section">
             <h2>Payment Details</h2>
-            <p style="color: #666; font-size: 0.9rem; margin-bottom: 30px;">
-                Review your total before proceeding to Paystack.
+            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 30px;">
+                Complete your purchase securely via Paystack.
             </p>
 
             <div class="cost-row">
@@ -94,31 +145,32 @@
                 <span>Service Fee (10%)</span>
                 <span>₦<%= parseInt(serviceFee).toLocaleString() %></span>
             </div>
-            
+
             <div class="total-row">
-                <span>Total to Pay</span>
+                <span>Total</span>
                 <span>₦<%= parseInt(total).toLocaleString() %></span>
             </div>
 
-            <form action="/paystack/initialize" method="POST">
+            <form action="/paystack/initialize" method="POST" style="margin-top: 30px;">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                
                 <input type="hidden" name="productId" value="<%= product.id %>">
                 <input type="hidden" name="amount" value="<%= total %>">
                 <input type="hidden" name="serviceFee" value="<%= serviceFee %>">
                 <input type="hidden" name="sellerAmount" value="<%= product.price %>">
 
-                <button type="submit" class="btn-pay">
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;">
                     Pay ₦<%= parseInt(total).toLocaleString() %>
                 </button>
             </form>
 
-            <div style="text-align: center; margin-top: 20px; font-size: 0.8rem; color: #999;">
-                Secured by Paystack
+            <div style="text-align: center; margin-top: 20px;">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/2/29/Paystack_Logo.png"
+                    style="height: 20px; opacity: 0.6;">
             </div>
         </div>
 
     </div>
 
 </body>
+
 </html>

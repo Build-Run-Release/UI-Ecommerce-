@@ -4,6 +4,9 @@ const { db } = require('../db'); // Correctly import the database
 const axios = require('axios');
 const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_YOUR_KEY_HERE";
 
+const csurf = require('csurf');
+const cookieParser = require('cookie-parser');
+
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
 // --- 1. SETUP MULTER FOR IMAGE UPLOADS ---
@@ -47,6 +50,46 @@ const checkBan = (req, res, next) => {
     next();
 };
 
+const csrfProtection = csurf({ cookie: true });
+
+// Specific Middleware to pass token to views
+const passCsrfToken = (req, res, next) => {
+    res.locals.csrfToken = req.csrfToken();
+    next();
+};
+
+// --- SPECIAL ROUTES (Uploads) ---
+// We must define this BEFORE the global CSRF middleware so we can insert 'upload' middleware first.
+// This allows Multer to parse the body (and the _csrf field inside it) before csurf validates it.
+
+router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtection, (req, res) => {
+
+    // 1. Security Check
+    if (!req.session.user) return res.redirect('/login');
+
+    const { title, price, description } = req.body;
+
+    // 2. Get the filename if an image was uploaded
+    const imageFilename = req.file ? req.file.filename : null;
+
+    // 3. Insert into Database
+    db.run(
+        "INSERT INTO products (title, price, description, category, image_url, seller_id) VALUES (?, ?, ?, ?, ?, ?)",
+        [title, price, description, req.body.category || 'Other', imageFilename, req.session.user.id],
+        (err) => {
+            if (err) {
+                console.error("Error adding product:", err);
+                return res.send("Error publishing product.");
+            }
+            res.redirect('/seller/dashboard');
+        }
+    );
+});
+
+// --- APPLY GLOBAL CSRF TO ALL OTHER ROUTES ---
+router.use(csrfProtection);
+router.use(passCsrfToken);
+
 // ------------------------------------------------
 
 // --- 1. HOME PAGE ROUTE (Now with Search!) ---
@@ -60,9 +103,19 @@ router.get("/", (req, res) => {
 
     // If they searched, filter by Title OR Description
     if (searchTerm) {
-        productQuery += " WHERE title LIKE ? OR description LIKE ?";
-        // The % symbols are wildcards (matches anything before or after)
+        productQuery += " WHERE (title LIKE ? OR description LIKE ?)";
         params = [`%${searchTerm}%`, `%${searchTerm}%`];
+    }
+
+    // Filter by Category
+    const category = req.query.category;
+    if (category) {
+        if (params.length > 0) {
+            productQuery += " AND category = ?";
+        } else {
+            productQuery += " WHERE category = ?";
+        }
+        params.push(category);
     }
 
     // Order by newest first
@@ -80,7 +133,8 @@ router.get("/", (req, res) => {
                 user: user,
                 products: products,
                 ads: ads,
-                searchTerm: searchTerm // Pass this back so we can show "Clear" button
+                searchTerm: searchTerm,
+                currentCategory: req.query.category || ''
             });
         });
     });
@@ -95,7 +149,18 @@ router.post("/signup", (req, res) => {
         if (row) return res.render('signup', { error: "Username taken!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
         db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, password, role], (err) => {
             if (err) return res.render('signup', { error: "Error creating user", csrfToken: req.csrfToken ? req.csrfToken() : '' });
-            res.redirect('/login');
+
+            // Auto Login logic
+            db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+                if (user) {
+                    req.session.user = user;
+                    if (user.role === 'seller') res.redirect('/seller/dashboard');
+                    else if (user.role === 'admin') res.redirect('/admin_dashboard');
+                    else res.redirect('/buyer/dashboard');
+                } else {
+                    res.redirect('/login');
+                }
+            });
         });
     });
 });
@@ -134,29 +199,8 @@ router.get('/seller/dashboard', checkBan, (req, res) => {
 
 // --- SELLER: ADD PRODUCT ROUTE (With Image Upload) ---
 // Notice we added 'upload.single('image')' middleware
-router.post('/seller/add-product', checkBan, upload.single('image'), (req, res) => {
-
-    // 1. Security Check
-    if (!req.session.user) return res.redirect('/login');
-
-    const { title, price, description } = req.body;
-
-    // 2. Get the filename if an image was uploaded
-    const imageFilename = req.file ? req.file.filename : null;
-
-    // 3. Insert into Database
-    db.run(
-        "INSERT INTO products (title, price, description, image_url, seller_id) VALUES (?, ?, ?, ?, ?)",
-        [title, price, description, imageFilename, req.session.user.id],
-        (err) => {
-            if (err) {
-                console.error("Error adding product:", err);
-                return res.send("Error publishing product.");
-            }
-            res.redirect('/seller/dashboard');
-        }
-    );
-});
+// (Moved above to handle Multer ordering)
+// router.post('/seller/add-product' ... handled above ...
 
 // --- SELLER: EDIT PRODUCT ROUTE ---
 router.post('/seller/product/:id/edit', checkBan, (req, res) => {
@@ -167,9 +211,10 @@ router.post('/seller/product/:id/edit', checkBan, (req, res) => {
     const sellerId = req.session.user.id;
 
     // Update query
-    const query = "UPDATE products SET title = ?, price = ?, description = ? WHERE id = ? AND seller_id = ?";
+    // Update query
+    const query = "UPDATE products SET title = ?, price = ?, description = ?, category = ? WHERE id = ? AND seller_id = ?";
 
-    db.run(query, [title, price, description, productId, sellerId], (err) => {
+    db.run(query, [title, price, description, req.body.category || 'Other', productId, sellerId], (err) => {
         if (err) {
             console.error("Error updating product:", err);
             return res.send("Error updating product.");
@@ -300,6 +345,57 @@ router.post('/cart/remove', checkBan, (req, res) => {
 
     db.run("DELETE FROM cart WHERE id = ?", [cart_id], (err) => {
         res.redirect('/buyer/dashboard');
+    });
+});
+
+// --- SETTINGS ROUTES ---
+
+// 1. GET: Settings Page
+router.get('/settings', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    // Refresh user data
+    db.get("SELECT * FROM users WHERE id = ?", [req.session.user.id], (err, user) => {
+        res.render('settings', {
+            user: user || req.session.user,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+    });
+});
+
+// 2. POST: Update Profile
+router.post('/settings/profile', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const { email, bank_name, account_number } = req.body;
+
+    db.run("UPDATE users SET email = ?, bank_name = ?, account_number = ? WHERE id = ?",
+        [email, bank_name, account_number, req.session.user.id], (err) => {
+            if (!err) {
+                // Update session data
+                req.session.user.email = email;
+                req.session.user.bank_name = bank_name;
+                req.session.user.account_number = account_number;
+            }
+            res.redirect('/settings?msg=profile_updated');
+        });
+});
+
+// 3. POST: Change Password
+router.post('/settings/password', checkBan, (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const { current_password, new_password } = req.body;
+    const userId = req.session.user.id;
+
+    db.get("SELECT password FROM users WHERE id = ?", [userId], (err, row) => {
+        if (row && row.password === current_password) {
+            db.run("UPDATE users SET password = ? WHERE id = ?", [new_password, userId], (err) => {
+                res.redirect('/settings?msg=password_changed');
+            });
+        } else {
+            res.redirect('/settings?error=invalid_password');
+        }
     });
 });
 // --- ADMIN ROUTES ---

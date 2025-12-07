@@ -4,7 +4,7 @@ const fs = require('fs');
 const bcrypt = require('bcrypt');
 
 const dataDir = path.resolve(__dirname, 'data');
-if (!fs.existsSync(dataDir)){
+if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
 }
 
@@ -34,12 +34,22 @@ function initDb() {
             title TEXT,
             description TEXT,
             price REAL,
+            category TEXT,
             seller_id INTEGER,
             image_url TEXT,
             FOREIGN KEY(seller_id) REFERENCES users(id)
         )`, (err) => {
             if (err) console.error("Error creating products table:", err);
-            else console.log("Products table ready");
+            else {
+                console.log("Products table ready");
+                // Check if category column exists (for existing dbs)
+                db.all("PRAGMA table_info(products)", (err, rows) => {
+                    if (rows && !rows.some(r => r.name === 'category')) {
+                        console.log("Migrating: Adding category column to products...");
+                        db.run("ALTER TABLE products ADD COLUMN category TEXT");
+                    }
+                });
+            }
         });
 
         db.run(`CREATE TABLE IF NOT EXISTS orders (
@@ -76,7 +86,7 @@ function initDb() {
             else console.log("Ads table ready");
         });
 
-                // - Add this inside db.serialize(() => { ... })
+        // - Add this inside db.serialize(() => { ... })
         db.run(`CREATE TABLE IF NOT EXISTS cart (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
