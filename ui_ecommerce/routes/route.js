@@ -16,7 +16,7 @@ const path = require('path');
 // Configure where to save images
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'uploads/'); // Save to 'uploads' folder
+        cb(null, 'Uploads/'); // Save to 'Uploads' folder (Capital U to match dir)
     },
     filename: function (req, file, cb) {
         // Rename file to avoid duplicates (e.g., image-123456789.jpg)
@@ -28,14 +28,16 @@ const upload = multer({ storage: storage });
 
 const checkBan = (req, res, next) => {
     // 1. If user is not logged in, skip (let the auth middleware handle it)
-    if (!req.user) return next();
+    if (!req.session.user) return next();
+
+    const user = req.session.user;
 
     // 2. Check if user is banned
-    if (req.user.is_banned) {
+    if (user.is_banned) {
         // Check if it's a temporary ban that has expired
-        if (req.user.ban_expires) {
+        if (user.ban_expires) {
             const currentDate = new Date();
-            const expiryDate = new Date(req.user.ban_expires);
+            const expiryDate = new Date(user.ban_expires);
 
             // If ban is over, let them pass
             if (currentDate > expiryDate) {
@@ -43,9 +45,8 @@ const checkBan = (req, res, next) => {
             }
         }
         // If we are here, they are banned. Show the banned page.
-        return res.render('banned', { user: req.user });
+        return res.render('banned', { user: user });
     }
-
     // 3. Not banned? Proceed.
     next();
 };
