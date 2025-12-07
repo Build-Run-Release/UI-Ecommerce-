@@ -552,7 +552,7 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
 });
 
 // // 3. GET: Paystack Verification (Handles BOTH Orders & Wallet Funding)
-router.get('/paystack/verify', async (req, res) => {
+router.get(['/paystack/verify', '/paystack/callback'], async (req, res) => {
     const reference = req.query.reference;
     if (!reference) return res.redirect('/');
 
