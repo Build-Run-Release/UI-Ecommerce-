@@ -14,9 +14,16 @@ const multer = require('multer');
 const path = require('path');
 
 // Configure where to save images
+const fs = require('fs');
+
+const uploadsDir = path.join(__dirname, '../Uploads'); // Absolute path
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir);
+}
+
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
-        cb(null, 'Uploads/'); // Save to 'Uploads' folder (Capital U to match dir)
+        cb(null, uploadsDir);
     },
     filename: function (req, file, cb) {
         // Rename file to avoid duplicates (e.g., image-123456789.jpg)
@@ -87,7 +94,7 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
         (err) => {
             if (err) {
                 console.error("Error adding product:", err);
-                return res.send("Error publishing product.");
+                return res.status(500).send("Error publishing product: " + err.message);
             }
             res.redirect('/seller/dashboard');
         }
