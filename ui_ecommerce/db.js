@@ -55,6 +55,7 @@ function initDb() {
         db.run(`CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             buyer_id INTEGER,
+            seller_id INTEGER,
             product_id INTEGER,
             amount REAL,
             service_fee REAL,
@@ -64,11 +65,29 @@ function initDb() {
             seller_confirmed INTEGER DEFAULT 0,
             escrow_released INTEGER DEFAULT 0,
             payment_reference TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(buyer_id) REFERENCES users(id),
+            FOREIGN KEY(seller_id) REFERENCES users(id),
             FOREIGN KEY(product_id) REFERENCES products(id)
         )`, (err) => {
             if (err) console.error("Error creating orders table:", err);
-            else console.log("Orders table ready");
+            else {
+                console.log("Orders table ready");
+                // Migration: Add seller_id if missing
+                db.all("PRAGMA table_info(orders)", (err, rows) => {
+                    const columns = rows.map(r => r.name);
+
+                    if (!columns.includes('seller_id')) {
+                        console.log("Migrating: Adding seller_id column to orders...");
+                        db.run("ALTER TABLE orders ADD COLUMN seller_id INTEGER");
+                    }
+
+                    if (!columns.includes('created_at')) {
+                        console.log("Migrating: Adding created_at column to orders...");
+                        db.run("ALTER TABLE orders ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP");
+                    }
+                });
+            }
         });
 
         db.run(`CREATE TABLE IF NOT EXISTS ads (
