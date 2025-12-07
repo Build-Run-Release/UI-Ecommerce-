@@ -59,6 +59,13 @@ const passCsrfToken = (req, res, next) => {
     next();
 };
 
+const noCache = (req, res, next) => {
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.set('Pragma', 'no-cache');
+    res.set('Expires', '0');
+    next();
+};
+
 // --- SPECIAL ROUTES (Uploads) ---
 // We must define this BEFORE the global CSRF middleware so we can insert 'upload' middleware first.
 // This allows Multer to parse the body (and the _csrf field inside it) before csurf validates it.
@@ -184,7 +191,7 @@ router.get('/logout', (req, res) => {
 });
 
 // --- 3. SELLER DASHBOARD ---
-router.get('/seller/dashboard', checkBan, (req, res) => {
+router.get('/seller/dashboard', noCache, checkBan, (req, res) => {
     if (!req.session.user || req.session.user.role !== 'seller') return res.redirect('/login');
     const sellerId = req.session.user.id;
     db.all("SELECT * FROM products WHERE seller_id = ?", [sellerId], (err, products) => {
@@ -252,7 +259,7 @@ router.post('/seller/product/:id/delete', (req, res) => {
 // --- BUYER DASHBOARD & ACTIONS ---
 
 // 1. GET: Buyer Dashboard
-router.get('/buyer/dashboard', checkBan, (req, res) => {
+router.get('/buyer/dashboard', noCache, checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const buyerId = req.session.user.id;
@@ -352,7 +359,7 @@ router.post('/cart/remove', checkBan, (req, res) => {
 // --- SETTINGS ROUTES ---
 
 // 1. GET: Settings Page
-router.get('/settings', checkBan, (req, res) => {
+router.get('/settings', noCache, checkBan, (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     // Refresh user data
@@ -402,7 +409,7 @@ router.post('/settings/password', checkBan, (req, res) => {
 // --- ADMIN ROUTES ---
 
 // 1. GET: Admin Dashboard
-router.get('/admin_dashboard', (req, res) => {
+router.get('/admin_dashboard', noCache, (req, res) => {
     // Security: Strict check for Admin role
     if (!req.session.user || req.session.user.role !== 'admin') {
         return res.redirect('/login');
