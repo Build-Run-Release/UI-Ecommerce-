@@ -661,14 +661,24 @@ router.get(['/paystack/verify', '/paystack/callback'], async (req, res) => {
             db.get("SELECT * FROM orders WHERE payment_reference = ?", [reference], (err, order) => {
                 if (order) {
                     // --- SCENARIO 1: IT IS A PRODUCT PURCHASE ---
-                    db.run(
-                        "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?",
-                        [reference],
-                        (err) => {
-                            if (err) console.error(err);
-                            res.redirect('/buyer/dashboard');
-                        }
-                    );
+                    db.serialize(() => {
+                        // 1. Credit Buyer's Wallet (Inflow from Paystack)
+                        db.run("UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", [amountPaid, order.buyer_id]);
+
+                        // 2. Deduct Buyer's Wallet (Outflow for Order)
+                        db.run("UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?", [amountPaid, order.buyer_id]);
+
+                        // 3. Mark Order as Paid
+                        db.run(
+                            "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?",
+                            [reference],
+                            (err) => {
+                                if (err) console.error(err);
+                                console.log(`Order #${order.id}: Funds routed through wallet (Credit/Debit) for Buyer #${order.buyer_id}`);
+                                res.redirect('/buyer/dashboard');
+                            }
+                        );
+                    });
                 } else {
                     // --- SCENARIO 2: IT IS WALLET FUNDING ---
                     // Since it's not in the orders table, we add the money to the user's wallet
