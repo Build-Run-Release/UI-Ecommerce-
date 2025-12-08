@@ -86,22 +86,25 @@ app.use((req, res, next) => {
 // });
 
 // Blocked Check Middleware
-const checkBlocked = (req, res, next) => {
+const checkBlocked = async (req, res, next) => {
     if (req.session.user) {
-        db.get(
-            "SELECT is_blocked FROM users WHERE id = ?",
-            [req.session.user.id],
-            (err, user) => {
-                if (err) return next(err);
-                if (user && user.is_blocked) {
-                    req.session.destroy();
-                    return res.send(
-                        "Your account has been blocked by the admin. Please contact support."
-                    );
-                }
-                next();
+        try {
+            const result = await db.execute({
+                sql: "SELECT is_blocked FROM users WHERE id = ?",
+                args: [req.session.user.id]
+            });
+            const user = result.rows[0];
+
+            if (user && user.is_blocked) {
+                req.session.destroy();
+                return res.send(
+                    "Your account has been blocked by the admin. Please contact support."
+                );
             }
-        );
+            next();
+        } catch (err) {
+            next(err);
+        }
     } else {
         next();
     }

@@ -1,19 +1,14 @@
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
-const fs = require('fs');
-const bcrypt = require('bcrypt');
+require('dotenv').config();
+const { createClient } = require('@libsql/client');
 
-const dataDir = path.resolve(__dirname, 'data');
-if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
-}
+const client = createClient({
+    url: process.env.TURSO_DATABASE_URL ? process.env.TURSO_DATABASE_URL : 'file:local.db', // Fallback to local file if not set, or error
+    authToken: process.env.TURSO_AUTH_TOKEN,
+});
 
-const dbPath = path.resolve(dataDir, 'ecommerce.db');
-const db = new sqlite3.Database(dbPath);
-
-function initDb() {
-    db.serialize(() => {
-        db.run(`CREATE TABLE IF NOT EXISTS users (
+async function initDb() {
+    try {
+        await client.execute(`CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             username TEXT UNIQUE,
             password TEXT,
@@ -23,13 +18,28 @@ function initDb() {
             is_blocked INTEGER DEFAULT 0,
             bank_name TEXT,
             account_number TEXT,
-            paystack_subaccount_code TEXT
-        )`, (err) => {
-            if (err) console.error("Error creating users table:", err);
-            else console.log("Users table ready");
-        });
+            paystack_subaccount_code TEXT,
+            bank_code TEXT
+        )`);
+        console.log("Users table ready");
 
-        db.run(`CREATE TABLE IF NOT EXISTS products (
+        // Migration: Add bank_code if missing
+        const userColsRes = await client.execute("PRAGMA table_info(users)");
+        const userCols = userColsRes.rows.map(r => r.name);
+        if (!userCols.includes('bank_code')) {
+            console.log("Migrating: Adding bank_code column to users...");
+            await client.execute("ALTER TABLE users ADD COLUMN bank_code TEXT");
+        }
+        if (!userCols.includes('bank_name')) {
+            console.log("Migrating: Adding bank_name column to users...");
+            await client.execute("ALTER TABLE users ADD COLUMN bank_name TEXT");
+        }
+        if (!userCols.includes('account_number')) {
+            console.log("Migrating: Adding account_number column to users...");
+            await client.execute("ALTER TABLE users ADD COLUMN account_number TEXT");
+        }
+
+        await client.execute(`CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT,
             description TEXT,
@@ -38,21 +48,20 @@ function initDb() {
             seller_id INTEGER,
             image_url TEXT,
             FOREIGN KEY(seller_id) REFERENCES users(id)
-        )`, (err) => {
-            if (err) console.error("Error creating products table:", err);
-            else {
-                console.log("Products table ready");
-                // Check if category column exists (for existing dbs)
-                db.all("PRAGMA table_info(products)", (err, rows) => {
-                    if (rows && !rows.some(r => r.name === 'category')) {
-                        console.log("Migrating: Adding category column to products...");
-                        db.run("ALTER TABLE products ADD COLUMN category TEXT");
-                    }
-                });
-            }
-        });
+        )`);
+        console.log("Products table ready");
 
-        db.run(`CREATE TABLE IF NOT EXISTS orders (
+        // Migration for products category
+        // Note: LibSQL execute returns Result { columns, rows, ... }
+        // We can check columns by selecting 1 row usually, or using PRAGMA
+        // PRAGMA table_info returns rows
+        const prodInfo = await client.execute("PRAGMA table_info(products)");
+        if (!prodInfo.rows.some(r => r.name === 'category')) {
+            console.log("Migrating: Adding category column to products...");
+            await client.execute("ALTER TABLE products ADD COLUMN category TEXT");
+        }
+
+        await client.execute(`CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             buyer_id INTEGER,
             seller_id INTEGER,
@@ -69,28 +78,22 @@ function initDb() {
             FOREIGN KEY(buyer_id) REFERENCES users(id),
             FOREIGN KEY(seller_id) REFERENCES users(id),
             FOREIGN KEY(product_id) REFERENCES products(id)
-        )`, (err) => {
-            if (err) console.error("Error creating orders table:", err);
-            else {
-                console.log("Orders table ready");
-                // Migration: Add seller_id if missing
-                db.all("PRAGMA table_info(orders)", (err, rows) => {
-                    const columns = rows.map(r => r.name);
+        )`);
+        console.log("Orders table ready");
 
-                    if (!columns.includes('seller_id')) {
-                        console.log("Migrating: Adding seller_id column to orders...");
-                        db.run("ALTER TABLE orders ADD COLUMN seller_id INTEGER");
-                    }
+        // Migration for orders
+        const ordersInfo = await client.execute("PRAGMA table_info(orders)");
+        const orderCols = ordersInfo.rows.map(r => r.name);
+        if (!orderCols.includes('seller_id')) {
+            console.log("Migrating: Adding seller_id column to orders...");
+            await client.execute("ALTER TABLE orders ADD COLUMN seller_id INTEGER");
+        }
+        if (!orderCols.includes('created_at')) {
+            console.log("Migrating: Adding created_at column to orders...");
+            await client.execute("ALTER TABLE orders ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP");
+        }
 
-                    if (!columns.includes('created_at')) {
-                        console.log("Migrating: Adding created_at column to orders...");
-                        db.run("ALTER TABLE orders ADD COLUMN created_at DATETIME DEFAULT CURRENT_TIMESTAMP");
-                    }
-                });
-            }
-        });
-
-        db.run(`CREATE TABLE IF NOT EXISTS ads (
+        await client.execute(`CREATE TABLE IF NOT EXISTS ads (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             seller_id INTEGER,
             message TEXT,
@@ -100,40 +103,42 @@ function initDb() {
             status TEXT,
             payment_reference TEXT,
             FOREIGN KEY(seller_id) REFERENCES users(id)
-        )`, (err) => {
-            if (err) console.error("Error creating ads table:", err);
-            else console.log("Ads table ready");
-        });
+        )`);
+        console.log("Ads table ready");
 
-        // - Add this inside db.serialize(() => { ... })
-        db.run(`CREATE TABLE IF NOT EXISTS cart (
+        await client.execute(`CREATE TABLE IF NOT EXISTS cart (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             product_id INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id),
             FOREIGN KEY(product_id) REFERENCES products(id)
-        )`, (err) => {
-            if (err) console.error("Error creating cart table:", err);
-            else console.log("Cart table ready");
-        });
+        )`);
+        console.log("Cart table ready");
 
-        db.run(`CREATE TABLE IF NOT EXISTS wishlist (
+        await client.execute(`CREATE TABLE IF NOT EXISTS wishlist (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER,
             product_id INTEGER,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(user_id) REFERENCES users(id),
             FOREIGN KEY(product_id) REFERENCES products(id)
-        )`, (err) => {
-            if (err) console.error("Error creating wishlist table:", err);
-            else console.log("Wishlist table ready");
-        });
+        )`);
+        console.log("Wishlist table ready");
 
         // Create Default Admin
-        const adminPass = 'admin123'
-        db.run('INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)', ['admin', adminPass, 'admin']);
-    });
+        const adminPass = 'admin123';
+        // LibSQL uses ? or :param for placeholders. '@libsql/client' supports ?
+        await client.execute({
+            sql: 'INSERT OR IGNORE INTO users (username, password, role) VALUES (?, ?, ?)',
+            args: ['admin', adminPass, 'admin']
+        });
+
+    } catch (err) {
+        console.error("Error initializing DB:", err);
+    }
 }
 
-module.exports = { db, initDb };
+// Export 'db' as client to minimize rename refactoring, but usage must change
+module.exports = { db: client, initDb };
+

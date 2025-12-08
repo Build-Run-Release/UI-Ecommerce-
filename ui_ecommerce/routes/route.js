@@ -77,28 +77,48 @@ const noCache = (req, res, next) => {
 // We must define this BEFORE the global CSRF middleware so we can insert 'upload' middleware first.
 // This allows Multer to parse the body (and the _csrf field inside it) before csurf validates it.
 
-router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtection, (req, res) => {
+router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtection, async (req, res) => {
 
     // 1. Security Check
     if (!req.session.user) return res.redirect('/login');
 
     const { title, price, description } = req.body;
+    const submittedPrice = parseFloat(price);
 
     // 2. Get the filename if an image was uploaded
     const imageFilename = req.file ? req.file.filename : null;
 
-    // 3. Insert into Database
-    db.run(
-        "INSERT INTO products (title, price, description, category, image_url, seller_id) VALUES (?, ?, ?, ?, ?, ?)",
-        [title, price, description, req.body.category || 'Other', imageFilename, req.session.user.id],
-        (err) => {
-            if (err) {
-                console.error("Error adding product:", err);
-                return res.status(500).send("Error publishing product: " + err.message);
+    try {
+        // --- PRICE GUARD IMPLEMENTATION ---
+        const { rows: marketPrices } = await db.execute("SELECT * FROM market_prices");
+        // Simple fuzzy match: check if product title contains the market item name
+        const match = marketPrices.find(p => title.toLowerCase().includes(p.item_name.toLowerCase()));
+
+        if (match) {
+            // Rule: Price cannot be more than 20% above max, or less than 50% of min (suspicious)
+            const maxAllowed = match.max_price * 1.2;
+            const minAllowed = match.min_price * 0.5;
+
+            if (submittedPrice > maxAllowed) {
+                return res.status(400).send(`Price Guard Alert: Your price (₦${submittedPrice}) is significantly higher than the market average for ${match.item_name} (₦${match.average_price}). Max allowed: ₦${maxAllowed}.`);
             }
-            res.redirect('/seller/dashboard');
+            // Optional: Block extremely low prices too
+            if (submittedPrice < minAllowed) {
+                return res.status(400).send(`Price Guard Alert: Your price is suspiciously low. Market average for ${match.item_name} is ₦${match.average_price}.`);
+            }
         }
-    );
+        // ----------------------------------
+
+        // 3. Insert into Database
+        await db.execute({
+            sql: "INSERT INTO products (title, price, description, category, image_url, seller_id) VALUES (?, ?, ?, ?, ?, ?)",
+            args: [title, submittedPrice, description, req.body.category || 'Other', imageFilename, req.session.user.id]
+        });
+        res.redirect('/seller/dashboard');
+    } catch (err) {
+        console.error("Error adding product:", err);
+        return res.status(500).send("Error publishing product: " + err.message);
+    }
 });
 
 // --- APPLY GLOBAL CSRF TO ALL OTHER ROUTES ---
@@ -108,7 +128,7 @@ router.use(passCsrfToken);
 // ------------------------------------------------
 
 // --- 1. HOME PAGE ROUTE (Now with Search!) ---
-router.get("/", (req, res) => {
+router.get("/", async (req, res) => {
     const user = req.session ? req.session.user : null;
     const searchTerm = req.query.search || ""; // Get what they typed (or empty)
 
@@ -136,61 +156,81 @@ router.get("/", (req, res) => {
     // Order by newest first
     productQuery += " ORDER BY id DESC";
 
-    db.all(productQuery, params, (err, products) => {
-        if (err) products = [];
+    try {
+        const { rows: products } = await db.execute({ sql: productQuery, args: params });
 
         // B. Fetch Ads (Only active ones)
-        // Note: In a real app, you filter WHERE expiry_date > Date.now()
-        db.all("SELECT * FROM ads WHERE status = 'active'", [], (err, ads) => {
-            if (err) ads = [];
+        const { rows: ads } = await db.execute("SELECT * FROM ads WHERE status = 'active'");
 
-            res.render("index", {
-                user: user,
-                products: products,
-                ads: ads,
-                searchTerm: searchTerm,
-                currentCategory: req.query.category || ''
-            });
+        res.render("index", {
+            user: user,
+            products: products,
+            ads: ads,
+            searchTerm: searchTerm,
+            currentCategory: req.query.category || ''
         });
-    });
+    } catch (err) {
+        console.error(err);
+        res.render("index", {
+            user: user,
+            products: [],
+            ads: [],
+            searchTerm: searchTerm,
+            currentCategory: req.query.category || ''
+        });
+    }
 });
 
 // --- 2. AUTHENTICATION (Login/Signup/Logout) ---
 router.get("/signup", (req, res) => res.render("signup", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
 
-router.post("/signup", (req, res) => {
+router.post("/signup", async (req, res) => {
     const { username, password, role } = req.body;
-    db.get("SELECT * FROM users WHERE username = ?", [username], (err, row) => {
-        if (row) return res.render('signup', { error: "Username taken!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
-        db.run("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", [username, password, role], (err) => {
-            if (err) return res.render('signup', { error: "Error creating user", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+    try {
+        const check = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
+        if (check.rows.length > 0) return res.render('signup', { error: "Username taken!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
 
-            // Auto Login logic
-            db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
-                if (user) {
-                    req.session.user = user;
-                    if (user.role === 'seller') res.redirect('/seller/dashboard');
-                    else if (user.role === 'admin') res.redirect('/admin_dashboard');
-                    else res.redirect('/buyer/dashboard');
-                } else {
-                    res.redirect('/login');
-                }
-            });
+        await db.execute({
+            sql: "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
+            args: [username, password, role]
         });
-    });
+
+        // Auto Login logic
+        const userRes = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
+        const user = userRes.rows[0];
+
+        if (user) {
+            req.session.user = user;
+            if (user.role === 'seller') res.redirect('/seller/dashboard');
+            else if (user.role === 'admin') res.redirect('/admin_dashboard');
+            else res.redirect('/buyer/dashboard');
+        } else {
+            res.redirect('/login');
+        }
+    } catch (err) {
+        console.error(err);
+        return res.render('signup', { error: "Error creating user", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+    }
 });
 
 router.get("/login", (req, res) => res.render("login", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
 
-router.post("/login", (req, res) => {
+router.post("/login", async (req, res) => {
     const { username, password } = req.body;
-    db.get("SELECT * FROM users WHERE username = ?", [username], (err, user) => {
+    try {
+        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
+        const user = rows[0];
+
         if (!user || user.password !== password) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+
         req.session.user = user;
         if (user.role === 'admin') res.redirect('/admin_dashboard');
         else if (user.role === 'seller') res.redirect('/seller/dashboard');
         else res.redirect('/');
-    });
+    } catch (err) {
+        console.error(err);
+        res.render('login', { error: "Login failed", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+    }
 });
 
 router.get('/logout', (req, res) => {
@@ -198,18 +238,20 @@ router.get('/logout', (req, res) => {
 });
 
 // --- 3. SELLER DASHBOARD ---
-router.get('/seller/dashboard', noCache, checkBan, (req, res) => {
+router.get('/seller/dashboard', noCache, checkBan, async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'seller') return res.redirect('/login');
     const sellerId = req.session.user.id;
-    db.all("SELECT * FROM products WHERE seller_id = ?", [sellerId], (err, products) => {
-        if (err) products = [];
-        db.all("SELECT * FROM orders WHERE seller_id = ?", [sellerId], (err, orders) => {
-            if (err) orders = [];
-            db.get("SELECT * FROM users WHERE id = ?", [sellerId], (err, user) => {
-                res.render('seller_dashboard', { user: user || req.session.user, products: products, orders: orders, csrfToken: req.csrfToken ? req.csrfToken() : '' });
-            });
-        });
-    });
+    try {
+        const { rows: products } = await db.execute({ sql: "SELECT * FROM products WHERE seller_id = ?", args: [sellerId] });
+        const { rows: orders } = await db.execute({ sql: "SELECT * FROM orders WHERE seller_id = ?", args: [sellerId] });
+        const { rows: users } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [sellerId] });
+        const user = users[0];
+
+        res.render('seller_dashboard', { user: user || req.session.user, products: products, orders: orders, csrfToken: req.csrfToken ? req.csrfToken() : '' });
+    } catch (err) {
+        console.error(err);
+        res.render('seller_dashboard', { user: req.session.user, products: [], orders: [], csrfToken: req.csrfToken ? req.csrfToken() : '' });
+    }
 });
 
 // --- SELLER: ADD PRODUCT ROUTE (With Image Upload) ---
@@ -218,7 +260,7 @@ router.get('/seller/dashboard', noCache, checkBan, (req, res) => {
 // router.post('/seller/add-product' ... handled above ...
 
 // --- SELLER: EDIT PRODUCT ROUTE ---
-router.post('/seller/product/:id/edit', checkBan, (req, res) => {
+router.post('/seller/product/:id/edit', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { title, price, description } = req.body;
@@ -226,28 +268,90 @@ router.post('/seller/product/:id/edit', checkBan, (req, res) => {
     const sellerId = req.session.user.id;
 
     // Update query
-    // Update query
     const query = "UPDATE products SET title = ?, price = ?, description = ?, category = ? WHERE id = ? AND seller_id = ?";
 
-    db.run(query, [title, price, description, req.body.category || 'Other', productId, sellerId], (err) => {
-        if (err) {
-            console.error("Error updating product:", err);
-            return res.send("Error updating product.");
-        }
+    try {
+        await db.execute({
+            sql: query,
+            args: [title, price, description, req.body.category || 'Other', productId, sellerId]
+        });
         res.redirect('/seller/dashboard');
-    });
+    } catch (err) {
+        console.error("Error updating product:", err);
+        return res.send("Error updating product.");
+    }
 });
 
-router.post('/seller/onboard', (req, res) => {
+router.post('/seller/onboard', async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
     const { bank_name, account_number, bank_code } = req.body;
-    db.run("UPDATE users SET bank_name = ?, account_number = ?, bank_code = ? WHERE id = ?",
-        [bank_name, account_number, bank_code, req.session.user.id], (err) => {
-            res.redirect('/seller/dashboard');
+    try {
+        await db.execute({
+            sql: "UPDATE users SET bank_name = ?, account_number = ?, bank_code = ? WHERE id = ?",
+            args: [bank_name, account_number, bank_code, req.session.user.id]
         });
+        res.redirect('/seller/dashboard');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/seller/dashboard');
+    }
 });
+
+// 5. POST: Seller Withdraw
+const { createTransferRecipient, initiateTransfer } = require('../utils/payout');
+router.post('/seller/withdraw', checkBan, async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'seller') return res.redirect('/login');
+
+    const amount = parseFloat(req.body.amount);
+    const sellerId = req.session.user.id;
+
+    if (!amount || amount < 100) return res.send("Minimum withdrawal is ₦100");
+
+    try {
+        // 1. Check Balance
+        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [sellerId] });
+        const user = rows[0];
+
+        if (user.wallet_balance < amount) return res.send("Insufficient funds.");
+
+        // 2. Get Recipient Code
+        let recipientCode = user.paystack_subaccount_code;
+
+        if (!recipientCode || !recipientCode.startsWith("RCP")) {
+            // Create one
+            // Ensure bank_code exists. If not, ask user to onboard.
+            if (!user.bank_code || !user.account_number) {
+                return res.send("Please update your bank details in Settings or Onboarding first.");
+            }
+
+            const recRes = await createTransferRecipient(user.bank_name, user.account_number, user.bank_code);
+
+            if (recRes.success) {
+                recipientCode = recRes.code;
+                await db.execute({ sql: "UPDATE users SET paystack_subaccount_code = ? WHERE id = ?", args: [recipientCode, sellerId] });
+            } else {
+                return res.send("Error creating payout recipient: " + recRes.error);
+            }
+        }
+
+        // 3. Initiate Transfer
+        const txRes = await initiateTransfer(recipientCode, amount);
+        if (txRes.success) {
+            // Deduct Balance
+            await db.execute({ sql: "UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?", args: [amount, sellerId] });
+            res.redirect('/seller/dashboard?msg=withdrawal_queued');
+        } else {
+            res.send("Withdrawal failed: " + txRes.error);
+        }
+
+    } catch (err) {
+        console.error(err);
+        res.send("Error processing withdrawal.");
+    }
+});
+
 // --- SELLER: DELETE PRODUCT ROUTE ---
-router.post('/seller/product/:id/delete', (req, res) => {
+router.post('/seller/product/:id/delete', async (req, res) => {
     // 1. Check if user is logged in
     if (!req.session.user) return res.redirect('/login');
 
@@ -257,16 +361,19 @@ router.post('/seller/product/:id/delete', (req, res) => {
     // 2. Delete the product ONLY if it belongs to this seller
     const query = "DELETE FROM products WHERE id = ? AND seller_id = ?";
 
-    db.run(query, [productId, sellerId], (err) => {
-        if (err) console.error("Error deleting product:", err);
+    try {
+        await db.execute({ sql: query, args: [productId, sellerId] });
         res.redirect('/seller/dashboard');
-    });
+    } catch (err) {
+        console.error("Error deleting product:", err);
+        res.redirect('/seller/dashboard');
+    }
 });
 
 // --- BUYER DASHBOARD & ACTIONS ---
 
 // 1. GET: Buyer Dashboard
-router.get('/buyer/dashboard', noCache, checkBan, (req, res) => {
+router.get('/buyer/dashboard', noCache, checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const buyerId = req.session.user.id;
@@ -280,8 +387,8 @@ router.get('/buyer/dashboard', noCache, checkBan, (req, res) => {
         ORDER BY orders.id DESC
     `;
 
-    db.all(ordersQuery, [buyerId], (err, orders) => {
-        if (err) orders = [];
+    try {
+        const { rows: orders } = await db.execute({ sql: ordersQuery, args: [buyerId] });
 
         // B. Fetch Wishcart Items
         const cartQuery = `
@@ -289,47 +396,47 @@ router.get('/buyer/dashboard', noCache, checkBan, (req, res) => {
             JOIN products ON cart.product_id = products.id 
             WHERE cart.user_id = ?
         `;
+        const { rows: cartItems } = await db.execute({ sql: cartQuery, args: [buyerId] });
 
-        db.all(cartQuery, [buyerId], (err, cartItems) => {
-            if (err) cartItems = [];
+        // D. Fetch Wishlist Items
+        const wishlistQuery = `
+            SELECT wishlist.id as wishlist_id, products.* FROM wishlist 
+            JOIN products ON wishlist.product_id = products.id 
+            WHERE wishlist.user_id = ?
+        `;
+        const { rows: wishlistItems } = await db.execute({ sql: wishlistQuery, args: [buyerId] });
 
-            // D. Fetch Wishlist Items
-            const wishlistQuery = `
-                SELECT wishlist.id as wishlist_id, products.* FROM wishlist 
-                JOIN products ON wishlist.product_id = products.id 
-                WHERE wishlist.user_id = ?
-            `;
+        // C. Get Fresh User Data & Render
+        const { rows: userRes } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [buyerId] });
+        const freshUser = userRes[0];
 
-            db.all(wishlistQuery, [buyerId], (err, wishlistItems) => {
-                if (err) wishlistItems = [];
-
-                // C. Get Fresh User Data & Render
-                db.get("SELECT * FROM users WHERE id = ?", [buyerId], (err, freshUser) => {
-                    res.render('buyer_dashboard', {
-                        user: freshUser || req.session.user,
-                        orders: orders,
-                        cartItems: cartItems,
-                        wishlistItems: wishlistItems,
-                        csrfToken: req.csrfToken ? req.csrfToken() : '',
-                        // PASS THE PAYSTACK KEY HERE
-                        paystackKey: process.env.PAYSTACK_PUBLIC_KEY
-                    });
-                });
-            });
+        res.render('buyer_dashboard', {
+            user: freshUser || req.session.user,
+            orders: orders,
+            cartItems: cartItems,
+            wishlistItems: wishlistItems,
+            csrfToken: req.csrfToken ? req.csrfToken() : '',
+            paystackKey: process.env.PAYSTACK_PUBLIC_KEY
         });
-    });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/login');
+    }
 });
 
 // 2. POST: Buyer Confirms Receipt
-router.post('/order/:id/confirm/buyer', checkBan, (req, res) => {
+router.post('/order/:id/confirm/buyer', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const orderId = req.params.id;
     const buyerId = req.session.user.id;
 
-    // 1. Get the order details to find the seller and the amount
-    db.get("SELECT * FROM orders WHERE id = ? AND buyer_id = ?", [orderId, buyerId], (err, order) => {
-        if (err || !order) {
+    try {
+        // 1. Get the order details to find the seller and the amount
+        const { rows } = await db.execute({ sql: "SELECT * FROM orders WHERE id = ? AND buyer_id = ?", args: [orderId, buyerId] });
+        const order = rows[0];
+
+        if (!order) {
             console.error("Order not found or access denied");
             return res.redirect('/buyer/dashboard');
         }
@@ -341,35 +448,29 @@ router.post('/order/:id/confirm/buyer', checkBan, (req, res) => {
         const sellerId = order.seller_id;
         const sellerAmount = order.seller_amount;
 
-        // 2. Wrap updates in serialize to ensure they run partially together
-        db.serialize(() => {
-            // A. Mark Order as Completed
-            const updateOrder = `
-                UPDATE orders 
-                SET buyer_confirmed = 1, escrow_released = 1, status = 'completed' 
-                WHERE id = ?
-            `;
-            db.run(updateOrder, [orderId], (err) => {
-                if (err) {
-                    console.error("Error updating order:", err);
-                    return res.redirect('/buyer/dashboard?error=update_failed');
-                }
+        // 2. Update Order
+        const updateOrder = `
+            UPDATE orders 
+            SET buyer_confirmed = 1, escrow_released = 1, status = 'completed' 
+            WHERE id = ?
+        `;
+        await db.execute({ sql: updateOrder, args: [orderId] });
 
-                // B. Credit Seller's Wallet
-                const updateWallet = "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?";
-                db.run(updateWallet, [sellerAmount, sellerId], (err) => {
-                    if (err) console.error("Error updating seller wallet:", err);
+        // 3. Credit Seller's Wallet
+        const updateWallet = "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?";
+        await db.execute({ sql: updateWallet, args: [sellerAmount, sellerId] });
 
-                    console.log(`Verified Order #${orderId}: Released ₦${sellerAmount} to Seller #${sellerId}`);
-                    res.redirect('/buyer/dashboard');
-                });
-            });
-        });
-    });
+        console.log(`Verified Order #${orderId}: Released ₦${sellerAmount} to Seller #${sellerId}`);
+        res.redirect('/buyer/dashboard');
+
+    } catch (err) {
+        console.error("Error confirming order:", err);
+        return res.redirect('/buyer/dashboard?error=update_failed');
+    }
 });
 
 // 3. POST: Seller Confirms Sending
-router.post('/order/:id/confirm/seller', checkBan, (req, res) => {
+router.post('/order/:id/confirm/seller', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const orderId = req.params.id;
@@ -381,157 +482,199 @@ router.post('/order/:id/confirm/seller', checkBan, (req, res) => {
         WHERE id = ? AND seller_id = ?
     `;
 
-    db.run(updateQuery, [orderId, req.session.user.id], (err) => {
-        if (err) console.error(err);
+    try {
+        await db.execute({ sql: updateQuery, args: [orderId, req.session.user.id] });
         res.redirect('/seller/dashboard');
-    });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/seller/dashboard');
+    }
 });
 
 // --- CART / WISHCART ROUTES (Now properly separated) ---
 
 // 3. POST: Add to Cart
-router.post('/cart/add', checkBan, (req, res) => {
+router.post('/cart/add', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { product_id } = req.body;
     const userId = req.session.user.id;
 
-    // Check if already in cart to prevent duplicates
-    db.get("SELECT * FROM cart WHERE user_id = ? AND product_id = ?", [userId, product_id], (err, row) => {
-        if (row) {
+    try {
+        // Check if already in cart to prevent duplicates
+        const { rows } = await db.execute({ sql: "SELECT * FROM cart WHERE user_id = ? AND product_id = ?", args: [userId, product_id] });
+        if (rows.length > 0) {
             // Already added, just go back
             return res.redirect('/');
         }
 
-        db.run("INSERT INTO cart (user_id, product_id) VALUES (?, ?)", [userId, product_id], (err) => {
-            // Send them to dashboard to see their cart
-            res.redirect('/buyer/dashboard');
-        });
-    });
+        await db.execute({ sql: "INSERT INTO cart (user_id, product_id) VALUES (?, ?)", args: [userId, product_id] });
+        // Send them to dashboard to see their cart
+        res.redirect('/buyer/dashboard');
+    } catch (err) {
+        console.error(err);
+        res.redirect('back');
+    }
 });
 
 // 4. POST: Remove from Cart
-router.post('/cart/remove', checkBan, (req, res) => {
+router.post('/cart/remove', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
-
     const { cart_id } = req.body;
-
-    db.run("DELETE FROM cart WHERE id = ?", [cart_id], (err) => {
+    try {
+        await db.execute({ sql: "DELETE FROM cart WHERE id = ?", args: [cart_id] });
         res.redirect('/buyer/dashboard');
-    });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/buyer/dashboard');
+    }
 });
 
 // 5. POST: Add to Wishlist
-router.post('/wishlist/add', checkBan, (req, res) => {
+router.post('/wishlist/add', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { product_id } = req.body;
     const userId = req.session.user.id;
 
-    // Check if already in wishlist
-    db.get("SELECT * FROM wishlist WHERE user_id = ? AND product_id = ?", [userId, product_id], (err, row) => {
-        if (row) return res.redirect('/');
+    try {
+        // Check if already in wishlist
+        const { rows } = await db.execute({ sql: "SELECT * FROM wishlist WHERE user_id = ? AND product_id = ?", args: [userId, product_id] });
+        if (rows.length > 0) return res.redirect('/');
 
-        db.run("INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)", [userId, product_id], (err) => {
-            // Success! We can redirect to home or dashboard
-            res.redirect('/buyer/dashboard?tab=wishlist');
-        });
-    });
+        await db.execute({ sql: "INSERT INTO wishlist (user_id, product_id) VALUES (?, ?)", args: [userId, product_id] });
+        // UX Improvement: Stay on the same page
+        res.redirect(req.get('Referer') || '/');
+    } catch (err) {
+        console.error(err);
+        res.redirect(req.get('Referer') || '/');
+    }
 });
 
 // 6. POST: Remove from Wishlist
-router.post('/wishlist/remove', checkBan, (req, res) => {
+router.post('/wishlist/remove', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { wishlist_id } = req.body;
 
-    db.run("DELETE FROM wishlist WHERE id = ?", [wishlist_id], (err) => {
+    try {
+        await db.execute({ sql: "DELETE FROM wishlist WHERE id = ?", args: [wishlist_id] });
         res.redirect('/buyer/dashboard?tab=wishlist');
-    });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/buyer/dashboard?tab=wishlist');
+    }
 });
 
 // --- SETTINGS ROUTES ---
 
 // 1. GET: Settings Page
-router.get('/settings', noCache, checkBan, (req, res) => {
+// 1. GET: Settings Page
+router.get('/settings', noCache, checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     // Refresh user data
-    db.get("SELECT * FROM users WHERE id = ?", [req.session.user.id], (err, user) => {
+    try {
+        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [req.session.user.id] });
+        const user = rows[0];
         res.render('settings', {
             user: user || req.session.user,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
-    });
+    } catch (err) {
+        console.error(err);
+        res.render('settings', {
+            user: req.session.user,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+    }
 });
 
 // 2. POST: Update Profile
-router.post('/settings/profile', checkBan, (req, res) => {
+// 2. POST: Update Profile
+router.post('/settings/profile', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { email, bank_name, account_number } = req.body;
 
-    db.run("UPDATE users SET email = ?, bank_name = ?, account_number = ? WHERE id = ?",
-        [email, bank_name, account_number, req.session.user.id], (err) => {
-            if (!err) {
-                // Update session data
-                req.session.user.email = email;
-                req.session.user.bank_name = bank_name;
-                req.session.user.account_number = account_number;
-            }
-            res.redirect('/settings?msg=profile_updated');
+    try {
+        await db.execute({
+            sql: "UPDATE users SET email = ?, bank_name = ?, account_number = ? WHERE id = ?",
+            args: [email, bank_name, account_number, req.session.user.id]
         });
+        // Update session data
+        req.session.user.email = email;
+        req.session.user.bank_name = bank_name;
+        req.session.user.account_number = account_number;
+        res.redirect('/settings?msg=profile_updated');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/settings');
+    }
 });
 
 // 3. POST: Change Password
-router.post('/settings/password', checkBan, (req, res) => {
+// 3. POST: Change Password
+router.post('/settings/password', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { current_password, new_password } = req.body;
     const userId = req.session.user.id;
 
-    db.get("SELECT password FROM users WHERE id = ?", [userId], (err, row) => {
-        if (row && row.password === current_password) {
-            db.run("UPDATE users SET password = ? WHERE id = ?", [new_password, userId], (err) => {
-                res.redirect('/settings?msg=password_changed');
-            });
+    try {
+        const { rows } = await db.execute({ sql: "SELECT password FROM users WHERE id = ?", args: [userId] });
+        const user = rows[0];
+
+        if (user && user.password === current_password) {
+            await db.execute({ sql: "UPDATE users SET password = ? WHERE id = ?", args: [new_password, userId] });
+            res.redirect('/settings?msg=password_changed');
         } else {
             res.redirect('/settings?error=invalid_password');
         }
-    });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/settings?error=error');
+    }
 });
 // --- ADMIN ROUTES ---
 
 // 1. GET: Admin Dashboard
-router.get('/admin_dashboard', noCache, (req, res) => {
+// 1. GET: Admin Dashboard
+router.get('/admin_dashboard', noCache, async (req, res) => {
     // Security: Strict check for Admin role
     if (!req.session.user || req.session.user.role !== 'admin') {
         return res.redirect('/login');
     }
 
-    // A. Fetch All Users
-    db.all("SELECT * FROM users ORDER BY id DESC", [], (err, users) => {
-        if (err) users = [];
+    try {
+        // A. Fetch All Users
+        const { rows: users } = await db.execute("SELECT * FROM users ORDER BY id DESC");
 
-        // B. Fetch Platform Stats (Total Orders & Total Revenue from Service Fees)
-        // 'service_fee' is the column in your orders table
+        // B. Fetch Platform Stats
         const statsQuery = "SELECT COUNT(*) as total_orders, SUM(service_fee) as total_revenue FROM orders";
+        const { rows: statsRes } = await db.execute(statsQuery);
+        const stats = statsRes[0] || { total_orders: 0, total_revenue: 0 };
 
-        db.get(statsQuery, [], (err, stats) => {
-            if (err) stats = { total_orders: 0, total_revenue: 0 };
-
-            res.render('admin_dashboard', {
-                user: req.session.user,
-                users: users,
-                stats: stats,
-                csrfToken: req.csrfToken ? req.csrfToken() : ''
-            });
+        res.render('admin_dashboard', {
+            user: req.session.user,
+            users: users,
+            stats: stats,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
-    });
+    } catch (err) {
+        console.error(err);
+        res.render('admin_dashboard', {
+            user: req.session.user,
+            users: [],
+            stats: { total_orders: 0, total_revenue: 0 },
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+    }
 });
 
 // 2. POST: Block/Unblock User
-router.post('/admin/user/:id/toggle-block', (req, res) => {
+// 2. POST: Block/Unblock User
+router.post('/admin/user/:id/toggle-block', async (req, res) => {
     // Security Check
     if (!req.session.user || req.session.user.role !== 'admin') {
         return res.status(403).send("Unauthorized");
@@ -539,169 +682,159 @@ router.post('/admin/user/:id/toggle-block', (req, res) => {
 
     const targetUserId = req.params.id;
 
-    // First, check current status
-    db.get("SELECT is_blocked FROM users WHERE id = ?", [targetUserId], (err, user) => {
-        if (err || !user) return res.redirect('/admin_dashboard');
+    try {
+        // First, check current status
+        const { rows } = await db.execute({ sql: "SELECT is_blocked FROM users WHERE id = ?", args: [targetUserId] });
+        const user = rows[0];
 
-        // Toggle logic: If blocked(1) -> make 0. If active(0) -> make 1.
+        if (!user) return res.redirect('/admin_dashboard');
+
+        // Toggle logic
         const newStatus = user.is_blocked ? 0 : 1;
 
-        db.run("UPDATE users SET is_blocked = ? WHERE id = ?", [newStatus, targetUserId], (err) => {
-            if (err) console.error("Error updating user status:", err);
-            res.redirect('/admin_dashboard');
-        });
-    });
+        await db.execute({ sql: "UPDATE users SET is_blocked = ? WHERE id = ?", args: [newStatus, targetUserId] });
+        res.redirect('/admin_dashboard');
+    } catch (err) {
+        console.error("Error updating user status:", err);
+        res.redirect('/admin_dashboard');
+    }
 });
 
 // At the top of route.js (if not already there)
 // --- CHECKOUT & PAYMENT ROUTES ---
 
 // 1. GET: Show Checkout Page
-router.get('/buy/:id', checkBan, (req, res) => {
+// 1. GET: Show Checkout Page
+router.get('/buy/:id', checkBan, async (req, res) => {
     // Security: Must be logged in
     if (!req.session.user) return res.redirect('/login');
 
     const productId = req.params.id;
 
-    db.get("SELECT * FROM products WHERE id = ?", [productId], (err, product) => {
-        if (err || !product) {
+    try {
+        const { rows } = await db.execute({ sql: "SELECT * FROM products WHERE id = ?", args: [productId] });
+        const product = rows[0];
+
+        if (!product) {
             console.error("Product not found");
             return res.redirect('/');
         }
 
         // LOGIC: Calculate Service Fee (10%)
+        // NEW MODEL: Buyer pays Price. Seller gets Price - 10%.
         const price = parseFloat(product.price);
         const serviceFee = Math.ceil(price * 0.10); // 10% Fee
-        const total = price + serviceFee;
+        const total = price; // Buyer pays the listed price
 
         res.render('checkout', {
             user: req.session.user,
             product: product,
-            serviceFee: serviceFee,
+            serviceFee: serviceFee, // Passed to view, but maybe just for info?
             total: total,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
-    });
+    } catch (err) {
+        console.error(err);
+        res.redirect('/');
+    }
 });
 
+// 2. POST: Initialize Paystack Payment
 // 2. POST: Initialize Paystack Payment
 router.post('/paystack/initialize', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
-    const { productId, amount, serviceFee, sellerAmount } = req.body;
-    const user = req.session.user;
+    const { productId, amount, serviceFee } = req.body;
+    // sellerAmount is calculated securely here, not trusted from client
+    const amountVal = parseFloat(amount);
+    const feeVal = parseFloat(serviceFee);
+    // Seller gets: Total Paid - Fee
+    const sellerAmount = amountVal - feeVal;
 
-    // A. Generate a Unique Reference
+    const user = req.session.user;
     const reference = 'ORD_' + Date.now() + '_' + user.id;
 
-    // B. Create "Pending" Order in Database
-    // IMPORTANT: We select the seller_id from the products table so the seller receives the order!
     const insertQuery = `
         INSERT INTO orders 
         (buyer_id, seller_id, product_id, amount, service_fee, seller_amount, status, payment_reference, buyer_confirmed, seller_confirmed, created_at) 
         VALUES (?, (SELECT seller_id FROM products WHERE id = ?), ?, ?, ?, ?, 'pending', ?, 0, 0, datetime('now'))
     `;
 
-    // Note: We pass productId twice (once for the order, once to find the seller)
-    db.run(insertQuery, [user.id, productId, productId, amount, serviceFee, sellerAmount, reference], async function (err) {
-        if (err) {
-            console.error("DB Error creating order:", err);
-            return res.send("Error processing order. Please try again.");
-        }
+    try {
+        await db.execute({
+            sql: insertQuery,
+            args: [user.id, productId, productId, amount, serviceFee, sellerAmount, reference]
+        });
 
-        // C. Call Paystack API
-        try {
-            const response = await axios.post(
-                'https://api.paystack.co/transaction/initialize',
-                {
-                    email: user.username + "@example.com", // In a real app, use user.email
-                    amount: Math.round(amount * 100), // Convert to Kobo
-                    reference: reference,
-                    // UPDATED: Points to your Railway App
-                    callback_url: "https://ui-ecommerce-production.up.railway.app/paystack/callback"
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
-                        'Content-Type': 'application/json'
-                    }
+        const response = await axios.post(
+            'https://api.paystack.co/transaction/initialize',
+            {
+                email: user.username + "@example.com",
+                amount: Math.round(amount * 100),
+                reference: reference,
+                callback_url: "https://ui-ecommerce-production.up.railway.app/paystack/callback"
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
+                    'Content-Type': 'application/json'
                 }
-            );
+            }
+        );
 
-            // D. Redirect User to Paystack
-            res.redirect(response.data.data.authorization_url);
-
-        } catch (apiError) {
-            console.error("Paystack API Error:", apiError.response ? apiError.response.data : apiError.message);
-            res.send("Payment initialization failed.");
-        }
-    });
+        res.redirect(response.data.data.authorization_url);
+    } catch (err) {
+        console.error("Payment Init Error:", err);
+        res.send("Payment initialization failed.");
+    }
 });
 
 // // 3. GET: Paystack Verification (Handles BOTH Orders & Wallet Funding)
+// 3. GET: Paystack Verification
 router.get(['/paystack/verify', '/paystack/callback'], async (req, res) => {
     const reference = req.query.reference;
     if (!reference) return res.redirect('/');
 
     try {
-        // A. Verify the Transaction with Paystack
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            {
-                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` }
-            }
+            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } }
         );
 
         if (verify.data.data.status === 'success') {
-            // Paystack returns amount in Kobo, convert to Naira
             const amountPaid = verify.data.data.amount / 100;
             const currentUser = req.session.user;
 
             // B. Check if this reference belongs to an existing ORDER
-            db.get("SELECT * FROM orders WHERE payment_reference = ?", [reference], (err, order) => {
-                if (order) {
-                    // --- SCENARIO 1: IT IS A PRODUCT PURCHASE ---
-                    db.serialize(() => {
-                        // 1. Credit Buyer's Wallet (Inflow from Paystack)
-                        db.run("UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", [amountPaid, order.buyer_id]);
+            const { rows } = await db.execute({ sql: "SELECT * FROM orders WHERE payment_reference = ?", args: [reference] });
+            const order = rows[0];
 
-                        // 2. Deduct Buyer's Wallet (Outflow for Order)
-                        db.run("UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?", [amountPaid, order.buyer_id]);
+            if (order) {
+                // --- SCENARIO 1: IT IS A PRODUCT PURCHASE ---
+                // 1. Credit Buyer's Wallet
+                await db.execute({ sql: "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", args: [amountPaid, order.buyer_id] });
 
-                        // 3. Mark Order as Paid
-                        db.run(
-                            "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?",
-                            [reference],
-                            (err) => {
-                                if (err) console.error(err);
-                                console.log(`Order #${order.id}: Funds routed through wallet (Credit/Debit) for Buyer #${order.buyer_id}`);
-                                res.redirect('/buyer/dashboard');
-                            }
-                        );
-                    });
-                } else {
-                    // --- SCENARIO 2: IT IS WALLET FUNDING ---
-                    // Since it's not in the orders table, we add the money to the user's wallet
+                // 2. Deduct Buyer's Wallet
+                await db.execute({ sql: "UPDATE users SET wallet_balance = wallet_balance - ? WHERE id = ?", args: [amountPaid, order.buyer_id] });
 
-                    // Security: Ensure user is logged in
-                    if (!currentUser) return res.redirect('/login');
+                // 3. Mark Order as Paid
+                await db.execute({ sql: "UPDATE orders SET status = 'paid_pending_delivery' WHERE payment_reference = ?", args: [reference] });
 
-                    db.run(
-                        "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?",
-                        [amountPaid, currentUser.id],
-                        (err) => {
-                            if (err) console.error(err);
-                            console.log(`Wallet funded: +₦${amountPaid} for User ${currentUser.id}`);
-                            res.redirect('/buyer/dashboard');
-                        }
-                    );
-                }
-            });
+                console.log(`Order #${order.id}: Funds routed through wallet for Buyer #${order.buyer_id}`);
+                res.redirect('/buyer/dashboard');
 
+            } else {
+                // --- SCENARIO 2: IT IS WALLET FUNDING ---
+                if (!currentUser) return res.redirect('/login');
+
+                await db.execute({ sql: "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", args: [amountPaid, currentUser.id] });
+
+                console.log(`Wallet funded: +₦${amountPaid} for User ${currentUser.id}`);
+                res.redirect('/buyer/dashboard');
+            }
         } else {
             res.send("Payment verification failed.");
         }
-
     } catch (error) {
         console.error("Verification Error:", error.message);
         res.send("Error verifying payment.");
@@ -723,107 +856,82 @@ router.get('/ads/buy', checkBan, (req, res) => {
 });
 
 // 2. POST: Initialize Ad Payment
+// 2. POST: Initialize Ad Payment
 router.post('/ads/paystack/initialize', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const { message, plan } = req.body;
     const user = req.session.user;
 
-    // Parse the plan (Format: "days_amount")
-    // Example: "1_day_500" -> duration=1, price=500
     let durationDays = 1;
     let price = 500;
-
-    if (plan === "3_day_1200") {
-        durationDays = 3;
-        price = 1200;
-    } else if (plan === "7_day_2500") {
-        durationDays = 7;
-        price = 2500;
-    }
+    if (plan === "3_day_1200") { durationDays = 3; price = 1200; }
+    else if (plan === "7_day_2500") { durationDays = 7; price = 2500; }
 
     const reference = 'AD_' + Date.now() + '_' + user.id;
 
-    // A. Create Pending Ad in DB
-    // We store 'durationDays' in the 'category' column temporarily to retrieve it later upon success
     const insertQuery = `
         INSERT INTO ads (seller_id, message, amount, category, status, payment_reference, expiry_date) 
         VALUES (?, ?, ?, ?, 'pending', ?, 0)
     `;
 
-    db.run(insertQuery, [user.id, message, price, durationDays.toString(), reference], async (err) => {
-        if (err) {
-            console.error(err);
-            return res.send("Error creating ad.");
-        }
+    try {
+        await db.execute({
+            sql: insertQuery,
+            args: [user.id, message, price, durationDays.toString(), reference]
+        });
 
-        // B. Call Paystack API
-        try {
-            const response = await axios.post(
-                'https://api.paystack.co/transaction/initialize',
-                {
-                    email: user.username + "@example.com", // In a real app, use user.email
-                    amount: price * 100, // Convert to Kobo
-                    reference: reference,
-                    // UPDATED: Points to your Live Railway App
-                    callback_url: "https://ui-ecommerce-production.up.railway.app/ads/paystack/callback"
-                },
-                {
-                    headers: {
-                        Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
-                        'Content-Type': 'application/json'
-                    }
+        const response = await axios.post(
+            'https://api.paystack.co/transaction/initialize',
+            {
+                email: user.username + "@example.com",
+                amount: price * 100,
+                reference: reference,
+                callback_url: "https://ui-ecommerce-production.up.railway.app/ads/paystack/callback"
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
+                    'Content-Type': 'application/json'
                 }
-            );
-            // C. Redirect to Paystack
-            res.redirect(response.data.data.authorization_url);
-
-        } catch (error) {
-            console.error("Paystack Error:", error.response ? error.response.data : error.message);
-            res.send("Payment initialization failed.");
-        }
-    });
+            }
+        );
+        res.redirect(response.data.data.authorization_url);
+    } catch (err) {
+        console.error("Paystack Error:", err.response ? err.response.data : err.message);
+        res.send("Payment initialization failed.");
+    }
 });
 
 // 3. GET: Ad Payment Callback
+// 3. GET: Ad Payment Callback
 router.get('/ads/paystack/callback', async (req, res) => {
     const reference = req.query.reference;
-
     if (!reference) return res.redirect('/seller/dashboard');
 
     try {
-        // A. Verify Transaction
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            {
-                headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` }
-            }
+            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } }
         );
 
         if (verify.data.data.status === 'success') {
+            const { rows } = await db.execute({ sql: "SELECT * FROM ads WHERE payment_reference = ?", args: [reference] });
+            const ad = rows[0];
 
-            // 1. Retrieve the pending Ad to get the duration
-            db.get("SELECT * FROM ads WHERE payment_reference = ?", [reference], (err, ad) => {
-                if (err || !ad) return res.redirect('/seller/dashboard');
+            if (!ad) return res.redirect('/seller/dashboard');
 
-                // 2. Calculate Expiry Date
-                const durationDays = parseInt(ad.category); // Retrieve days stored earlier
-                const now = new Date();
-                const expiryDate = new Date(now.setDate(now.getDate() + durationDays));
+            const durationDays = parseInt(ad.category);
+            const now = new Date();
+            const expiryDate = new Date(now.setDate(now.getDate() + durationDays));
+            const expiryTimestamp = Math.floor(expiryDate.getTime() / 1000);
 
-                // Convert to Unix Timestamp (seconds)
-                const expiryTimestamp = Math.floor(expiryDate.getTime() / 1000);
-
-                // 3. Activate the Ad
-                db.run(
-                    "UPDATE ads SET status = 'active', expiry_date = ? WHERE payment_reference = ?",
-                    [expiryTimestamp, reference],
-                    (err) => {
-                        if (err) console.error(err);
-                        res.redirect('/seller/dashboard'); // Done!
-                    }
-                );
+            await db.execute({
+                sql: "UPDATE ads SET status = 'active', expiry_date = ? WHERE payment_reference = ?",
+                args: [expiryTimestamp, reference]
             });
+
+            res.redirect('/seller/dashboard');
 
         } else {
             res.send("Ad payment verification failed.");

@@ -141,11 +141,6 @@
                 <span>Subtotal</span>
                 <span>₦<%= parseInt(product.price).toLocaleString() %></span>
             </div>
-            <div class="cost-row">
-                <span>Service Fee (10%)</span>
-                <span>₦<%= parseInt(serviceFee).toLocaleString() %></span>
-            </div>
-
             <div class="total-row">
                 <span>Total</span>
                 <span>₦<%= parseInt(total).toLocaleString() %></span>
@@ -156,7 +151,6 @@
                 <input type="hidden" name="productId" value="<%= product.id %>">
                 <input type="hidden" name="amount" value="<%= total %>">
                 <input type="hidden" name="serviceFee" value="<%= serviceFee %>">
-                <input type="hidden" name="sellerAmount" value="<%= product.price %>">
 
                 <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;">
                     Pay ₦<%= parseInt(total).toLocaleString() %>
