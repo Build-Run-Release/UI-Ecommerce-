@@ -12,15 +12,16 @@ const prices = [
 async function seed() {
     try {
         console.log("Creating market_prices table...");
-        await db.execute(`
+        await db.execute({
+            sql: `
             CREATE TABLE IF NOT EXISTS market_prices (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                id SERIAL PRIMARY KEY,
                 item_name TEXT UNIQUE,
-                min_price REAL,
-                max_price REAL,
-                average_price REAL
+                min_price DECIMAL(10,2),
+                max_price DECIMAL(10,2),
+                average_price DECIMAL(10,2)
             )
-        `);
+        `}); // Fixed argument signature and SQL syntax
 
         console.log("Seeding data...");
         for (const p of prices) {

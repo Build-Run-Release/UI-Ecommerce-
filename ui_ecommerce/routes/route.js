@@ -142,7 +142,7 @@ router.get("/", async (req, res) => {
 
     // If they searched, filter by Title OR Description
     if (searchTerm) {
-        productQuery += " WHERE (title LIKE ? OR description LIKE ?)";
+        productQuery += " WHERE (title ILIKE ? OR description ILIKE ?)";
         params = [`%${searchTerm}%`, `%${searchTerm}%`];
     }
 
@@ -793,7 +793,7 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
     const insertQuery = `
         INSERT INTO orders 
         (buyer_id, seller_id, product_id, amount, service_fee, seller_amount, status, payment_reference, buyer_confirmed, seller_confirmed, created_at) 
-        VALUES (?, (SELECT seller_id FROM products WHERE id = ?), ?, ?, ?, ?, 'pending', ?, 0, 0, datetime('now'))
+        VALUES (?, (SELECT seller_id FROM products WHERE id = ?), ?, ?, ?, ?, 'pending', ?, 0, 0, CURRENT_TIMESTAMP)
     `;
 
     try {
