@@ -2,33 +2,37 @@ const express = require("express");
 const router = express.Router();
 const { db } = require('../db'); // Correctly import the database
 const axios = require('axios');
-const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY || "sk_test_YOUR_KEY_HERE";
+const PAYSTACK_SECRET = process.env.PAYSTACK_SECRET_KEY;
+if (!PAYSTACK_SECRET) {
+    console.warn("WARNING: PAYSTACK_SECRET_KEY is not set. Payments will fail.");
+}
+const bcrypt = require('bcrypt');
+const SALT_ROUNDS = 10;
 
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
-// --- 1. SETUP MULTER FOR IMAGE UPLOADS ---
+// --- 1. SETUP CLOUDINARY FOR IMAGE UPLOADS ---
 const multer = require('multer');
+const { v2: cloudinary } = require('cloudinary');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const path = require('path');
 
-// Configure where to save images
-const fs = require('fs');
+// Configure Cloudinary
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
-const uploadsDir = path.join(__dirname, '../Uploads'); // Absolute path
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
-
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        cb(null, uploadsDir);
+const storage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'ui_ecommerce_products',
+        allowed_formats: ['jpg', 'png', 'jpeg', 'webp'],
     },
-    filename: function (req, file, cb) {
-        // Rename file to avoid duplicates (e.g., image-123456789.jpg)
-        cb(null, file.fieldname + '-' + Date.now() + path.extname(file.originalname));
-    }
 });
 
 const upload = multer({ storage: storage });
@@ -85,12 +89,12 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
     const { title, price, description } = req.body;
     const submittedPrice = parseFloat(price);
 
-    // 2. Get the filename if an image was uploaded
-    const imageFilename = req.file ? req.file.filename : null;
+    // 2. Get the full Cloudinary URL if uploaded
+    const imageUrl = req.file ? req.file.path : null;
 
     try {
         // --- PRICE GUARD IMPLEMENTATION ---
-        const { rows: marketPrices } = await db.execute("SELECT * FROM market_prices");
+        const { rows: marketPrices } = await db.execute({ sql: "SELECT * FROM market_prices" });
         // Simple fuzzy match: check if product title contains the market item name
         const match = marketPrices.find(p => title.toLowerCase().includes(p.item_name.toLowerCase()));
 
@@ -112,7 +116,7 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
         // 3. Insert into Database
         await db.execute({
             sql: "INSERT INTO products (title, price, description, category, image_url, seller_id) VALUES (?, ?, ?, ?, ?, ?)",
-            args: [title, submittedPrice, description, req.body.category || 'Other', imageFilename, req.session.user.id]
+            args: [title, submittedPrice, description, req.body.category || 'Other', imageUrl, req.session.user.id]
         });
         res.redirect('/seller/dashboard');
     } catch (err) {
@@ -190,9 +194,11 @@ router.post("/signup", async (req, res) => {
         const check = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
         if (check.rows.length > 0) return res.render('signup', { error: "Username taken!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
 
+
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         await db.execute({
             sql: "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-            args: [username, password, role]
+            args: [username, hashedPassword, role]
         });
 
         // Auto Login logic
@@ -221,7 +227,27 @@ router.post("/login", async (req, res) => {
         const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
         const user = rows[0];
 
-        if (!user || user.password !== password) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+
+        if (!user) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+
+        // --- PASSWORD CHECK & MIGRATION ---
+        let match = false;
+        const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$'); // Bcrypt prefixes
+
+        if (isHashed) {
+            match = await bcrypt.compare(password, user.password);
+        } else {
+            // Legacy plain text check
+            if (user.password === password) {
+                match = true;
+                // Lazy Migration: Hash it now!
+                const newHash = await bcrypt.hash(password, SALT_ROUNDS);
+                await db.execute({ sql: "UPDATE users SET password = ? WHERE id = ?", args: [newHash, user.id] });
+                console.log(`Migrated user ${user.username} (ID: ${user.id}) to hashed password.`);
+            }
+        }
+
+        if (!match) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
 
         req.session.user = user;
         if (user.role === 'admin') res.redirect('/admin_dashboard');
@@ -625,8 +651,18 @@ router.post('/settings/password', checkBan, async (req, res) => {
         const { rows } = await db.execute({ sql: "SELECT password FROM users WHERE id = ?", args: [userId] });
         const user = rows[0];
 
-        if (user && user.password === current_password) {
-            await db.execute({ sql: "UPDATE users SET password = ? WHERE id = ?", args: [new_password, userId] });
+        const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$');
+        let match = false;
+
+        if (isHashed) {
+            match = await bcrypt.compare(current_password, user.password);
+        } else {
+            if (user.password === current_password) match = true;
+        }
+
+        if (user && match) {
+            const newHashedPassword = await bcrypt.hash(new_password, SALT_ROUNDS);
+            await db.execute({ sql: "UPDATE users SET password = ? WHERE id = ?", args: [newHashedPassword, userId] });
             res.redirect('/settings?msg=password_changed');
         } else {
             res.redirect('/settings?error=invalid_password');
@@ -776,7 +812,7 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
                     'Content-Type': 'application/json'
                 }
             }
@@ -798,7 +834,7 @@ router.get(['/paystack/verify', '/paystack/callback'], async (req, res) => {
     try {
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } }
+            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
         );
 
         if (verify.data.data.status === 'success') {
@@ -891,7 +927,7 @@ router.post('/ads/paystack/initialize', checkBan, async (req, res) => {
             },
             {
                 headers: {
-                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}`,
+                    Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}`,
                     'Content-Type': 'application/json'
                 }
             }
@@ -912,7 +948,7 @@ router.get('/ads/paystack/callback', async (req, res) => {
     try {
         const verify = await axios.get(
             `https://api.paystack.co/transaction/verify/${reference}`,
-            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY || 'sk_test_YOUR_KEY_HERE'}` } }
+            { headers: { Authorization: `Bearer ${process.env.PAYSTACK_SECRET_KEY}` } }
         );
 
         if (verify.data.data.status === 'success') {

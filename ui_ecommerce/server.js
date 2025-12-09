@@ -4,7 +4,7 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 // --- FIX 1: Import connect-mongo for session persistence ---
 const axios = require("axios"); // Ensure axios is installed
-//const helmet = require("helmet");
+const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const csurf = require("csurf");
@@ -30,8 +30,20 @@ initDb();
 
 // Security Middleware
 
-// Allow Paystack and inline scripts by disabling CSP
-//app.use(helmet({ contentSecurityPolicy: false }));
+// Use Helmet!
+app.use(
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "https://js.paystack.co", "https://checkout.paystack.com"],
+                frameSrc: ["'self'", "https://checkout.paystack.com", "https://standard.paystack.co"],
+                imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://assets.paystack.com"],
+                connectSrc: ["'self'", "https://checkout.paystack.com"],
+            },
+        },
+    })
+);
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use(limiter);
@@ -53,25 +65,18 @@ var store = new MongoDBStore({
 app.use(
     session({
         store,
+        name: 'session_id', // Don't use default 'connect.sid'
         cookie: {
             maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
             secure: process.env.NODE_ENV === "production",
             httpOnly: true,
+            sameSite: 'lax' // CSRF protection
         },
-        resave: true,
-        secret:
-            process.env.SESSION_SECRET ||
-            "6bc55868-1c42-4eed-b5f9-4e1108ad47f9",
-        saveUninitialized: true,
+        resave: false, // Optimize: don't save if unmodified
+        secret: SESSION_SECRET || "6bc55868-1c42-4eed-b5f9-4e1108ad47f9", // We will keep the callback strictly for dev convenience but in prod it should be env
+        saveUninitialized: false, // Optimize: don't create session until something stored
     })
 );
-app.use((req, res, next) => {
-    res.setHeader(
-        "Content-Security-Policy",
-        "default-src 'self * 'unsafe-inline' 'unsafe-eval' data: blob:;"
-    );
-    next();
-});
 app.use((req, res, next) => {
     res.locals.user = req.session.user;
     next();

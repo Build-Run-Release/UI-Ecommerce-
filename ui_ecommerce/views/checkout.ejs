@@ -112,7 +112,7 @@
                 Cancel and go back</a>
             <h2 style="margin-top: 0;">Order Summary</h2>
 
-            <img src="<%= product.image && !product.image.startsWith('http') ? '/uploads/' + product.image : (product.image || 'https://via.placeholder.com/400x200') %>"
+            <img src="<%= (product.image_url || product.image) && !(product.image_url || product.image).startsWith('http') ? '/uploads/' + (product.image_url || product.image) : (product.image_url || product.image || 'https://via.placeholder.com/400x200') %>"
                 class="product-preview">
 
             <span class="label">Product</span>

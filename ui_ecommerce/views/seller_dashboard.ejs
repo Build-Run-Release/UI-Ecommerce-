@@ -56,7 +56,7 @@
                 </div>
 
                 <div class="profile-actions">
-                    <img src="<%= user.profile_image ? '/uploads/' + user.profile_image : 'https://ui-avatars.com/api/?name=' + user.username + '&background=4f46e5&color=fff' %>"
+                    <img src="<%= user.profile_image && !user.profile_image.startsWith('http') ? '/uploads/' + user.profile_image : (user.profile_image || 'https://ui-avatars.com/api/?name=' + user.username + '&background=4f46e5&color=fff') %>"
                         class="profile-img" onclick="toggleProfileMenu(event)">
                     <!-- Simple absolute upload trigger for profile pic if needed, hidden for clean look -->
 
