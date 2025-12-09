@@ -255,7 +255,7 @@ router.post("/login", async (req, res) => {
         else res.redirect('/');
     } catch (err) {
         console.error(err);
-        res.render('login', { error: "Login failed", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+        res.render('login', { error: "Login failed: " + err.message, csrfToken: req.csrfToken ? req.csrfToken() : '' });
     }
 });
 
