@@ -9,11 +9,11 @@ const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
 const csurf = require("csurf");
 const { body, validationResult } = require("express-validator");
-const { db, initDb } = require("./db");
+const { db, initDb, pool } = require("./db");
 const path = require("path");
 const mainRoutes = require("./routes/route");
 
-var MongoDBStore = require("connect-mongodb-session")(session);
+const pgSession = require('connect-pg-simple')(session);
 
 // --- FIX 2: Use environment variables for ALL secrets ---
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
@@ -55,9 +55,9 @@ app.use(express.static("public"));
 app.use('/uploads', express.static(path.join(__dirname, 'Uploads')));
 app.set("view engine", "ejs");
 
-var store = new MongoDBStore({
-    uri: process.env.MONGO_URI,
-    collection: "mySessions",
+var store = new pgSession({
+    pool: pool,                // Connection pool
+    tableName: 'session'       // Use permission granted to server
 });
 
 // --- FIX 3: Configure express-session with MongoStore ---

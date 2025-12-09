@@ -121,6 +121,17 @@ async function initDb() {
                 max_price DECIMAL(10,2)
             )`);
 
+            // 8. Session Table (for connect-pg-simple)
+            await client.query(`
+                CREATE TABLE IF NOT EXISTS session (
+                    sid varchar NOT NULL COLLATE "default",
+                    sess json NOT NULL,
+                    expire timestamp(6) NOT NULL,
+                    CONSTRAINT session_pkey PRIMARY KEY (sid)
+                );
+                CREATE INDEX IF NOT EXISTS IDX_session_expire ON session (expire);
+            `);
+
             // Create Default Admin
             const adminPass = 'admin123';
             const hashedAdminPass = await bcrypt.hash(adminPass, 10);
@@ -142,4 +153,4 @@ async function initDb() {
     }
 }
 
-module.exports = { db, initDb };
+module.exports = { db, initDb, pool };
