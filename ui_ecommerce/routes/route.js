@@ -164,7 +164,7 @@ router.get("/", async (req, res) => {
         const { rows: products } = await db.execute({ sql: productQuery, args: params });
 
         // B. Fetch Ads (Only active ones)
-        const { rows: ads } = await db.execute("SELECT * FROM ads WHERE status = 'active'");
+        const { rows: ads } = await db.execute({ sql: "SELECT * FROM ads WHERE status = 'active'" });
 
         res.render("index", {
             user: user,
@@ -684,11 +684,11 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
 
     try {
         // A. Fetch All Users
-        const { rows: users } = await db.execute("SELECT * FROM users ORDER BY id DESC");
+        const { rows: users } = await db.execute({ sql: "SELECT * FROM users ORDER BY id DESC" });
 
         // B. Fetch Platform Stats
         const statsQuery = "SELECT COUNT(*) as total_orders, SUM(service_fee) as total_revenue FROM orders";
-        const { rows: statsRes } = await db.execute(statsQuery);
+        const { rows: statsRes } = await db.execute({ sql: statsQuery });
         const stats = statsRes[0] || { total_orders: 0, total_revenue: 0 };
 
         res.render('admin_dashboard', {
