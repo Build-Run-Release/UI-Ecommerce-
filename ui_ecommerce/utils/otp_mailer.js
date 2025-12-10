@@ -54,7 +54,37 @@ async function sendEmail(to, subject, htmlContent) {
         console.log(`[EMAIL] Sent to ${to} via ${process.env.SMTP_HOST || 'default'}`);
         return true;
     } catch (err) {
-        console.error("Error sending email:", err);
+        console.error("Error sending email (Attempt 1):", err.code || err);
+
+        // RETRY LOGIC for Port 465/587 Timeout -> Try Port 2525
+        if (err.code === 'ETIMEDOUT' || err.code === 'ESOCKET') {
+            console.log("⚠️ Timeout detected. Retrying with Port 2525 (Brevo Alternative)...");
+
+            const backupTransporter = nodemailer.createTransport({
+                host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+                port: 2525, // Fallback port often used to bypass blocks
+                secure: false,
+                auth: { user: user, pass: pass },
+                tls: { rejectUnauthorized: false },
+                connectionTimeout: 20000,
+                debug: true
+            });
+
+            try {
+                await backupTransporter.sendMail({
+                    from: `"UI Market Security" <${fromEmail}>`,
+                    to: to,
+                    subject: subject,
+                    html: htmlContent
+                });
+                console.log(`[EMAIL] Sent to ${to} via Port 2525 (Fallback Success)`);
+                return true;
+            } catch (retryErr) {
+                console.error("Error sending email (Fallback Failed):", retryErr);
+                return false;
+            }
+        }
+
         return false;
     }
 }
