@@ -16,9 +16,14 @@ const transporter = nodemailer.createTransport({
         pass: process.env.SMTP_PASS || process.env.EMAIL_PASS
     },
     // Improvements for Timeout Issues
-    connectionTimeout: 10000, // 10 seconds
-    greetingTimeout: 10000,
-    socketTimeout: 10000,
+    connectionTimeout: 20000, // 20 seconds
+    greetingTimeout: 20000,
+    socketTimeout: 20000,
+    dnsTimeout: 20000,
+    logger: true, // Log to console
+    debug: true,  // Include SMTP traffic in logs
+    // Force IPv4 to avoid IPv6 timeouts
+    family: 4,
     tls: {
         rejectUnauthorized: false // Helps if certificate issues usually
     }
