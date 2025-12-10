@@ -11,7 +11,7 @@ const SALT_ROUNDS = 10;
 
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
-const { checkProductPricing, checkSpamming, flagUser } = require('../utils/fraud_engine');
+const { checkProductPricing, checkSpamming, flagUser, checkDescriptionContent, checkBankDetails, checkAccountVelocity } = require('../utils/fraud_engine');
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
@@ -108,6 +108,16 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
         // --- FRAUD CHECK: SPAM ---
         if (await checkSpamming(req.session.user)) {
             return res.status(429).send("You are posting too fast. Account flagged.");
+        }
+
+        // --- FRAUD CHECK: VELOCITY (New Accounts) ---
+        if (await checkAccountVelocity(req.session.user)) {
+            return res.status(429).send("New account limit: Max 3 items in 24h. Account flagged.");
+        }
+
+        // --- FRAUD CHECK: CONTENT (Keywords) ---
+        if (await checkDescriptionContent(req.session.user, title, description)) {
+            return res.status(400).send("Policy Violation: Restricted keywords detected. Account flagged.");
         }
 
         // --- PRICE GUARD IMPLEMENTATION ---
@@ -461,6 +471,13 @@ router.post('/seller/product/:id/edit', checkBan, async (req, res) => {
 router.post('/seller/onboard', async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
     const { bank_name, account_number, bank_code } = req.body;
+
+    // --- FRAUD CHECK: BANK COLLISION ---
+    if (await checkBankDetails(req.session.user, account_number)) {
+        // Silently fail or alert? Let's alert.
+        return res.send("Error: This bank account is already associated with another user. Action flagged.");
+    }
+
     try {
         await db.execute({
             sql: "UPDATE users SET bank_name = ?, account_number = ?, bank_code = ? WHERE id = ?",

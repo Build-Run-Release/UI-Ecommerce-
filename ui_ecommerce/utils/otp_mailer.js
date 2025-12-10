@@ -4,18 +4,23 @@ require('dotenv').config();
 // Create transporter
 // NOTE: For real production, use environment variables. 
 // If variables are missing, we default to logging to console (for dev safety).
+// Create transporter using Generic SMTP variables (compatible with Railway/Brevo)
 const transporter = nodemailer.createTransport({
-    host: 'smtp-relay.brevo.com',
-    port: 587,
+    host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
+    port: parseInt(process.env.SMTP_PORT) || 587,
     secure: false, // true for 465, false for other ports
     auth: {
-        user: process.env.EMAIL_USER, // Brevo Login Email
-        pass: process.env.EMAIL_PASS  // Brevo API Key / SMTP Master Password
+        user: process.env.SMTP_USER || process.env.EMAIL_USER,
+        pass: process.env.SMTP_PASS || process.env.EMAIL_PASS
     }
 });
 
 async function sendEmail(to, subject, htmlContent) {
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    const user = process.env.SMTP_USER || process.env.EMAIL_USER;
+    const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+    const fromEmail = process.env.EMAIL_FROM || user;
+
+    if (!user || !pass) {
         console.log("==========================================");
         console.log("⚠️ EMAIL MOCK (Credentials missing in .env)");
         console.log(`To: ${to}`);
@@ -27,13 +32,12 @@ async function sendEmail(to, subject, htmlContent) {
 
     try {
         await transporter.sendMail({
-            from: `"UI Market Security" <${process.env.EMAIL_USER}>`,
+            from: `"UI Market Security" <${fromEmail}>`,
             to: to,
             subject: subject,
             html: htmlContent
         });
-        console.log(`[TESTING] Email sent to ${to}. Subject: ${subject}`);
-        console.log(`[TESTING] Content (Peek): ${htmlContent}`);
+        console.log(`[EMAIL] Sent to ${to} via ${process.env.SMTP_HOST || 'default'}`);
         return true;
     } catch (err) {
         console.error("Error sending email:", err);

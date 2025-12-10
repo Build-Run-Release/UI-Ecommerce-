@@ -53,7 +53,8 @@ async function initDb() {
                 bank_name TEXT,
                 account_number TEXT,
                 paystack_subaccount_code TEXT,
-                bank_code TEXT
+                bank_code TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`);
 
             // 2. Products Table
@@ -167,6 +168,7 @@ async function initDb() {
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires BIGINT`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspicion_score INTEGER DEFAULT 0`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_flagged INTEGER DEFAULT 0`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 
             // Orders Table: Seller Protection
             await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_code TEXT`);
