@@ -22,6 +22,7 @@
             <a href="/buyer/dashboard" class="active">Dashboard</a>
             <a href="/">Browse Shop</a>
             <a href="/settings">Settings</a>
+            <a href="/feedback">Feedback/Report</a>
             <div style="margin-top: auto;">
                 <a href="/logout" style="color: #ef4444;">Logout</a>
             </div>
@@ -80,6 +81,7 @@
                                 <th>Item</th>
                                 <th>Amount</th>
                                 <th>Status</th>
+                                <th>Secret Code</th>
                                 <th>Action</th>
                             </tr>
                         </thead>
@@ -101,6 +103,20 @@
                                                 <% } else { %>
                                                     <span class="badge badge-warning">Processing</span>
                                                     <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (!order.buyer_confirmed && !order.escrow_released) { %>
+                                            <div
+                                                style="background: #f3f4f6; padding: 5px; border-radius: 4px; border: 1px dashed #aaa; text-align: center;">
+                                                <strong style="font-size: 1.1em; letter-spacing: 2px;">
+                                                    <%= order.delivery_code %>
+                                                </strong>
+                                                <div style="font-size: 0.75rem; color: #dc2626; margin-top: 2px;">Give
+                                                    to seller ONLY on receipt</div>
+                                            </div>
+                                            <% } else { %>
+                                                <span style="color: #bbb;">Used</span>
+                                                <% } %>
                                     </td>
                                     <td>
                                         <% if (order.seller_confirmed && !order.buyer_confirmed) { %>

@@ -128,6 +128,22 @@
                 <label>New Password</label>
                 <input type="password" name="new_password" required minlength="6">
 
+                <div style="margin: 15px 0;">
+                    <label>Security Check</label>
+                    <div style="display: flex; gap: 10px; align-items: center;">
+                        <div style="background: #eee; padding: 5px; border-radius: 4px;">
+                            <img src="/captcha" alt="Captcha" onclick="this.src='/captcha?'+Math.random()"
+                                style="cursor: pointer;" title="Click to refresh">
+                        </div>
+                        <input type="text" name="captcha" placeholder="Enter code" required style="width: 120px;">
+                    </div>
+                    <% if (typeof captchaError !=='undefined' && captchaError) { %>
+                        <div style="color: red; font-size: 0.8rem; margin-top: 5px;">
+                            <%= captchaError %>
+                        </div>
+                        <% } %>
+                </div>
+
                 <button type="submit" class="btn btn-outline" style="margin-top: 10px;">Update Password</button>
             </form>
 

@@ -31,7 +31,9 @@
     "helmet": "^8.1.0",
     "multer": "^1.4.5-lts.1",
     "multer-storage-cloudinary": "^4.0.0",
-    "pg": "^8.16.3"
+    "nodemailer": "^7.0.11",
+    "pg": "^8.16.3",
+    "svg-captcha": "^1.4.0"
   },
   "devDependencies": {
     "nodemon": "^3.1.11"

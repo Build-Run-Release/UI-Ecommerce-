@@ -67,6 +67,12 @@ async function initDb() {
                 image_url TEXT
             )`);
 
+            // 2b. Categories Table (NEW)
+            await client.query(`CREATE TABLE IF NOT EXISTS categories (
+                id SERIAL PRIMARY KEY,
+                name TEXT UNIQUE NOT NULL
+            )`);
+
             // 3. Orders Table
             await client.query(`CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -141,6 +147,34 @@ async function initDb() {
                 VALUES ($1, $2, $3) 
                 ON CONFLICT (username) DO NOTHING
             `, ['admin', hashedAdminPass, 'admin']);
+
+            // 9. Feedback Table (NEW)
+            await client.query(`CREATE TABLE IF NOT EXISTS feedback (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER,
+                name TEXT,
+                email TEXT,
+                message_type TEXT,
+                message TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
+            // --- MIGRATIONS (Add Columns if missing) ---
+
+            // Users Table: Security & Fraud
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT UNIQUE`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_hash TEXT`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires BIGINT`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspicion_score INTEGER DEFAULT 0`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_flagged INTEGER DEFAULT 0`);
+
+            // Orders Table: Seller Protection
+            await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_code TEXT`);
+            await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS code_confirmed_at TIMESTAMP`);
+            await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMP`);
+            await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS disputed INTEGER DEFAULT 0`);
+
+
 
             console.log("Database tables initialized successfully.");
 

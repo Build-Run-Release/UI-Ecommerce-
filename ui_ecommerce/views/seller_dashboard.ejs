@@ -27,6 +27,7 @@
             <a href="#inventory">My Inventory</a>
             <a href="/settings">Settings</a>
             <a href="/">Go to Shop</a>
+            <a href="/feedback">Feedback/Report</a>
             <div style="margin-top: auto;">
                 <a href="/logout" style="color: #ef4444;">Logout</a>
             </div>
@@ -134,15 +135,71 @@
                                                         <% } %>
                                         </td>
                                         <td>
-                                            <% if (!order.seller_confirmed) { %>
-                                                <form action="/order/<%= order.id %>/confirm/seller" method="POST">
-                                                    <input type="hidden" name="_csrf"
-                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                    <button type="submit" class="btn btn-primary btn-sm">Mark
-                                                        Sent</button>
-                                                </form>
+                                        <td>
+                                            <% if (order.buyer_confirmed || order.escrow_released) { %>
+                                                <span class="badge badge-success">Completed</span>
                                                 <% } else { %>
-                                                    <span style="color: var(--success-color);">✓</span>
+                                                    <div style="display: flex; flex-direction: column; gap: 5px;">
+
+                                                        <% if (!order.seller_confirmed) { %>
+                                                            <!-- Step 1: Mark Delivered -->
+                                                            <form
+                                                                action="/order/<%= order.id %>/confirm/seller-delivered"
+                                                                method="POST">
+                                                                <input type="hidden" name="_csrf"
+                                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                                <button type="submit" class="btn btn-primary btn-sm"
+                                                                    style="width: 100%;">I have Delivered</button>
+                                                            </form>
+                                                            <% } else { %>
+                                                                <!-- Step 2: Enter Code OR Wait -->
+                                                                <div
+                                                                    style="font-size: 0.8rem; color: var(--success-color); margin-bottom: 2px;">
+                                                                    Item Delivered</div>
+
+                                                                <form
+                                                                    action="/order/<%= order.id %>/confirm/seller-code"
+                                                                    method="POST" style="display: flex; gap: 5px;">
+                                                                    <input type="hidden" name="_csrf"
+                                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                                    <input type="text" name="delivery_code"
+                                                                        placeholder="Buyer Code"
+                                                                        style="width: 80px; padding: 4px; font-size: 0.8rem;"
+                                                                        required>
+                                                                    <button type="submit"
+                                                                        class="btn btn-success btn-sm">Verify</button>
+                                                                </form>
+
+                                                                <!-- Fallbacks -->
+                                                                <div style="display: flex; gap: 5px; margin-top: 5px;">
+                                                                    <!-- Claim Funds (Auto Release) -->
+                                                                    <form action="/order/<%= order.id %>/claim-funds"
+                                                                        method="POST">
+                                                                        <input type="hidden" name="_csrf"
+                                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                                        <button type="submit"
+                                                                            class="btn btn-outline btn-sm"
+                                                                            title="Available 24h after delivery">Claim
+                                                                            Funds</button>
+                                                                    </form>
+
+                                                                    <!-- Dispute -->
+                                                                    <% if (!order.disputed) { %>
+                                                                        <form action="/order/<%= order.id %>/dispute"
+                                                                            method="POST"
+                                                                            onsubmit="return confirm('Report a problem with this order?');">
+                                                                            <input type="hidden" name="_csrf"
+                                                                                value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                                            <button type="submit"
+                                                                                class="btn btn-danger btn-sm">Report</button>
+                                                                        </form>
+                                                                        <% } else { %>
+                                                                            <span
+                                                                                class="badge badge-warning">Disputed</span>
+                                                                            <% } %>
+                                                                </div>
+                                                                <% } %>
+                                                    </div>
                                                     <% } %>
                                         </td>
                                     </tr>
@@ -259,11 +316,15 @@
                 <label>Category</label>
                 <select name="category" required>
                     <option value="" disabled selected>Select Category</option>
-                    <option value="Textbooks">Textbooks</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Fashion">Fashion</option>
-                    <option value="Furniture">Furniture</option>
-                    <option value="Other">Other</option>
+                    <% if (typeof categories !=='undefined' ) { %>
+                        <% categories.forEach(function(cat) { %>
+                            <option value="<%= cat %>">
+                                <%= cat %>
+                            </option>
+                            <% }); %>
+                                <% } else { %>
+                                    <option value="Other">Other</option>
+                                    <% } %>
                 </select>
 
                 <label>Product Image</label>
@@ -306,11 +367,15 @@
 
                 <label>Category</label>
                 <select id="editCategory" name="category" required>
-                    <option value="Textbooks">Textbooks</option>
-                    <option value="Electronics">Electronics</option>
-                    <option value="Fashion">Fashion</option>
-                    <option value="Furniture">Furniture</option>
-                    <option value="Other">Other</option>
+                    <% if (typeof categories !=='undefined' ) { %>
+                        <% categories.forEach(function(cat) { %>
+                            <option value="<%= cat %>">
+                                <%= cat %>
+                            </option>
+                            <% }); %>
+                                <% } else { %>
+                                    <option value="Other">Other</option>
+                                    <% } %>
                 </select>
 
                 <p style="font-size: 0.8rem; color: var(--text-muted);">* Image update not supported in quick edit.</p>

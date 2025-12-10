@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify OTP - UI Market</title>
+    <link rel="stylesheet" href="/css/modern.css">
+</head>
+
+<body style="display: flex; justify-content: center; align-items: center; height: 100vh; background-color: #f3f4f6;">
+
+    <div
+        style="background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center;">
+        <h2 style="color: var(--primary-color);">Verify Your Login</h2>
+        <p style="color: #666; margin-bottom: 20px;">We sent a 6-digit code to your email.</p>
+
+        <% if (typeof error !=='undefined' && error) { %>
+            <div style="background: #fee2e2; color: #b91c1c; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <%= error %>
+            </div>
+            <% } %>
+
+                <form action="/verify-otp" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+
+                    <div style="margin-bottom: 20px;">
+                        <input type="text" name="otp" placeholder="Enter 6-digit Code" required
+                            style="width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 1.2rem; text-align: center; letter-spacing: 5px;"
+                            maxlength="6" pattern="[0-9]*" inputmode="numeric">
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">Verify Code</button>
+                </form>
+
+                <p style="margin-top: 20px; font-size: 0.9rem;">
+                    <a href="/login" style="color: var(--text-muted);">Back to Login</a>
+                </p>
+    </div>
+
+</body>
+
+</html>

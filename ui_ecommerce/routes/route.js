@@ -11,6 +11,7 @@ const SALT_ROUNDS = 10;
 
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
+const { checkProductPricing, checkSpamming, flagUser } = require('../utils/fraud_engine');
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
@@ -62,6 +63,17 @@ const checkBan = (req, res, next) => {
     next();
 };
 
+// --- HELPER: Fetch Categories ---
+async function getCategories() {
+    try {
+        const { rows } = await db.execute({ sql: "SELECT name FROM categories ORDER BY name ASC" });
+        return rows.map(r => r.name);
+    } catch (err) {
+        console.error("Error fetching categories:", err);
+        return [];
+    }
+}
+
 const csrfProtection = csurf({ cookie: true });
 
 // Specific Middleware to pass token to views
@@ -93,6 +105,11 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
     const imageUrl = req.file ? req.file.path : null;
 
     try {
+        // --- FRAUD CHECK: SPAM ---
+        if (await checkSpamming(req.session.user)) {
+            return res.status(429).send("You are posting too fast. Account flagged.");
+        }
+
         // --- PRICE GUARD IMPLEMENTATION ---
         const { rows: marketPrices } = await db.execute({ sql: "SELECT * FROM market_prices" });
         // Simple fuzzy match: check if product title contains the market item name
@@ -100,15 +117,10 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
 
         if (match) {
             // Rule: Price cannot be more than 20% above max, or less than 50% of min (suspicious)
-            const maxAllowed = match.max_price * 1.2;
-            const minAllowed = match.min_price * 0.5;
-
-            if (submittedPrice > maxAllowed) {
-                return res.status(400).send(`Price Guard Alert: Your price (₦${submittedPrice}) is significantly higher than the market average for ${match.item_name} (₦${match.average_price}). Max allowed: ₦${maxAllowed}.`);
-            }
-            // Optional: Block extremely low prices too
-            if (submittedPrice < minAllowed) {
-                return res.status(400).send(`Price Guard Alert: Your price is suspiciously low. Market average for ${match.item_name} is ₦${match.average_price}.`);
+            // Use Fraud Engine Helper
+            const isFraud = await checkProductPricing(req.session.user, submittedPrice, match);
+            if (isFraud) {
+                return res.status(400).send("Price Guard: Your price is suspiciously low compared to market value. Action flagged.");
             }
         }
         // ----------------------------------
@@ -125,9 +137,69 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
     }
 });
 
+const { sendEmail, generateOTP } = require('../utils/otp_mailer');
+const svgCaptcha = require('svg-captcha');
+
+// --- CAPTCHA ROUTE ---
+router.get('/captcha', (req, res) => {
+    const captcha = svgCaptcha.create({
+        size: 5,
+        noise: 2,
+        color: true,
+        background: '#f0f0f0'
+    });
+    // Store in session
+    req.session.captcha = captcha.text;
+
+    res.type('svg');
+    res.status(200).send(captcha.data);
+});
+
 // --- APPLY GLOBAL CSRF TO ALL OTHER ROUTES ---
 router.use(csrfProtection);
 router.use(passCsrfToken);
+
+// --- TERMS & CONDITIONS ROUTE ---
+router.get('/terms', (req, res) => {
+    res.render('terms', { user: req.session.user });
+});
+
+// --- FEEDBACK ROUTES ---
+router.get('/feedback', (req, res) => {
+    res.render('feedback', {
+        user: req.session.user,
+        msg: req.query.msg,
+        csrfToken: req.csrfToken ? req.csrfToken() : ''
+    });
+});
+
+router.post('/feedback', async (req, res) => {
+    const { name, email, message_type, message } = req.body;
+    const userId = req.session.user ? req.session.user.id : null;
+
+    try {
+        await db.execute({
+            sql: "INSERT INTO feedback (user_id, name, email, message_type, message) VALUES (?, ?, ?, ?, ?)",
+            args: [userId, name, email, message_type, message]
+        });
+
+        // If it's a complaint against a specific user (heuristic: message contains "user"), maybe flag?
+        // For now, simplify.
+
+        res.render('feedback', {
+            user: req.session.user,
+            msg: "Thank you! Your feedback has been received.",
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+    } catch (err) {
+        console.error("Feedback Error:", err);
+        res.render('feedback', {
+            user: req.session.user,
+            msg: "Error submitting feedback.",
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
+        });
+    }
+});
 
 // ------------------------------------------------
 
@@ -139,6 +211,9 @@ router.get("/", async (req, res) => {
     // A. Build the Product Query
     let productQuery = "SELECT * FROM products";
     let params = [];
+
+    // Fetch Categories for Sidebar
+    const categories = await getCategories();
 
     // If they searched, filter by Title OR Description
     if (searchTerm) {
@@ -171,7 +246,10 @@ router.get("/", async (req, res) => {
             products: products,
             ads: ads,
             searchTerm: searchTerm,
-            currentCategory: req.query.category || ''
+            ads: ads,
+            searchTerm: searchTerm,
+            currentCategory: req.query.category || '',
+            categories: categories
         });
     } catch (err) {
         console.error(err);
@@ -180,7 +258,8 @@ router.get("/", async (req, res) => {
             products: [],
             ads: [],
             searchTerm: searchTerm,
-            currentCategory: req.query.category || ''
+            currentCategory: req.query.category || '',
+            categories: []
         });
     }
 });
@@ -189,80 +268,142 @@ router.get("/", async (req, res) => {
 router.get("/signup", (req, res) => res.render("signup", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
 
 router.post("/signup", async (req, res) => {
-    const { username, password, role } = req.body;
+    const { username, password, role, email, terms } = req.body;
     console.log(`Signup attempt: ${username}, role: ${role}`);
-    try {
-        const check = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
-        if (check.rows.length > 0) return res.render('signup', { error: "Username taken!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
 
+    if (terms !== 'on') {
+        return res.render('signup', { error: "You must agree to the Terms & Conditions.", csrfToken: req.csrfToken() });
+    }
+
+    try {
+        const check = await db.execute({ sql: "SELECT * FROM users WHERE username = ? OR email = ?", args: [username, email] });
+        if (check.rows.length > 0) return res.render('signup', { error: "Username or Email already taken!", csrfToken: req.csrfToken() });
 
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
         await db.execute({
-            sql: "INSERT INTO users (username, password, role) VALUES (?, ?, ?)",
-            args: [username, hashedPassword, role]
+            sql: "INSERT INTO users (username, password, role, email) VALUES (?, ?, ?, ?)",
+            args: [username, hashedPassword, role, email]
         });
 
-        // Auto Login logic
-        const userRes = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
-        const user = userRes.rows[0];
+        // Auto Login logic -> NOW REDIRECT TO LOGIN (Security Best Practice: Force them to login/verify)
+        res.redirect('/login');
 
-        if (user) {
-            req.session.user = user;
-            if (user.role === 'seller') res.redirect('/seller/dashboard');
-            else if (user.role === 'admin') res.redirect('/admin_dashboard');
-            else res.redirect('/buyer/dashboard');
-        } else {
-            console.log("Signup Auto-login failed: User not found after insertion.");
-            res.redirect('/login');
-        }
     } catch (err) {
         console.error("Signup Error:", err);
-        return res.render('signup', { error: "Error creating user", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+        return res.render('signup', { error: "Error creating user", csrfToken: req.csrfToken() });
     }
 });
 
 router.get("/login", (req, res) => res.render("login", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
 
+// LOGIN with OTP Support
 router.post("/login", async (req, res) => {
     const { username, password } = req.body;
     try {
         const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
         const user = rows[0];
 
+        if (!user) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken() });
 
-        if (!user) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
-
-        // --- PASSWORD CHECK & MIGRATION ---
+        // --- PASSWORD CHECK ---
+        const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$');
         let match = false;
-        const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$'); // Bcrypt prefixes
-
         if (isHashed) {
             match = await bcrypt.compare(password, user.password);
         } else {
-            // Legacy plain text check
             if (user.password === password) {
                 match = true;
-                // Lazy Migration: Hash it now!
+                // Lazy Migration
                 const newHash = await bcrypt.hash(password, SALT_ROUNDS);
                 await db.execute({ sql: "UPDATE users SET password = ? WHERE id = ?", args: [newHash, user.id] });
-                console.log(`Migrated user ${user.username} (ID: ${user.id}) to hashed password.`);
             }
         }
 
         if (!match) {
-            console.log(`Login failed for ${username}: Password mismatch.`);
-            return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+            return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken() });
         }
 
-        console.log(`User ${username} logged in successfully. Role: ${user.role}`);
+        // --- CONDITIONAL OTP LOGIC ---
+        // 1. High Risk Check (Flagged or High Suspicion)
+        const isHighRisk = user.is_flagged || (user.suspicion_score && user.suspicion_score > 50);
+
+        // 2. Random Security Check (20% chance if not high risk)
+        const isRandomCheck = Math.random() < 0.2;
+
+        if (isHighRisk || isRandomCheck) {
+            // GENERATE OTP
+            const otp = generateOTP();
+            const otpHash = await bcrypt.hash(otp, 10);
+            const otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+
+            await db.execute({
+                sql: "UPDATE users SET otp_hash = ?, otp_expires = ? WHERE id = ?",
+                args: [otpHash, otpExpires, user.id]
+            });
+
+            // Send Email (Brevo)
+            // Use otp_mailer's sendEmail function
+            const { sendEmail } = require('../utils/otp_mailer');
+            await sendEmail(user.email, "Login Verification Code", `<h3>Your Login Code: ${otp}</h3><p>Valid for 10 minutes.</p>`);
+
+            console.log(`[AUTH] OTP Triggered for user ${user.id}. Risk: ${isHighRisk}, Random: ${isRandomCheck}`);
+
+            // Store user ID temporarily in session
+            req.session.temp_login_id = user.id;
+            return res.redirect('/verify-otp');
+        } else {
+            // SKIP OTP - DIRECT LOGIN
+            req.session.user = { id: user.id, username: user.username, role: user.role };
+            console.log(`[AUTH] User ${user.id} logged in directly (Skipped OTP).`);
+            return res.redirect('/');
+        }
+    } catch (err) {
+        console.error(err);
+        res.render('login', { error: "Login failed", csrfToken: req.csrfToken() });
+    }
+});
+
+// --- VERIFY OTP ROUTES ---
+router.get("/verify-otp", (req, res) => {
+    if (!req.session.temp_login_id) return res.redirect('/login');
+    res.render('verify-otp', { error: null });
+});
+
+router.post("/verify-otp", async (req, res) => {
+    if (!req.session.temp_login_id) return res.redirect('/login');
+    const { otp } = req.body;
+
+    try {
+        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [req.session.temp_login_id] });
+        const user = rows[0];
+
+        if (!user || !user.otp_hash || !user.otp_expires) {
+            return res.render('verify-otp', { error: "Invalid request. Login again." });
+        }
+
+        if (Date.now() > user.otp_expires) {
+            return res.render('verify-otp', { error: "Code expired. Login again." });
+        }
+
+        const match = await bcrypt.compare(otp, user.otp_hash);
+        if (!match) {
+            return res.render('verify-otp', { error: "Invalid code." });
+        }
+
+        // --- OTP SUCCESS: LOG IN USER ---
         req.session.user = user;
+        delete req.session.temp_login_id; // Clear temp
+
+        // Clear OTP from DB
+        await db.execute({ sql: "UPDATE users SET otp_hash = NULL, otp_expires = NULL WHERE id = ?", args: [user.id] });
+
         if (user.role === 'admin') res.redirect('/admin_dashboard');
         else if (user.role === 'seller') res.redirect('/seller/dashboard');
         else res.redirect('/');
+
     } catch (err) {
-        console.error("Login Error:", err);
-        // DEBUG: Expose full error to UI for production debugging
-        res.render('login', { error: "Login failed: " + err.message, csrfToken: req.csrfToken ? req.csrfToken() : '' });
+        console.error(err);
+        res.render('verify-otp', { error: "Verification failed." });
     }
 });
 
@@ -280,10 +421,12 @@ router.get('/seller/dashboard', noCache, checkBan, async (req, res) => {
         const { rows: users } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [sellerId] });
         const user = users[0];
 
-        res.render('seller_dashboard', { user: user || req.session.user, products: products, orders: orders, csrfToken: req.csrfToken ? req.csrfToken() : '' });
+        const categories = await getCategories();
+
+        res.render('seller_dashboard', { user: user || req.session.user, products: products, orders: orders, categories: categories, csrfToken: req.csrfToken ? req.csrfToken() : '' });
     } catch (err) {
         console.error(err);
-        res.render('seller_dashboard', { user: req.session.user, products: [], orders: [], csrfToken: req.csrfToken ? req.csrfToken() : '' });
+        res.render('seller_dashboard', { user: req.session.user, products: [], orders: [], categories: [], csrfToken: req.csrfToken ? req.csrfToken() : '' });
     }
 });
 
@@ -502,25 +645,102 @@ router.post('/order/:id/confirm/buyer', checkBan, async (req, res) => {
     }
 });
 
-// 3. POST: Seller Confirms Sending
-router.post('/order/:id/confirm/seller', checkBan, async (req, res) => {
+// 3. POST: Seller Confirms DELIVERY (Starts 24h Timer or Instant Code)
+router.post('/order/:id/confirm/seller-code', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
-
     const orderId = req.params.id;
-
-    // Mark as seller_confirmed
-    const updateQuery = `
-        UPDATE orders 
-        SET seller_confirmed = 1, status = 'shipped' 
-        WHERE id = ? AND seller_id = ?
-    `;
+    const { delivery_code } = req.body;
+    const sellerId = req.session.user.id;
 
     try {
-        await db.execute({ sql: updateQuery, args: [orderId, req.session.user.id] });
-        res.redirect('/seller/dashboard');
+        const { rows } = await db.execute({ sql: "SELECT * FROM orders WHERE id = ? AND seller_id = ?", args: [orderId, sellerId] });
+        const order = rows[0];
+
+        if (!order) return res.redirect('/seller/dashboard?error=not_found');
+        if (order.status === 'completed') return res.redirect('/seller/dashboard?msg=already_completed');
+
+        // Check Code
+        if (order.delivery_code === delivery_code) {
+            // SUCCESS: Release Funds Instant
+            await db.execute({
+                sql: "UPDATE orders SET status = 'completed', seller_confirmed = 1, escrow_released = 1, code_confirmed_at = CURRENT_TIMESTAMP WHERE id = ?",
+                args: [orderId]
+            });
+
+            await db.execute({ sql: "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", args: [order.seller_amount, sellerId] });
+
+            return res.redirect('/seller/dashboard?msg=funds_released');
+        } else {
+            return res.redirect('/seller/dashboard?error=invalid_code');
+        }
     } catch (err) {
         console.error(err);
         res.redirect('/seller/dashboard');
+    }
+});
+
+router.post('/order/:id/confirm/seller-delivered', checkBan, async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    const orderId = req.params.id;
+
+    // Mark as delivered -> Starts 24h clock
+    try {
+        await db.execute({
+            sql: "UPDATE orders SET seller_confirmed = 1, status = 'shipped', delivered_at = CURRENT_TIMESTAMP WHERE id = ? AND seller_id = ?",
+            args: [orderId, req.session.user.id]
+        });
+        res.redirect('/seller/dashboard?msg=timer_started');
+    } catch (err) {
+        console.error(err);
+        res.redirect('/seller/dashboard');
+    }
+});
+
+router.post('/order/:id/claim-funds', checkBan, async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    const orderId = req.params.id;
+    const sellerId = req.session.user.id;
+
+    try {
+        const { rows } = await db.execute({ sql: "SELECT * FROM orders WHERE id = ? AND seller_id = ?", args: [orderId, sellerId] });
+        const order = rows[0];
+
+        if (!order || order.status === 'completed') return res.redirect('/seller/dashboard');
+        if (order.disputed === 1) return res.redirect('/seller/dashboard?error=disputed');
+
+        if (!order.delivered_at) return res.redirect('/seller/dashboard?error=not_delivered_yet');
+
+        // Check 24 Hours
+        const deliveredTime = new Date(order.delivered_at).getTime();
+        const now = Date.now();
+        const hoursDiff = (now - deliveredTime) / (1000 * 60 * 60);
+
+        if (hoursDiff >= 24) {
+            // Release Funds
+            await db.execute({
+                sql: "UPDATE orders SET status = 'completed', escrow_released = 1 WHERE id = ?",
+                args: [orderId]
+            });
+            await db.execute({ sql: "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?", args: [order.seller_amount, sellerId] });
+            return res.redirect('/seller/dashboard?msg=funds_claimed');
+        } else {
+            return res.redirect('/seller/dashboard?error=wait_24h');
+        }
+    } catch (err) {
+        console.error(err);
+        res.redirect('/seller/dashboard');
+    }
+});
+
+router.post('/order/:id/dispute', checkBan, async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    const orderId = req.params.id;
+    try {
+        await db.execute({ sql: "UPDATE orders SET disputed = 1 WHERE id = ?", args: [orderId] });
+        res.redirect('back');
+    } catch (err) {
+        console.error(err);
+        res.redirect('back');
     }
 });
 
@@ -693,6 +913,9 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
         // A. Fetch All Users
         const { rows: users } = await db.execute({ sql: "SELECT * FROM users ORDER BY id DESC" });
 
+        // A2. Fetch Flagged Users (High Suspicion)
+        const { rows: flaggedUsers } = await db.execute({ sql: "SELECT * FROM users WHERE is_flagged = 1 OR suspicion_score > 50 ORDER BY suspicion_score DESC" });
+
         // B. Fetch Platform Stats
         const statsQuery = "SELECT COUNT(*) as total_orders, SUM(service_fee) as total_revenue FROM orders";
         const { rows: statsRes } = await db.execute({ sql: statsQuery });
@@ -701,6 +924,7 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
         res.render('admin_dashboard', {
             user: req.session.user,
             users: users,
+            flaggedUsers: flaggedUsers,
             stats: stats,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
@@ -709,6 +933,7 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
         res.render('admin_dashboard', {
             user: req.session.user,
             users: [],
+            flaggedUsers: [],
             stats: { total_orders: 0, total_revenue: 0 },
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
@@ -813,16 +1038,19 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
     const user = req.session.user;
     const reference = 'ORD_' + Date.now() + '_' + user.id;
 
+    // --- SELLER PROTECTION: GENERATE DELIVERY CODE ---
+    const deliveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+
     const insertQuery = `
         INSERT INTO orders 
-        (buyer_id, seller_id, product_id, amount, service_fee, seller_amount, status, payment_reference, buyer_confirmed, seller_confirmed, created_at) 
-        VALUES (?, (SELECT seller_id FROM products WHERE id = ?), ?, ?, ?, ?, 'pending', ?, 0, 0, CURRENT_TIMESTAMP)
+        (buyer_id, seller_id, product_id, amount, service_fee, seller_amount, status, payment_reference, buyer_confirmed, seller_confirmed, created_at, delivery_code) 
+        VALUES (?, (SELECT seller_id FROM products WHERE id = ?), ?, ?, ?, ?, 'pending', ?, 0, 0, CURRENT_TIMESTAMP, ?)
     `;
 
     try {
         await db.execute({
             sql: insertQuery,
-            args: [user.id, productId, productId, amount, serviceFee, sellerAmount, reference]
+            args: [user.id, productId, productId, amount, serviceFee, sellerAmount, reference, deliveryCode]
         });
 
         const response = await axios.post(

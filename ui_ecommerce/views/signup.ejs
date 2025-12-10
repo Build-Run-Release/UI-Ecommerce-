@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>UI Ecommerce - Sign Up</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <style>
         /* 1. General Page Styling */
         body {
@@ -23,7 +24,8 @@
             border-radius: 10px;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
             width: 100%;
-            max-width: 400px; /* Kept narrow for readability */
+            max-width: 400px;
+            /* Kept narrow for readability */
             text-align: center;
         }
 
@@ -47,7 +49,8 @@
         }
 
         /* 4. Input & Select Styling */
-        input, select {
+        input,
+        select {
             width: 100%;
             padding: 10px;
             border: 1px solid #ccc;
@@ -57,8 +60,10 @@
             background-color: #fff;
         }
 
-        input:focus, select:focus {
-            border-color: #28a745; /* Green focus for signup (positive action) */
+        input:focus,
+        select:focus {
+            border-color: #28a745;
+            /* Green focus for signup (positive action) */
             outline: none;
         }
 
@@ -67,7 +72,8 @@
             margin-top: 25px;
             width: 100%;
             padding: 12px;
-            background-color: #28a745; /* Green button for "Start/Go" */
+            background-color: #28a745;
+            /* Green button for "Start/Go" */
             color: white;
             border: none;
             border-radius: 5px;
@@ -85,7 +91,7 @@
             margin-top: 20px;
             font-size: 14px;
         }
-        
+
         .links a {
             color: #28a745;
             text-decoration: none;
@@ -108,39 +114,52 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="signup-container">
         <h1>Create Account</h1>
 
-        <% if (typeof error !== 'undefined' && error) { %>
+        <% if (typeof error !=='undefined' && error) { %>
             <div class="error-message">
                 <%= error %>
             </div>
-        <% } %>
+            <% } %>
 
-        <form action="/signup" method="POST">
-            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                <form action="/signup" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Choose a username" required>
 
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="Create a password" required>
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required>
 
-            <label for="role">I am a:</label>
-            <select id="role" name="role">
-                <option value="buyer">Buyer (I want to shop)</option>
-                <option value="seller">Seller (I want to sell)</option>
-            </select>
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="example@ui.edu.ng" required>
 
-            <button type="submit">Sign Up</button>
-        </form>
+                    <div style="margin: 20px 0; display: flex; align-items: center; gap: 10px;">
+                        <input type="checkbox" id="terms" name="terms" required style="width: auto; margin: 0;">
+                        <label for="terms" style="margin: 0; font-weight: normal; font-size: 0.9rem;">
+                            I agree to the <a href="/terms" target="_blank" style="color: #28a745;">Terms &
+                                Conditions</a>
+                        </label>
+                    </div>
 
-        <div class="links">
-            Already have an account? <a href="/login">Login here</a>
-        </div>
+                    <label for="role">I am a:</label>
+                    <select id="role" name="role">
+                        <option value="buyer">Buyer (I want to shop)</option>
+                        <option value="seller">Seller (I want to sell)</option>
+                    </select>
+
+                    <button type="submit">Sign Up</button>
+                </form>
+
+                <div class="links">
+                    Already have an account? <a href="/login">Login here</a>
+                </div>
     </div>
 
 </body>
+
 </html>

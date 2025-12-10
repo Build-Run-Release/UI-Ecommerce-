@@ -196,14 +196,13 @@
     <!-- Categories -->
     <div class="category-scroll">
         <a href="/" class="cat-tag <%= !currentCategory ? 'active' : '' %>">All</a>
-        <a href="/?category=Textbooks"
-            class="cat-tag <%= currentCategory === 'Textbooks' ? 'active' : '' %>">Textbooks</a>
-        <a href="/?category=Electronics"
-            class="cat-tag <%= currentCategory === 'Electronics' ? 'active' : '' %>">Electronics</a>
-        <a href="/?category=Fashion" class="cat-tag <%= currentCategory === 'Fashion' ? 'active' : '' %>">Fashion</a>
-        <a href="/?category=Furniture"
-            class="cat-tag <%= currentCategory === 'Furniture' ? 'active' : '' %>">Furniture</a>
-        <a href="/?category=Other" class="cat-tag <%= currentCategory === 'Other' ? 'active' : '' %>">Other</a>
+        <% if (typeof categories !=='undefined' && categories.length> 0) { %>
+            <% categories.forEach(function(cat) { %>
+                <a href="/?category=<%= cat %>" class="cat-tag <%= currentCategory === cat ? 'active' : '' %>">
+                    <%= cat %>
+                </a>
+                <% }); %>
+                    <% } %>
     </div>
 
     <!-- Hero -->
