@@ -190,6 +190,7 @@ router.get("/signup", (req, res) => res.render("signup", { error: null, csrfToke
 
 router.post("/signup", async (req, res) => {
     const { username, password, role } = req.body;
+    console.log(`Signup attempt: ${username}, role: ${role}`);
     try {
         const check = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
         if (check.rows.length > 0) return res.render('signup', { error: "Username taken!", csrfToken: req.csrfToken ? req.csrfToken() : '' });
@@ -211,10 +212,11 @@ router.post("/signup", async (req, res) => {
             else if (user.role === 'admin') res.redirect('/admin_dashboard');
             else res.redirect('/buyer/dashboard');
         } else {
+            console.log("Signup Auto-login failed: User not found after insertion.");
             res.redirect('/login');
         }
     } catch (err) {
-        console.error(err);
+        console.error("Signup Error:", err);
         return res.render('signup', { error: "Error creating user", csrfToken: req.csrfToken ? req.csrfToken() : '' });
     }
 });
@@ -247,14 +249,18 @@ router.post("/login", async (req, res) => {
             }
         }
 
-        if (!match) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+        if (!match) {
+            console.log(`Login failed for ${username}: Password mismatch.`);
+            return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken ? req.csrfToken() : '' });
+        }
 
+        console.log(`User ${username} logged in successfully. Role: ${user.role}`);
         req.session.user = user;
         if (user.role === 'admin') res.redirect('/admin_dashboard');
         else if (user.role === 'seller') res.redirect('/seller/dashboard');
         else res.redirect('/');
     } catch (err) {
-        console.error(err);
+        console.error("Login Error:", err);
         res.render('login', { error: "Login failed: " + err.message, csrfToken: req.csrfToken ? req.csrfToken() : '' });
     }
 });

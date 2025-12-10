@@ -23,6 +23,7 @@ const SESSION_SECRET = process.env.SESSION_SECRET;
 
 const app = express();
 app.set("trust proxy", 1); // Trust first proxy if behind a reverse proxys
+console.log("NODE_ENV:", process.env.NODE_ENV);
 const PORT = process.env.PORT || 3000;
 
 // Initialize DB (Assuming this is a separate SQL database like SQLite)
@@ -68,7 +69,7 @@ app.use(
         name: 'session_id', // Don't use default 'connect.sid'
         cookie: {
             maxAge: 1000 * 60 * 60 * 24, // 1 day in milliseconds
-            secure: process.env.NODE_ENV === "production",
+            secure: false, // process.env.NODE_ENV === "production" DEBUG: Force false to test session
             httpOnly: true,
             sameSite: 'lax' // CSRF protection
         },
@@ -100,7 +101,9 @@ const checkBlocked = async (req, res, next) => {
             });
             const user = result.rows[0];
 
-            if (user && user.is_blocked) {
+            // Fix: Cast to number because CockroachDB returns INT as string (BigInt) - Postgres returns number (int4)
+            if (user && Number(user.is_blocked) !== 0) {
+                console.log(`User ${req.session.user.id} is BLOCKED. (is_blocked=${user.is_blocked})`);
                 req.session.destroy();
                 return res.send(
                     "Your account has been blocked by the admin. Please contact support."
