@@ -102,10 +102,12 @@
                                         <%= u.role.toUpperCase() %>
                                     </span></td>
                                 <td>
-                                    <% if (u.ban_expires && new Date(u.ban_expires)> new Date()) { %>
-                                        <span class="badge badge-warning">Temp Ban (<%= Math.ceil((new
-                                                Date(u.ban_expires) - new Date()) / (1000 * 60 * 60 * 24)) %>d)</span>
-                                        <% } else if (u.is_banned) { %>
+                                    <% if (u.ban_expires && new Date(Number(u.ban_expires))> new Date()) { %>
+                                        <span class="badge badge-warning">
+                                            Temp Ban (<%= Math.ceil((new Date(Number(u.ban_expires)) - new Date()) /
+                                                (1000 * 60 * 60 * 24)) %>d)
+                                        </span>
+                                        <% } else if (Number(u.is_blocked) !==0) { %>
                                             <span class="badge badge-danger">Permanent Ban</span>
                                             <% } else { %>
                                                 <span class="badge badge-success">Active</span>
@@ -113,8 +115,8 @@
                                 </td>
                                 <td>
                                     <% if (u.role !=='admin' ) { %>
-                                        <% if (u.is_banned || (u.ban_expires && new Date(u.ban_expires)> new Date())) {
-                                            %>
+                                        <% if (Number(u.is_blocked) !==0 || (u.ban_expires && new
+                                            Date(Number(u.ban_expires))> new Date())) { %>
                                             <form action="/admin/user/<%= u.id %>/unban" method="POST"
                                                 style="display:inline;">
                                                 <input type="hidden" name="_csrf"
@@ -122,7 +124,7 @@
                                                 <button class="btn btn-success btn-sm">Unban</button>
                                             </form>
                                             <% } else { %>
-                                                <button class="btn btn-danger btn-sm"
+                                                <button type="button" class="btn btn-danger btn-sm"
                                                     onclick="openBanModal('<%= u.id %>', '<%= u.username %>')">
                                                     Ban
                                                 </button>

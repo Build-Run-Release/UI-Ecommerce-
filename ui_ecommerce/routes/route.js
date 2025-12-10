@@ -717,7 +717,32 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
 
 // 2. POST: Block/Unblock User
 // 2. POST: Block/Unblock User
-router.post('/admin/user/:id/toggle-block', async (req, res) => {
+router.post('/admin/user/:id/ban', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send("Unauthorized");
+
+    const targetUserId = req.params.id;
+    const { type, days } = req.body;
+
+    try {
+        if (type === 'temporary' && days) {
+            const expiryDate = new Date();
+            expiryDate.setDate(expiryDate.getDate() + parseInt(days));
+            await db.execute({
+                sql: "UPDATE users SET is_blocked = 0, ban_expires = ? WHERE id = ?",
+                args: [expiryDate.getTime(), targetUserId]
+            });
+        } else {
+            // Permanent
+            await db.execute({ sql: "UPDATE users SET is_blocked = 1, ban_expires = NULL WHERE id = ?", args: [targetUserId] });
+        }
+        res.redirect('/admin_dashboard');
+    } catch (err) {
+        console.error("Error banning user:", err);
+        res.redirect('/admin_dashboard');
+    }
+});
+
+router.post('/admin/user/:id/unban', async (req, res) => {
     // Security Check
     if (!req.session.user || req.session.user.role !== 'admin') {
         return res.status(403).send("Unauthorized");
@@ -726,19 +751,10 @@ router.post('/admin/user/:id/toggle-block', async (req, res) => {
     const targetUserId = req.params.id;
 
     try {
-        // First, check current status
-        const { rows } = await db.execute({ sql: "SELECT is_blocked FROM users WHERE id = ?", args: [targetUserId] });
-        const user = rows[0];
-
-        if (!user) return res.redirect('/admin_dashboard');
-
-        // Toggle logic
-        const newStatus = user.is_blocked ? 0 : 1;
-
-        await db.execute({ sql: "UPDATE users SET is_blocked = ? WHERE id = ?", args: [newStatus, targetUserId] });
+        await db.execute({ sql: "UPDATE users SET is_blocked = 0, ban_expires = NULL WHERE id = ?", args: [targetUserId] });
         res.redirect('/admin_dashboard');
     } catch (err) {
-        console.error("Error updating user status:", err);
+        console.error("Error unbanning user:", err);
         res.redirect('/admin_dashboard');
     }
 });
