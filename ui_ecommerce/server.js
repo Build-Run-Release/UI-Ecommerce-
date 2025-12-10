@@ -102,7 +102,10 @@ const checkBlocked = async (req, res, next) => {
             const user = result.rows[0];
 
             // Fix: Cast to number because CockroachDB returns INT as string (BigInt) - Postgres returns number (int4)
-            if (user && Number(user.is_blocked) !== 0) {
+            // SAFEGARD: Ensure user exists and is_blocked is not null/undefined before checking
+            const isBlocked = user && user.is_blocked ? Number(user.is_blocked) : 0;
+
+            if (isBlocked !== 0) {
                 console.log(`User ${req.session.user.id} is BLOCKED. (is_blocked=${user.is_blocked})`);
                 req.session.destroy();
                 return res.send(
@@ -146,4 +149,5 @@ app.use('/', mainRoutes);
 // Start Server
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
+    console.log(`DB Connection String (Masked): ${process.env.DATABASE_URL ? process.env.DATABASE_URL.replace(/:([^:@]+)@/, ':****@') : 'UNDEFINED'}`);
 });

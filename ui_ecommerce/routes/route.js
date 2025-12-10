@@ -261,6 +261,7 @@ router.post("/login", async (req, res) => {
         else res.redirect('/');
     } catch (err) {
         console.error("Login Error:", err);
+        // DEBUG: Expose full error to UI for production debugging
         res.render('login', { error: "Login failed: " + err.message, csrfToken: req.csrfToken ? req.csrfToken() : '' });
     }
 });
