@@ -10,6 +10,11 @@ async function sendEmail(to, subject, htmlContent) {
         return true;
     }
 
+    if (!apiKey.startsWith('xkeysib-')) {
+        console.warn("⚠️ WARNING: Your API Key does not start with 'xkeysib-'.");
+        console.warn("   You are likely using an SMTP Password. You MUST use a Brevo API Key.");
+    }
+
     try {
         console.log(`[EMAIL] Sending via Brevo API (over HTTPS/443)...`);
 
