@@ -38,7 +38,8 @@ async function getSendPulseToken() {
 async function sendEmail(to, subject, htmlContent) {
     // 1. Validate Credentials
     if (!SP_ID || !SP_SECRET) {
-        console.error("[EMAIL] Missing SendPulse Credentials in .env");
+        console.error("[EMAIL ERROR] Missing keys: SENDPULSE_CLIENT_ID or SENDPULSE_CLIENT_SECRET in .env");
+        console.log("Check your .env file or Railway Variables.");
         return fallbackSMTP(to, subject, htmlContent);
     }
 
