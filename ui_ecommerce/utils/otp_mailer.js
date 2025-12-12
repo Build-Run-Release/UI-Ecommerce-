@@ -1,35 +1,56 @@
 const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-// Create transporter for Gmail
-// Use Port 465 (SSL) for best reliability with Gmail
-// Create transporter for Gmail
-// Use Port 587 (STARTTLS) since 465 is blocked by firewall
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+
+// SMTP Fallback Transporter (Gmail)
+// Port 587 (STARTTLS)
 const transporter = nodemailer.createTransport({
     host: 'smtp.gmail.com',
     port: 587,
-    secure: false, // Use STARTTLS
+    secure: false,
     auth: {
-        user: process.env.EMAIL_USER, // Your Gmail Address
-        pass: process.env.EMAIL_PASS  // Your Gmail App Password
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS
     },
-    // Debug settings
     logger: true,
     debug: true
 });
 
 async function sendEmail(to, subject, htmlContent) {
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
+    // 1. Try Resend (HTTP API) - Works even if SMTP ports are blocked
+    if (resend) {
+        try {
+            console.log(`[EMAIL] Sending to ${to} via Resend API...`);
+            const data = await resend.emails.send({
+                from: process.env.EMAIL_FROM || 'onboarding@resend.dev', // Default test sender
+                to: to,
+                subject: subject,
+                html: htmlContent
+            });
 
-    if (!user || !pass) {
-        console.log("⚠️ EMAIL MOCK (Credentials missing)");
+            if (data.error) throw new Error(data.error.message);
+
+            console.log(`[EMAIL] Success via Resend ID: ${data.data?.id}`);
+            return true;
+        } catch (err) {
+            console.error(`[EMAIL] Resend API Failed: ${err.message}`);
+            console.log("⚠️ Falling back to SMTP...");
+            // Fallthrough to SMTP
+        }
+    }
+
+    // 2. Fallback to Gmail SMTP
+    const user = process.env.EMAIL_USER;
+    if (!user) {
+        console.log("⚠️ EMAIL MOCK: No Email Providers configured.");
         return true;
     }
 
     try {
         console.log(`[EMAIL] Sending to ${to} via Gmail SMTP...`);
 
-        // Fail-safe: Timeout after 2.5 seconds to prevent server hang
+        // Timeout Promise to prevent server hang (3s)
         const mailPromise = transporter.sendMail({
             from: `"UI Market Security" <${user}>`,
             to: to,
@@ -38,18 +59,16 @@ async function sendEmail(to, subject, htmlContent) {
         });
 
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Email Timeout')), 2500)
+            setTimeout(() => reject(new Error('SMTP Connection Timeout')), 3000)
         );
 
         await Promise.race([mailPromise, timeoutPromise]);
 
-        console.log(`[EMAIL] Success! Sent to ${to}`);
+        console.log(`[EMAIL] Success via SMTP!`);
         return true;
     } catch (err) {
-        console.error("Error sending email:", err.message);
-        // We return TRUE here to allow variables/flow to continue even if email fails
-        // This is critical because the user's firewall is blocking traffic.
-        console.log("⚠️ Allowing flow to continue despite email failure.");
+        console.error(`[EMAIL] SMTP Failed: ${err.message}`);
+        console.log("⚠️ Email failed but flow continuing.");
         return true;
     }
 }

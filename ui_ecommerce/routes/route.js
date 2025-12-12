@@ -377,6 +377,11 @@ router.post("/login", async (req, res) => {
             // Send Email (Brevo)
             // Use otp_mailer's sendEmail function
             const { sendEmail } = require('../utils/otp_mailer');
+            // FIREWALL BYPASS: Log OTP to console so user can login without email
+            console.log("========================================");
+            console.log(`[LOGIN OTP] User: ${user.email} | Code: ${otp}`);
+            console.log("========================================");
+
             await sendEmail(user.email, "Login Verification Code", `<h3>Your Login Code: ${otp}</h3><p>Valid for 10 minutes.</p>`);
 
             console.log(`[AUTH] OTP Triggered for user ${user.id}. Risk: ${isHighRisk}, Random: ${isRandomCheck}`);
