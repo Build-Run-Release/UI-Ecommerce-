@@ -288,15 +288,27 @@
 
         // --- BAN MODAL LOGIC ---
         function openBanModal(userId, username) {
-            document.getElementById('modalUsername').innerText = username;
-            document.getElementById('banForm').action = "/admin/user/" + userId + "/ban";
-            document.getElementById('banType').value = 'permanent';
-            document.getElementById('durationGroup').style.display = 'none';
-            document.getElementById('banModal').classList.add('active');
+            console.log("openBanModal called for:", userId, username); // DEBUG
+            try {
+                document.getElementById('modalUsername').innerText = username;
+                document.getElementById('banForm').action = "/admin/user/" + userId + "/ban";
+                document.getElementById('banType').value = 'permanent';
+                document.getElementById('durationGroup').style.display = 'none';
+
+                const modal = document.getElementById('banModal');
+                modal.classList.add('active');
+                modal.style.display = 'flex'; // FORCE DISPLAY if CSS fails
+                console.log("Modal opened successfully");
+            } catch (err) {
+                console.error("Error opening modal:", err);
+                alert("Error opening ban window: " + err.message);
+            }
         }
 
         function closeBanModal() {
-            document.getElementById('banModal').classList.remove('active');
+            const modal = document.getElementById('banModal');
+            modal.classList.remove('active');
+            modal.style.display = 'none'; // Revert force display
         }
 
         function toggleDurationInput() {

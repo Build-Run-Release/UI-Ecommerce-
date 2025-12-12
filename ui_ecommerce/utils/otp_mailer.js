@@ -1,57 +1,41 @@
-const axios = require('axios');
+// Create transporter for Gmail
+// Use Port 465 (SSL) for best reliability with Gmail
+const transporter = nodemailer.createTransport({
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // Use SSL
+    auth: {
+        user: process.env.EMAIL_USER, // Your Gmail Address
+        pass: process.env.EMAIL_PASS  // Your Gmail App Password
+    },
+    // Debug settings
+    logger: true,
+    debug: true
+});
 
 async function sendEmail(to, subject, htmlContent) {
-    const apiKey = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-    const senderEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.EMAIL_USER;
-    const senderName = "UI Market Security";
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
 
-    if (!apiKey) {
-        console.log("⚠️ EMAIL MOCK (API Key missing)");
+    if (!user || !pass) {
+        console.log("⚠️ EMAIL MOCK (Credentials missing)");
         return true;
-    }
-
-    if (!senderEmail || !senderEmail.includes('@')) {
-        console.error("❌ ERROR: 'sender.email' is missing or invalid.");
-        console.error("   Value: ", senderEmail);
-        console.error("   Action: Set EMAIL_FROM (or SMTP_USER) in .env to your verified Brevo email.");
-        return false;
-    }
-
-    if (!apiKey.startsWith('xkeysib-')) {
-        console.warn("⚠️ WARNING: Your API Key does not start with 'xkeysib-'.");
-        console.warn("   You are likely using an SMTP Password. You MUST use a Brevo API Key.");
     }
 
     try {
-        console.log(`[EMAIL] Sending via Brevo API (over HTTPS/443)...`);
+        console.log(`[EMAIL] Sending to ${to} via Gmail SMTP...`);
 
-        await axios.post(
-            'https://api.brevo.com/v3/smtp/email',
-            {
-                sender: { name: senderName, email: senderEmail },
-                to: [{ email: to }],
-                subject: subject,
-                htmlContent: htmlContent
-            },
-            {
-                headers: {
-                    'accept': 'application/json',
-                    'api-key': apiKey,
-                    'content-type': 'application/json'
-                },
-                timeout: 10000 // 10s timeout
-            }
-        );
+        await transporter.sendMail({
+            from: `"UI Market Security" < ${user}> `, // Gmail always overrides 'from' to the authenticated user
+            to: to,
+            subject: subject,
+            html: htmlContent
+        });
 
-        console.log(`[EMAIL] Success! Sent to ${to} via Brevo API.`);
+        console.log(`[EMAIL] Success! Sent to ${to} `);
         return true;
     } catch (err) {
-        console.error("[EMAIL] API Failed:", err.response ? err.response.data : err.message);
-
-        // Detailed error logging for debugging
-        if (err.response && err.response.status === 401) {
-            console.error("❌ Auth Error: Check if EMAIL_PASS is a valid Brevo API Key (not SMTP password).");
-        }
+        console.error("Error sending email:", err);
         return false;
     }
 }
