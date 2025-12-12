@@ -65,7 +65,7 @@ async function sendEmail(to, subject, htmlContent) {
         });
 
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('SMTP Connection Timeout')), 3000)
+            setTimeout(() => reject(new Error('SMTP Connection Timeout (15s)')), 15000)
         );
 
         await Promise.race([mailPromise, timeoutPromise]);
