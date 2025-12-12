@@ -242,6 +242,28 @@ router.get("/", async (req, res) => {
         params.push(category);
     }
 
+    // Filter by Price Range
+    const minPrice = req.query.min_price;
+    const maxPrice = req.query.max_price;
+
+    if (minPrice) {
+        if (params.length > 0 || productQuery.includes("WHERE")) {
+            productQuery += " AND price >= ?";
+        } else {
+            productQuery += " WHERE price >= ?";
+        }
+        params.push(minPrice);
+    }
+
+    if (maxPrice) {
+        if (params.length > 0 || productQuery.includes("WHERE")) {
+            productQuery += " AND price <= ?";
+        } else {
+            productQuery += " WHERE price <= ?";
+        }
+        params.push(maxPrice);
+    }
+
     // Order by newest first
     productQuery += " ORDER BY id DESC";
 
@@ -256,10 +278,11 @@ router.get("/", async (req, res) => {
             products: products,
             ads: ads,
             searchTerm: searchTerm,
-            ads: ads,
-            searchTerm: searchTerm,
-            currentCategory: req.query.category || '',
-            categories: categories
+            currentCategory: category,
+            minPrice: minPrice,
+            maxPrice: maxPrice,
+            categories: categories,
+            csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
     } catch (err) {
         console.error(err);
@@ -933,6 +956,9 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
         // A2. Fetch Flagged Users (High Suspicion)
         const { rows: flaggedUsers } = await db.execute({ sql: "SELECT * FROM users WHERE is_flagged = 1 OR suspicion_score > 50 ORDER BY suspicion_score DESC" });
 
+        // A3. Fetch User Feedback
+        const { rows: feedback } = await db.execute({ sql: "SELECT * FROM feedback ORDER BY created_at DESC" });
+
         // B. Fetch Platform Stats
         const statsQuery = "SELECT COUNT(*) as total_orders, SUM(service_fee) as total_revenue FROM orders";
         const { rows: statsRes } = await db.execute({ sql: statsQuery });
@@ -942,6 +968,7 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
             user: req.session.user,
             users: users,
             flaggedUsers: flaggedUsers,
+            feedback: feedback, // Pass feedback to view
             stats: stats,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });

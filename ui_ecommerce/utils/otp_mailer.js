@@ -1,70 +1,47 @@
-const nodemailer = require('nodemailer');
-require('dotenv').config();
-
-// Create transporter
-// NOTE: For real production, use environment variables. 
-// If variables are missing, we default to logging to console (for dev safety).
-const port = parseInt(process.env.SMTP_PORT) || 587;
-const secure = port === 465; // True for 465, false for other ports
-
-// Helper to create transporter dynamically
-function createTransporter(port, user, pass) {
-    const isSecure = port === 465;
-    return nodemailer.createTransport({
-        host: process.env.SMTP_HOST || 'smtp-relay.brevo.com',
-        port: port,
-        secure: isSecure,
-        auth: { user, pass },
-        tls: { rejectUnauthorized: false },
-        connectionTimeout: 10000,
-        greetingTimeout: 10000,
-        socketTimeout: 10000,
-        debug: true,
-        logger: true
-    });
-}
+const axios = require('axios');
 
 async function sendEmail(to, subject, htmlContent) {
-    const user = process.env.SMTP_USER || process.env.EMAIL_USER;
-    const pass = process.env.SMTP_PASS || process.env.EMAIL_PASS;
-    const fromEmail = process.env.EMAIL_FROM || user;
+    const apiKey = process.env.SMTP_PASS || process.env.EMAIL_PASS;
+    const senderEmail = process.env.EMAIL_FROM || process.env.SMTP_USER || process.env.EMAIL_USER;
+    const senderName = "UI Market Security";
 
-    if (!user || !pass) {
-        console.log("⚠️ EMAIL MOCK (Credentials missing)");
+    if (!apiKey) {
+        console.log("⚠️ EMAIL MOCK (API Key missing)");
         return true;
     }
 
-    // List of ports to try in order
-    const ports = [
-        parseInt(process.env.SMTP_PORT) || 587, // Default from env
-        2525, // Common alternative
-        465   // SSL port
-    ];
+    try {
+        console.log(`[EMAIL] Sending via Brevo API (over HTTPS/443)...`);
 
-    // Deduplicate ports
-    const uniquePorts = [...new Set(ports)];
-
-    for (const port of uniquePorts) {
-        console.log(`[EMAIL] Attempting connection on Port ${port}...`);
-        try {
-            const transporter = createTransporter(port, user, pass);
-            await transporter.verify(); // Check connection first
-            await transporter.sendMail({
-                from: `"UI Market Security" <${fromEmail}>`,
-                to: to,
+        await axios.post(
+            'https://api.brevo.com/v3/smtp/email',
+            {
+                sender: { name: senderName, email: senderEmail },
+                to: [{ email: to }],
                 subject: subject,
-                html: htmlContent
-            });
-            console.log(`[EMAIL] Success! Sent to ${to} via Port ${port}`);
-            return true;
-        } catch (err) {
-            console.error(`[EMAIL] Failed on Port ${port}:`, err.code || err.message);
-            // Continue to next port
-        }
-    }
+                htmlContent: htmlContent
+            },
+            {
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': apiKey,
+                    'content-type': 'application/json'
+                },
+                timeout: 10000 // 10s timeout
+            }
+        );
 
-    console.error("ALL SMTP PORTS FAILED. Check Firewall/Credentials.");
-    return false;
+        console.log(`[EMAIL] Success! Sent to ${to} via Brevo API.`);
+        return true;
+    } catch (err) {
+        console.error("[EMAIL] API Failed:", err.response ? err.response.data : err.message);
+
+        // Detailed error logging for debugging
+        if (err.response && err.response.status === 401) {
+            console.error("❌ Auth Error: Check if EMAIL_PASS is a valid Brevo API Key (not SMTP password).");
+        }
+        return false;
+    }
 }
 
 function generateOTP() {

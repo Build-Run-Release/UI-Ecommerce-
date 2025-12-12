@@ -129,73 +129,126 @@
             </div>
             <% } %>
 
-                <div class="card" id="users">
-                    <h2>User Management</h2>
-                    <div class="table-responsive">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>User Details</th>
-                                    <th>Role</th>
-                                    <th>Status</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <% users.forEach(function(u) { %>
+                <!-- FEEDBACK SECTION -->
+                <% if (typeof feedback !=='undefined' && feedback.length> 0) { %>
+                    <div class="card" id="feedback">
+                        <h2>📢 User Feedback & Complaints</h2>
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
                                     <tr>
-                                        <td>#<%= u.id %>
-                                        </td>
-                                        <td>
-                                            <strong>
-                                                <%= u.username %>
-                                            </strong><br>
-                                            <small style="color: var(--text-muted);">
-                                                <%= u.email || 'No email' %>
-                                            </small>
-                                        </td>
-                                        <td><span class="badge role-<%= u.role %>">
-                                                <%= u.role.toUpperCase() %>
-                                            </span></td>
-                                        <td>
-                                            <% if (u.ban_expires && new Date(Number(u.ban_expires))> new Date()) { %>
-                                                <span class="badge badge-warning">
-                                                    Temp Ban (<%= Math.ceil((new Date(Number(u.ban_expires)) - new
-                                                        Date()) / (1000 * 60 * 60 * 24)) %>d)
-                                                </span>
-                                                <% } else if (Number(u.is_blocked) !==0) { %>
-                                                    <span class="badge badge-danger">Permanent Ban</span>
-                                                    <% } else { %>
-                                                        <span class="badge badge-success">Active</span>
-                                                        <% } %>
-                                        </td>
-                                        <td>
-                                            <% if (u.role !=='admin' ) { %>
-                                                <% if (Number(u.is_blocked) !==0 || (u.ban_expires && new
-                                                    Date(Number(u.ban_expires))> new Date())) { %>
-                                                    <form action="/admin/user/<%= u.id %>/unban" method="POST"
-                                                        style="display:inline;">
-                                                        <input type="hidden" name="_csrf"
-                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                        <button class="btn btn-success btn-sm">Unban</button>
-                                                    </form>
-                                                    <% } else { %>
-                                                        <button type="button" class="btn btn-danger btn-sm"
-                                                            onclick="openBanModal('<%= u.id %>', '<%= u.username %>')">
-                                                            Ban
-                                                        </button>
-                                                        <% } %>
-                                                            <% } else { %>
-                                                                <span style="color: var(--text-muted);">—</span>
-                                                                <% } %>
-                                        </td>
+                                        <th>Date</th>
+                                        <th>User / Email</th>
+                                        <th>Type</th>
+                                        <th>Message</th>
                                     </tr>
-                                    <% }); %>
-                            </tbody>
-                        </table>
+                                </thead>
+                                <tbody>
+                                    <% feedback.forEach(function(f) { %>
+                                        <tr>
+                                            <td>
+                                                <%= new Date(f.created_at).toLocaleDateString() %><br>
+                                                    <small>
+                                                        <%= new Date(f.created_at).toLocaleTimeString() %>
+                                                    </small>
+                                            </td>
+                                            <td>
+                                                <strong>
+                                                    <%= f.name || 'Anonymous' %>
+                                                </strong><br>
+                                                <small>
+                                                    <%= f.email || 'No Email' %>
+                                                </small>
+                                                <% if (f.user_id) { %>
+                                                    <br><a href="#user-<%= f.user_id %>" style="font-size: 0.8em;">(View
+                                                        User)</a>
+                                                    <% } %>
+                                            </td>
+                                            <td>
+                                                <span
+                                                    class="badge <%= f.message_type === 'complaint' ? 'badge-danger' : 'badge-success' %>">
+                                                    <%= f.message_type ? f.message_type.toUpperCase() : 'GENERAL' %>
+                                                </span>
+                                            </td>
+                                            <td style="max-width: 300px; white-space: normal;">
+                                                <%= f.message %>
+                                            </td>
+                                        </tr>
+                                        <% }); %>
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                    <% } %>
+
+                        <div class="card" id="users">
+                            <h2>User Management</h2>
+                            <div class="table-responsive">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>User Details</th>
+                                            <th>Role</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% users.forEach(function(u) { %>
+                                            <tr>
+                                                <td>#<%= u.id %>
+                                                </td>
+                                                <td>
+                                                    <strong>
+                                                        <%= u.username %>
+                                                    </strong><br>
+                                                    <small style="color: var(--text-muted);">
+                                                        <%= u.email || 'No email' %>
+                                                    </small>
+                                                </td>
+                                                <td><span class="badge role-<%= u.role %>">
+                                                        <%= u.role.toUpperCase() %>
+                                                    </span></td>
+                                                <td>
+                                                    <% if (u.ban_expires && new Date(Number(u.ban_expires))> new Date())
+                                                        { %>
+                                                        <span class="badge badge-warning">
+                                                            Temp Ban (<%= Math.ceil((new Date(Number(u.ban_expires)) -
+                                                                new Date()) / (1000 * 60 * 60 * 24)) %>d)
+                                                        </span>
+                                                        <% } else if (Number(u.is_blocked) !==0) { %>
+                                                            <span class="badge badge-danger">Permanent Ban</span>
+                                                            <% } else { %>
+                                                                <span class="badge badge-success">Active</span>
+                                                                <% } %>
+                                                </td>
+                                                <td>
+                                                    <% if (u.role !=='admin' ) { %>
+                                                        <% if (Number(u.is_blocked) !==0 || (u.ban_expires && new
+                                                            Date(Number(u.ban_expires))> new Date())) { %>
+                                                            <form action="/admin/user/<%= u.id %>/unban" method="POST"
+                                                                style="display:inline;">
+                                                                <input type="hidden" name="_csrf"
+                                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                                <button class="btn btn-success btn-sm">Unban</button>
+                                                            </form>
+                                                            <% } else { %>
+                                                                <button type="button" class="btn btn-danger btn-sm"
+                                                                    onclick="openBanModal('<%= u.id %>', '<%= u.username %>')">
+                                                                    Ban
+                                                                </button>
+                                                                <% } %>
+                                                                    <% } else { %>
+                                                                        <span style="color: var(--text-muted);">—</span>
+                                                                        <% } %>
+                                                </td>
+                                            </tr>
+                                            <% }); %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
     </main>
 
     <!-- Ban Modal -->
