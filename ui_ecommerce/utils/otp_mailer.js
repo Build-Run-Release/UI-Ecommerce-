@@ -1,89 +1,124 @@
+const axios = require('axios');
 const nodemailer = require('nodemailer');
-const { Resend } = require('resend');
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
+// --- SENDPULSE CONFIG ---
+const SP_ID = process.env.SENDPULSE_CLIENT_ID;
+const SP_SECRET = process.env.SENDPULSE_CLIENT_SECRET;
+const TOKEN_URL = 'https://api.sendpulse.com/oauth/access_token';
+const SEND_URL = 'https://api.sendpulse.com/smtp/emails';
 
-// SMTP Fallback Transporter (Gmail)
-// Port 587 (STARTTLS)
-const transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false,
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS
-    },
-    logger: true,
-    debug: true
-});
+// Simple in-memory token cache
+let cachedToken = null;
+let tokenExpiry = 0;
 
-async function sendEmail(to, subject, htmlContent) {
-    // 1. Try Resend (HTTP API) - Works even if SMTP ports are blocked
-    if (resend) {
-        try {
-            console.log(`[EMAIL] Sending to ${to} via Resend API...`);
-
-            // CRITICAL: On Free Tier, you MUST send from 'onboarding@resend.dev'
-            // Attempting to send from your gmail will fail with "You can only send testing emails to your own address"
-            // if the FROM address is also your gmail. It expects the default sender.
-            const fromAddress = 'onboarding@resend.dev';
-
-            const data = await resend.emails.send({
-                from: fromAddress,
-                to: to,
-                subject: subject,
-                html: htmlContent
-            });
-
-            if (data.error) throw new Error(data.error.message);
-
-            console.log(`[EMAIL] Success via Resend ID: ${data.data?.id}`);
-            return true;
-        } catch (err) {
-            console.error(`[EMAIL] Resend API Failed: ${err.message}`);
-            console.log("⚠️ Falling back to SMTP...");
-            // Fallthrough to SMTP
-        }
-    }
-
-    // 2. Fallback to Gmail SMTP
-    const user = process.env.EMAIL_USER;
-    const pass = process.env.EMAIL_PASS;
-    if (!user || !pass) {
-        console.log("⚠️ EMAIL MOCK: EMAIL_USER or EMAIL_PASS not configured.");
-        return false;
+async function getSendPulseToken() {
+    // Return cached token if valid (buffer 5 mins)
+    if (cachedToken && Date.now() < tokenExpiry - 300000) {
+        return cachedToken;
     }
 
     try {
-        console.log(`[EMAIL] Sending to ${to} via Gmail SMTP...`);
+        console.log("[EMAIL] Fetching new SendPulse Access Token...");
+        const response = await axios.post(TOKEN_URL, {
+            grant_type: 'client_credentials',
+            client_id: SP_ID,
+            client_secret: SP_SECRET
+        });
 
-        // Timeout Promise to prevent server hang (3s)
-        const mailPromise = transporter.sendMail({
+        cachedToken = response.data.access_token;
+        // Expires in defaults to 3600s usually (1 hour)
+        tokenExpiry = Date.now() + (response.data.expires_in * 1000);
+        return cachedToken;
+    } catch (err) {
+        console.error("[EMAIL] Auth Failed:", err.response?.data || err.message);
+        throw new Error("SendPulse Auth Failed");
+    }
+}
+
+async function sendEmail(to, subject, htmlContent) {
+    // 1. Validate Credentials
+    if (!SP_ID || !SP_SECRET) {
+        console.error("[EMAIL] Missing SendPulse Credentials in .env");
+        return fallbackSMTP(to, subject, htmlContent);
+    }
+
+    try {
+        // 2. Get API Token
+        const token = await getSendPulseToken();
+
+        // 3. Prepare Payload (Base64 HTML)
+        const base64Html = Buffer.from(htmlContent).toString('base64');
+
+        const payload = {
+            email: {
+                html: base64Html,
+                text: "Your Code is enclosed.", // Simple fallback text
+                subject: subject,
+                from: {
+                    name: "UI Market Security",
+                    email: process.env.EMAIL_USER || "security@uimarket.com" // Must use a verified sender
+                },
+                to: [
+                    {
+                        name: "User", // Can make this dynamic if needed
+                        email: to
+                    }
+                ]
+            }
+        };
+
+        // 4. Send Request
+        console.log(`[EMAIL] Sending OTP to ${to} via SendPulse API...`);
+        const response = await axios.post(SEND_URL, payload, {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        if (response.data && !response.data.error_code) {
+            console.log(`[EMAIL] Success! ID: ${response.data.id}`);
+            return true;
+        } else {
+            throw new Error('API returned success false');
+        }
+
+    } catch (err) {
+        console.error(`[EMAIL] SendPulse API Error:`, err.response?.data || err.message);
+        console.log("⚠️ Falling back to SMTP...");
+        return fallbackSMTP(to, subject, htmlContent);
+    }
+}
+
+// --- FALLBACK: STANDARD SMTP (GMAIL) ---
+async function fallbackSMTP(to, subject, htmlContent) {
+    const user = process.env.EMAIL_USER;
+    const pass = process.env.EMAIL_PASS;
+
+    if (!user || !pass) {
+        console.log("⚠️ SMTP Fallback: EMAIL_USER or EMAIL_PASS missing.");
+        return false;
+    }
+
+    const transporter = nodemailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 587,
+        secure: false,
+        auth: { user, pass }
+    });
+
+    try {
+        console.log(`[EMAIL] Sending fallback to ${to} via Gmail SMTP...`);
+        await transporter.sendMail({
             from: `"UI Market Security" <${user}>`,
             to: to,
             subject: subject,
             html: htmlContent
         });
-
-        const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('SMTP Connection Timeout (15s)')), 15000)
-        );
-
-        await Promise.race([mailPromise, timeoutPromise]);
-
-        console.log(`[EMAIL] Success via SMTP!`);
+        console.log(`[EMAIL] SMTP Fallback Success.`);
         return true;
     } catch (err) {
         console.error(`[EMAIL] SMTP Failed: ${err.message}`);
-
-        if (err.message.includes('Username and Password not accepted')) {
-            console.log("💡 HINT: You are likely using your Gmail login password. You MUST use an App Password.");
-            console.log("   -> Go to Google Account > Security > 2-Step Verification > App Passwords.");
-        } else if (err.message.includes('Timeout')) {
-            console.log("💡 HINT: Connection timed out. Check your firewall or internet connection.");
-        }
-
-        console.log("⚠️ Email failed. Check server console for OTP.");
         return false;
     }
 }
