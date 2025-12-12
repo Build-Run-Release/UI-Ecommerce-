@@ -1,3 +1,5 @@
+const nodemailer = require('nodemailer');
+
 // Create transporter for Gmail
 // Use Port 465 (SSL) for best reliability with Gmail
 const transporter = nodemailer.createTransport({
