@@ -364,21 +364,42 @@ router.post("/login", async (req, res) => {
         }
 
         // --- CONDITIONAL OTP LOGIC ---
-        // --- OTP DISABLED AS REQUESTED ---
-        // Force Direct Login
-        req.session.user = { id: user.id, username: user.username, role: user.role };
-        console.log(`[AUTH] User ${user.id} logged in directly (OTP Disabled).`);
-        return res.redirect('/');
+        // 1. High Risk Check (Flagged or High Suspicion)
+        const isHighRisk = user.is_flagged || (user.suspicion_score && user.suspicion_score > 50);
 
-        /* OTP LOGIC COMMENTED OUT
+        // 2. Random Security Check (20% chance if not high risk)
+        const isRandomCheck = Math.random() < 0.2;
+
         if (isHighRisk || isRandomCheck) {
-            // ... (OTP Code) ...
+            // GENERATE OTP
+            const otp = generateOTP();
+            const otpHash = await bcrypt.hash(otp, 10);
+            const otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
+
+            await db.execute({
+                sql: "UPDATE users SET otp_hash = ?, otp_expires = ? WHERE id = ?",
+                args: [otpHash, otpExpires, user.id]
+            });
+
+            // Send Email (SendPulse API)
+            const { sendEmail } = require('../utils/otp_mailer');
+
+            // Log for Dev/Debug (remove in strict prod if needed, but useful now)
+            console.log(`[LOGIN OTP DEBUG] User: ${user.email} | Code: ${otp}`);
+
+            await sendEmail(user.email, "Login Verification Code", `<h3>Your Login Code: ${otp}</h3><p>Valid for 10 minutes.</p>`);
+
+            console.log(`[AUTH] OTP Triggered for user ${user.id}. Risk: ${isHighRisk}, Random: ${isRandomCheck}`);
+
+            // Store user ID temporarily in session
+            req.session.temp_login_id = user.id;
+            return res.redirect('/verify-otp');
         } else {
+            // SKIP OTP - DIRECT LOGIN
             req.session.user = { id: user.id, username: user.username, role: user.role };
             console.log(`[AUTH] User ${user.id} logged in directly (Skipped OTP).`);
             return res.redirect('/');
         }
-        */
     } catch (err) {
         console.error(err);
         res.render('login', { error: "Login failed", csrfToken: req.csrfToken() });
