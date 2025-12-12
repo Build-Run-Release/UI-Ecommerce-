@@ -4,6 +4,7 @@ const bodyParser = require("body-parser");
 const session = require("express-session");
 // --- FIX 1: Import connect-mongo for session persistence ---
 const axios = require("axios"); // Ensure axios is installed
+const compression = require("compression"); // Optimization: Gzip
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const cookieParser = require("cookie-parser");
@@ -48,6 +49,7 @@ app.use(
 
 const limiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 100 });
 app.use(limiter);
+app.use(compression()); // Compress all responses
 
 // General Middleware
 app.use(bodyParser.urlencoded({ extended: true }));

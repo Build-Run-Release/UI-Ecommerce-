@@ -64,10 +64,22 @@ const checkBan = (req, res, next) => {
 };
 
 // --- HELPER: Fetch Categories ---
+// --- HELPER: Fetch Categories (With Caching) ---
+let categoriesCache = null;
+let lastCacheTime = 0;
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
 async function getCategories() {
+    const now = Date.now();
+    if (categoriesCache && (now - lastCacheTime < CACHE_DURATION)) {
+        return categoriesCache;
+    }
+
     try {
         const { rows } = await db.execute({ sql: "SELECT name FROM categories ORDER BY name ASC" });
-        return rows.map(r => r.name);
+        categoriesCache = rows.map(r => r.name);
+        lastCacheTime = now;
+        return categoriesCache;
     } catch (err) {
         console.error("Error fetching categories:", err);
         return [];
@@ -275,10 +287,14 @@ router.get("/", async (req, res) => {
     productQuery += " ORDER BY p.id DESC";
 
     try {
-        const { rows: products } = await db.execute({ sql: productQuery, args: params });
+        // OPTIMIZATION: Run independent queries in parallel
+        const [productsRes, adsRes] = await Promise.all([
+            db.execute({ sql: productQuery, args: params }),
+            db.execute({ sql: "SELECT * FROM ads WHERE status = 'active'" })
+        ]);
 
-        // B. Fetch Ads (Only active ones)
-        const { rows: ads } = await db.execute({ sql: "SELECT * FROM ads WHERE status = 'active'" });
+        const products = productsRes.rows;
+        const ads = adsRes.rows;
 
         res.render("index", {
             user: user,
@@ -370,7 +386,8 @@ router.post("/login", async (req, res) => {
         // 2. Random Security Check (20% chance if not high risk)
         const isRandomCheck = Math.random() < 0.2;
 
-        if (isHighRisk || isRandomCheck) {
+        // DISABLE OTP: Force direct login for now
+        if (false && (isHighRisk || isRandomCheck)) {
             // GENERATE OTP
             const otp = generateOTP();
             const otpHash = await bcrypt.hash(otp, 10);
