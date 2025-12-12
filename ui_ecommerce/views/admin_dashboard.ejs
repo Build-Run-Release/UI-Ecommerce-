@@ -234,8 +234,10 @@
                                                                 <button class="btn btn-success btn-sm">Unban</button>
                                                             </form>
                                                             <% } else { %>
-                                                                <button type="button" class="btn btn-danger btn-sm"
-                                                                    onclick="openBanModal('<%= u.id %>', '<%= u.username %>')">
+                                                                <button type="button"
+                                                                    class="btn btn-danger btn-sm btn-ban-trigger"
+                                                                    data-userid="<%= u.id %>"
+                                                                    data-username="<%= u.username %>">
                                                                     Ban
                                                                 </button>
                                                                 <% } %>
@@ -286,17 +288,25 @@
             document.querySelector('.overlay').classList.toggle('active');
         }
 
-        // --- BAN MODAL LOGIC (Refactored) ---
-        // We use global functions but ensure data is safe
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Admin Dashboard DOM Loaded");
+
+            // Attach event listeners to all Ban Buttons
+            const banButtons = document.querySelectorAll('.btn-ban-trigger');
+            banButtons.forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const userId = this.getAttribute('data-userid');
+                    const username = this.getAttribute('data-username');
+                    openBanModal(userId, username);
+                });
+            });
+        });
 
         function openBanModal(userId, username) {
             console.log("Opening ban modal for:", userId);
             try {
-                // Decode potentially escaped standard HTML entities if needed, 
-                // but usually EJS handles output safely.
-                // We update the UI elements
                 const nameSpan = document.getElementById('modalUsername');
-                if (nameSpan) nameSpan.textContent = username; // Use textContent for safety
+                if (nameSpan) nameSpan.textContent = username;
 
                 const form = document.getElementById('banForm');
                 if (form) form.action = `/admin/user/${userId}/ban`;
@@ -310,14 +320,11 @@
                 const modal = document.getElementById('banModal');
                 if (modal) {
                     modal.classList.add('active');
-                    modal.style.display = 'flex'; // Ensure visibility
-                } else {
-                    console.error("Ban modal element not found!");
+                    modal.style.display = 'flex';
                 }
-
             } catch (err) {
                 console.error("Error opening modal:", err);
-                alert("Something went wrong opening the menu. Check console.");
+                alert("Error: " + err.message);
             }
         }
 
@@ -349,9 +356,6 @@
                 closeBanModal();
             }
         }
-
-        // Debug
-        console.log("Admin Dashboard Script Loaded");
     </script>
 </body>
 
