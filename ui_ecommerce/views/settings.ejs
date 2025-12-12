@@ -84,6 +84,8 @@
                     document.write('<div class="alert alert-success">Password changed successfully!</div>');
                 } else if (error === 'invalid_password') {
                     document.write('<div class="alert alert-error">Incorrect current password. Please try again.</div>');
+                } else if (error === 'invalid_captcha') {
+                    document.write('<div class="alert alert-error">Invalid Captcha Code. Please try again.</div>');
                 }
             </script>
 

@@ -219,6 +219,14 @@
                                                         </span>
                                                         <% } else if (Number(u.is_blocked) !==0) { %>
                                                             <span class="badge badge-danger">Permanent Ban</span>
+                                                            <form action="/admin/user/<%= u.id %>/delete" method="POST"
+                                                                style="display:inline-block; margin-left: 5px;"
+                                                                onsubmit="return confirm('Are you sure you want to permanently DELETE this user? This cannot be undone.');">
+                                                                <input type="hidden" name="_csrf"
+                                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                                <button class="btn btn-danger btn-sm"
+                                                                    style="background-color: #7f1d1d; font-size: 0.7rem; padding: 2px 5px;">X</button>
+                                                            </form>
                                                             <% } else { %>
                                                                 <span class="badge badge-success">Active</span>
                                                                 <% } %>

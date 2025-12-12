@@ -219,16 +219,23 @@ router.get("/", async (req, res) => {
     const searchTerm = req.query.search || ""; // Get what they typed (or empty)
 
     // A. Build the Product Query
-    let productQuery = "SELECT * FROM products";
-    let params = [];
+    // FIX: Filter out banned sellers (Permanent or Temporary)
+    const currentTime = Date.now();
+    let productQuery = `
+        SELECT p.* FROM products p 
+        JOIN users u ON p.seller_id = u.id 
+        WHERE (u.is_blocked = 0 OR u.is_blocked IS NULL) 
+        AND (u.ban_expires IS NULL OR u.ban_expires < ?)
+    `;
+    let params = [currentTime];
 
     // Fetch Categories for Sidebar
     const categories = await getCategories();
 
     // If they searched, filter by Title OR Description
     if (searchTerm) {
-        productQuery += " WHERE (title ILIKE ? OR description ILIKE ?)";
-        params = [`%${searchTerm}%`, `%${searchTerm}%`];
+        productQuery += " AND (p.title ILIKE ? OR p.description ILIKE ?)";
+        params.push(`%${searchTerm}%`, `%${searchTerm}%`);
     }
 
     // Filter by Category
@@ -237,7 +244,7 @@ router.get("/", async (req, res) => {
         if (params.length > 0) {
             productQuery += " AND category = ?";
         } else {
-            productQuery += " WHERE category = ?";
+            productQuery += " AND category = ?";
         }
         params.push(category);
     }
@@ -250,7 +257,7 @@ router.get("/", async (req, res) => {
         if (params.length > 0 || productQuery.includes("WHERE")) {
             productQuery += " AND price >= ?";
         } else {
-            productQuery += " WHERE price >= ?";
+            productQuery += " AND p.price >= ?";
         }
         params.push(minPrice);
     }
@@ -259,13 +266,13 @@ router.get("/", async (req, res) => {
         if (params.length > 0 || productQuery.includes("WHERE")) {
             productQuery += " AND price <= ?";
         } else {
-            productQuery += " WHERE price <= ?";
+            productQuery += " AND p.price <= ?";
         }
         params.push(maxPrice);
     }
 
     // Order by newest first
-    productQuery += " ORDER BY id DESC";
+    productQuery += " ORDER BY p.id DESC";
 
     try {
         const { rows: products } = await db.execute({ sql: productQuery, args: params });
@@ -357,44 +364,21 @@ router.post("/login", async (req, res) => {
         }
 
         // --- CONDITIONAL OTP LOGIC ---
-        // 1. High Risk Check (Flagged or High Suspicion)
-        const isHighRisk = user.is_flagged || (user.suspicion_score && user.suspicion_score > 50);
+        // --- OTP DISABLED AS REQUESTED ---
+        // Force Direct Login
+        req.session.user = { id: user.id, username: user.username, role: user.role };
+        console.log(`[AUTH] User ${user.id} logged in directly (OTP Disabled).`);
+        return res.redirect('/');
 
-        // 2. Random Security Check (20% chance if not high risk)
-        const isRandomCheck = Math.random() < 0.2;
-
+        /* OTP LOGIC COMMENTED OUT
         if (isHighRisk || isRandomCheck) {
-            // GENERATE OTP
-            const otp = generateOTP();
-            const otpHash = await bcrypt.hash(otp, 10);
-            const otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
-
-            await db.execute({
-                sql: "UPDATE users SET otp_hash = ?, otp_expires = ? WHERE id = ?",
-                args: [otpHash, otpExpires, user.id]
-            });
-
-            // Send Email (Brevo)
-            // Use otp_mailer's sendEmail function
-            const { sendEmail } = require('../utils/otp_mailer');
-            // FIREWALL BYPASS: Log OTP to console so user can login without email
-            console.log("========================================");
-            console.log(`[LOGIN OTP] User: ${user.email} | Code: ${otp}`);
-            console.log("========================================");
-
-            await sendEmail(user.email, "Login Verification Code", `<h3>Your Login Code: ${otp}</h3><p>Valid for 10 minutes.</p>`);
-
-            console.log(`[AUTH] OTP Triggered for user ${user.id}. Risk: ${isHighRisk}, Random: ${isRandomCheck}`);
-
-            // Store user ID temporarily in session
-            req.session.temp_login_id = user.id;
-            return res.redirect('/verify-otp');
+            // ... (OTP Code) ...
         } else {
-            // SKIP OTP - DIRECT LOGIN
             req.session.user = { id: user.id, username: user.username, role: user.role };
             console.log(`[AUTH] User ${user.id} logged in directly (Skipped OTP).`);
             return res.redirect('/');
         }
+        */
     } catch (err) {
         console.error(err);
         res.render('login', { error: "Login failed", csrfToken: req.csrfToken() });
@@ -916,8 +900,13 @@ router.post('/settings/profile', checkBan, async (req, res) => {
 router.post('/settings/password', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
-    const { current_password, new_password } = req.body;
+    const { current_password, new_password, captcha } = req.body;
     const userId = req.session.user.id;
+
+    // CAPTCHA VERIFICATION
+    if (!req.session.captcha || req.session.captcha !== captcha) {
+        return res.redirect('/settings?error=invalid_captcha'); // You'll need to handle this in UI
+    }
 
     try {
         const { rows } = await db.execute({ sql: "SELECT password FROM users WHERE id = ?", args: [userId] });
@@ -1029,6 +1018,26 @@ router.post('/admin/user/:id/unban', async (req, res) => {
         res.redirect('/admin_dashboard');
     } catch (err) {
         console.error("Error unbanning user:", err);
+        res.redirect('/admin_dashboard');
+    }
+});
+
+router.post('/admin/user/:id/delete', async (req, res) => {
+    // Security Check
+    if (!req.session.user || req.session.user.role !== 'admin') {
+        return res.status(403).send("Unauthorized");
+    }
+
+    const targetUserId = req.params.id;
+
+    try {
+        // PERMANENT DELETE
+        // Note: In a real app, you might want to soft delete or handle related data (orders/products).
+        // Assuming cascade or simple delete for this context.
+        await db.execute({ sql: "DELETE FROM users WHERE id = ?", args: [targetUserId] });
+        res.redirect('/admin_dashboard');
+    } catch (err) {
+        console.error("Error deleting user:", err);
         res.redirect('/admin_dashboard');
     }
 });
