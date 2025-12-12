@@ -22,8 +22,14 @@ async function sendEmail(to, subject, htmlContent) {
     if (resend) {
         try {
             console.log(`[EMAIL] Sending to ${to} via Resend API...`);
+
+            // CRITICAL: On Free Tier, you MUST send from 'onboarding@resend.dev'
+            // Attempting to send from your gmail will fail with "You can only send testing emails to your own address"
+            // if the FROM address is also your gmail. It expects the default sender.
+            const fromAddress = 'onboarding@resend.dev';
+
             const data = await resend.emails.send({
-                from: process.env.EMAIL_FROM || 'onboarding@resend.dev', // Default test sender
+                from: fromAddress,
                 to: to,
                 subject: subject,
                 html: htmlContent
