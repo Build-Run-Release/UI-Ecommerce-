@@ -10,6 +10,13 @@ async function sendEmail(to, subject, htmlContent) {
         return true;
     }
 
+    if (!senderEmail || !senderEmail.includes('@')) {
+        console.error("❌ ERROR: 'sender.email' is missing or invalid.");
+        console.error("   Value: ", senderEmail);
+        console.error("   Action: Set EMAIL_FROM (or SMTP_USER) in .env to your verified Brevo email.");
+        return false;
+    }
+
     if (!apiKey.startsWith('xkeysib-')) {
         console.warn("⚠️ WARNING: Your API Key does not start with 'xkeysib-'.");
         console.warn("   You are likely using an SMTP Password. You MUST use a Brevo API Key.");
