@@ -96,22 +96,31 @@ const checkBlocked = async (req, res, next) => {
     if (req.session.user) {
         try {
             const result = await db.execute({
-                sql: "SELECT is_blocked FROM users WHERE id = ?",
+                sql: "SELECT is_blocked, ban_expires FROM users WHERE id = ?",
                 args: [req.session.user.id]
             });
             const user = result.rows[0];
 
             // Fix: Cast to number because CockroachDB returns INT as string (BigInt) - Postgres returns number (int4)
             // SAFEGARD: Ensure user exists and is_blocked is not null/undefined before checking
+            // Fix: Cast to number because CockroachDB returns INT as string (BigInt)
             const isBlocked = user && user.is_blocked ? Number(user.is_blocked) : 0;
+            const banExpires = user && user.ban_expires ? Number(user.ban_expires) : 0;
+            const now = Date.now();
 
             if (isBlocked !== 0) {
-                console.log(`User ${req.session.user.id} is BLOCKED. (is_blocked=${user.is_blocked})`);
+                console.log(`User ${req.session.user.id} is PERMANENTLY BLOCKED.`);
                 req.session.destroy();
-                return res.send(
-                    "Your account has been blocked by the admin. Please contact support."
-                );
+                return res.send("Your account has been permanently suspended by the admin.");
             }
+
+            if (banExpires > now) {
+                const daysLeft = Math.ceil((banExpires - now) / (1000 * 60 * 60 * 24));
+                console.log(`User ${req.session.user.id} is TEMP BANNED until ${new Date(banExpires)}`);
+                req.session.destroy();
+                return res.send(`Your account is temporarily restricted for ${daysLeft} more day(s).`);
+            }
+
             next();
         } catch (err) {
             next(err);

@@ -118,8 +118,8 @@
                                                 <% } %>
                                     </td>
                                     <td>
-                                        <button class="btn btn-danger btn-sm"
-                                            onclick="openBanModal('<%= u.id %>', '<%= u.username %>')">Restrict</button>
+                                        <button class="btn btn-danger btn-sm btn-ban-trigger" data-userid="<%= u.id %>"
+                                            data-username="<%= u.username %>">Restrict</button>
                                     </td>
                                 </tr>
                                 <% }); %>

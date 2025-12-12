@@ -48,9 +48,10 @@ async function sendEmail(to, subject, htmlContent) {
 
     // 2. Fallback to Gmail SMTP
     const user = process.env.EMAIL_USER;
-    if (!user) {
-        console.log("⚠️ EMAIL MOCK: No Email Providers configured.");
-        return true;
+    const pass = process.env.EMAIL_PASS;
+    if (!user || !pass) {
+        console.log("⚠️ EMAIL MOCK: EMAIL_USER or EMAIL_PASS not configured.");
+        return false;
     }
 
     try {
@@ -74,8 +75,16 @@ async function sendEmail(to, subject, htmlContent) {
         return true;
     } catch (err) {
         console.error(`[EMAIL] SMTP Failed: ${err.message}`);
-        console.log("⚠️ Email failed but flow continuing.");
-        return true;
+
+        if (err.message.includes('Username and Password not accepted')) {
+            console.log("💡 HINT: You are likely using your Gmail login password. You MUST use an App Password.");
+            console.log("   -> Go to Google Account > Security > 2-Step Verification > App Passwords.");
+        } else if (err.message.includes('Timeout')) {
+            console.log("💡 HINT: Connection timed out. Check your firewall or internet connection.");
+        }
+
+        console.log("⚠️ Email failed. Check server console for OTP.");
+        return false;
     }
 }
 
