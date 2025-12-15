@@ -799,6 +799,51 @@ router.post('/order/:id/confirm/seller-delivered', checkBan, async (req, res) =>
     }
 });
 
+// 4. POST: Seller Claims Funds (After 24h)
+router.post('/order/:id/claim-funds', checkBan, async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    const orderId = req.params.id;
+    const sellerId = req.session.user.id;
+
+    try {
+        const { rows } = await db.execute({ sql: "SELECT * FROM orders WHERE id = ? AND seller_id = ?", args: [orderId, sellerId] });
+        const order = rows[0];
+
+        if (!order) return res.redirect('/seller/dashboard?error=not_found');
+        if (order.status === 'completed' || order.escrow_released) return res.redirect('/seller/dashboard?msg=already_completed');
+        if (!order.seller_confirmed || !order.delivered_at) return res.redirect('/seller/dashboard?error=not_delivered');
+        if (order.disputed) return res.redirect('/seller/dashboard?error=disputed');
+
+        // Check 24h Timer
+        const deliveredTime = new Date(order.delivered_at).getTime();
+        const now = Date.now();
+        const hoursPassed = (now - deliveredTime) / (1000 * 60 * 60);
+
+        if (hoursPassed < 24) {
+            const hoursLeft = Math.ceil(24 - hoursPassed);
+            return res.redirect(`/seller/dashboard?error=wait_${hoursLeft}h`);
+        }
+
+        // Release Funds
+        await db.execute({
+            sql: "UPDATE orders SET status = 'completed', escrow_released = 1 WHERE id = ?",
+            args: [orderId]
+        });
+
+        await db.execute({
+            sql: "UPDATE users SET wallet_balance = wallet_balance + ? WHERE id = ?",
+            args: [order.seller_amount, sellerId]
+        });
+
+        console.log(`[ESCROW] 24h Release for Order #${orderId}: ₦${order.seller_amount} to Seller #${sellerId}`);
+        res.redirect('/seller/dashboard?msg=funds_claimed');
+
+    } catch (err) {
+        console.error("Claim Funds Error:", err);
+        res.redirect('/seller/dashboard?error=failed');
+    }
+});
+
 router.post('/order/:id/claim-funds', checkBan, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
     const orderId = req.params.id;
