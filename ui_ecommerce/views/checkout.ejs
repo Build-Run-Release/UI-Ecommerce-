@@ -165,16 +165,7 @@
 
     </div>
 
-    <script>
-        // Global Error Handler for Images (CSP Compliant)
-        window.addEventListener('error', function (e) {
-            if (e.target.tagName && e.target.tagName.toLowerCase() === 'img') {
-                console.log('Image load error fixed:', e.target.src);
-                e.target.src = '/images/placeholder.svg';
-                e.target.onerror = null;
-            }
-        }, true);
-    </script>
+    <script src="/js/main.js"></script>
 </body>
 
 </html>
