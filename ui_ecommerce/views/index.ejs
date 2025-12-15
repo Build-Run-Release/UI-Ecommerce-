@@ -51,6 +51,36 @@
             transform: scale(1.05);
         }
 
+        /* Mobile Optimization */
+        @media (max-width: 600px) {
+            .hero {
+                padding: 60px 15px 40px;
+                border-radius: 0 0 30px 30px / 10px;
+            }
+
+            .search-container {
+                margin-top: 15px;
+                padding: 4px;
+                /* Tighter container */
+            }
+
+            .search-input {
+                padding: 12px 15px;
+                /* Smaller padded input */
+                font-size: 0.95rem;
+                width: 100%;
+                /* Ensure it shrinks */
+                min-width: 0;
+                /* Flexbox trick to allow shrinking */
+            }
+
+            .search-btn {
+                padding: 10px 20px;
+                /* Smaller button */
+                font-size: 0.9rem;
+            }
+        }
+
         /* Category Scroll */
         .category-scroll {
             display: flex;
