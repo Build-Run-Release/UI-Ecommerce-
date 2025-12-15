@@ -160,6 +160,15 @@ async function initDb() {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`);
 
+            // 10. Appeals Table (NEW)
+            await client.query(`CREATE TABLE IF NOT EXISTS appeals (
+                id SERIAL PRIMARY KEY,
+                user_id INTEGER REFERENCES users(id),
+                message TEXT,
+                status TEXT DEFAULT 'pending', -- pending, approved, rejected
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )`);
+
             // --- MIGRATIONS (Add Columns if missing) ---
 
             // Users Table: Security & Fraud
@@ -167,7 +176,11 @@ async function initDb() {
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_hash TEXT`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS otp_expires BIGINT`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspicion_score INTEGER DEFAULT 0`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS suspicion_score INTEGER DEFAULT 0`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_flagged INTEGER DEFAULT 0`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_banned INTEGER DEFAULT 0`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_expires BIGINT`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
 
             // Orders Table: Seller Protection

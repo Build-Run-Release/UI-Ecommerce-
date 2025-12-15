@@ -11,7 +11,7 @@ const SALT_ROUNDS = 10;
 
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
-const { checkProductPricing, checkSpamming, flagUser, checkDescriptionContent, checkBankDetails, checkAccountVelocity } = require('../utils/fraud_engine');
+const { detectPriceAnomaly, checkSpamming, flagUser, checkDescriptionContent, checkBankDetails, checkAccountVelocity } = require('../utils/fraud_engine');
 
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
@@ -43,24 +43,28 @@ const checkBan = (req, res, next) => {
     // 1. If user is not logged in, skip (let the auth middleware handle it)
     if (!req.session.user) return next();
 
+    // Allow restricted users to access these routes to appeal or logout
+    const allowedRoutes = ['/banned', '/appeal', '/logout'];
+    if (allowedRoutes.includes(req.path)) return next();
+
     const user = req.session.user;
 
-    // 2. Check if user is banned
-    if (user.is_banned) {
+    // 2. Check if user is banned (Permanent or Temporary)
+    // is_blocked = legacy/perm, is_banned = new auto-ban
+    if (user.is_blocked || user.is_banned) {
         // Check if it's a temporary ban that has expired
         if (user.ban_expires) {
-            const currentDate = new Date();
-            const expiryDate = new Date(user.ban_expires);
+            const currentDate = Date.now();
+            const expiryDate = new Date(user.ban_expires).getTime();
 
             // If ban is over, let them pass
             if (currentDate > expiryDate) {
                 return next();
             }
         }
-        // If we are here, they are banned. Show the banned page.
-        return res.render('banned', { user: user });
+        // If we are here, they are banned. Redirect to banned page.
+        return res.redirect('/banned');
     }
-    // 3. Not banned? Proceed.
     next();
 };
 
@@ -134,17 +138,12 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
         }
 
         // --- PRICE GUARD IMPLEMENTATION ---
-        const { rows: marketPrices } = await db.execute({ sql: "SELECT * FROM market_prices" });
-        // Simple fuzzy match: check if product title contains the market item name
-        const match = marketPrices.find(p => title.toLowerCase().includes(p.item_name.toLowerCase()));
-
-        if (match) {
-            // Rule: Price cannot be more than 20% above max, or less than 50% of min (suspicious)
-            // Use Fraud Engine Helper
-            const isFraud = await checkProductPricing(req.session.user, submittedPrice, match);
-            if (isFraud) {
-                return res.status(400).send("Price Guard: Your price is suspiciously low compared to market value. Action flagged.");
-            }
+        // --- PRICE GUARD (AUTONOMOUS AI) ---
+        // Uses Statistical Anomaly Detection
+        const anomalyCheck = await detectPriceAnomaly(req.session.user, submittedPrice, title);
+        if (anomalyCheck.isFraud) {
+            // If fraud, we deny. The engine already banned them if serious.
+            return res.status(403).send(`High Risk Detected: ${anomalyCheck.reason}. Your account has been temporarily restricted.`);
         }
         // ----------------------------------
 
@@ -187,6 +186,21 @@ router.get('/terms', (req, res) => {
     res.render('terms', { user: req.session.user });
 });
 
+// --- BANNED PAGE ROUTE ---
+router.get('/banned', async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    // Check if they have a pending appeal
+    const { rows } = await db.execute({ sql: "SELECT * FROM appeals WHERE user_id = ? AND status = 'pending'", args: [req.session.user.id] });
+    const pendingAppeal = rows.length > 0;
+
+    res.render('banned', {
+        user: req.session.user,
+        pendingAppeal: pendingAppeal,
+        csrfToken: req.csrfToken ? req.csrfToken() : ''
+    });
+});
+
 // --- FEEDBACK ROUTES ---
 router.get('/feedback', (req, res) => {
     res.render('feedback', {
@@ -221,6 +235,23 @@ router.post('/feedback', async (req, res) => {
             msg: "Error submitting feedback.",
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
+    }
+});
+
+// --- APPEAL ROUTE ---
+router.post('/appeal', async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+    const { message } = req.body;
+
+    try {
+        await db.execute({
+            sql: "INSERT INTO appeals (user_id, message) VALUES (?, ?)",
+            args: [req.session.user.id, message]
+        });
+        res.redirect('/banned?msg=appeal_sent');
+    } catch (err) {
+        console.error("Appeal Error:", err);
+        res.redirect('/banned?error=failed');
     }
 });
 
@@ -1001,11 +1032,17 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
         const { rows: statsRes } = await db.execute({ sql: statsQuery });
         const stats = statsRes[0] || { total_orders: 0, total_revenue: 0 };
 
+        // A4. Fetch Appeals
+        const { rows: appeals } = await db.execute({
+            sql: "SELECT appeals.*, users.username, users.email FROM appeals JOIN users ON appeals.user_id = users.id WHERE appeals.status = 'pending' ORDER BY created_at DESC"
+        });
+
         res.render('admin_dashboard', {
             user: req.session.user,
             users: users,
             flaggedUsers: flaggedUsers,
-            feedback: feedback, // Pass feedback to view
+            feedback: feedback,
+            appeals: appeals, // Pass appeals
             stats: stats,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
@@ -1016,6 +1053,8 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
             users: [],
             flaggedUsers: [],
             stats: { total_orders: 0, total_revenue: 0 },
+            appeals: [],
+            feedback: [],
             csrfToken: req.csrfToken ? req.csrfToken() : ''
         });
     }
@@ -1081,6 +1120,38 @@ router.post('/admin/user/:id/delete', async (req, res) => {
         res.redirect('/admin_dashboard');
     } catch (err) {
         console.error("Error deleting user:", err);
+        res.redirect('/admin_dashboard');
+    }
+});
+
+// 3. POST: Handle Appeal (Approve/Reject)
+router.post('/admin/appeal/:id/action', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send("Unauthorized");
+
+    const appealId = req.params.id;
+    const { action } = req.body; // 'approve' or 'reject'
+
+    try {
+        // Get Appeal details
+        const { rows } = await db.execute({ sql: "SELECT * FROM appeals WHERE id = ?", args: [appealId] });
+        const appeal = rows[0];
+        if (!appeal) return res.redirect('/admin_dashboard');
+
+        if (action === 'approve') {
+            // Unban User
+            await db.execute({
+                sql: "UPDATE users SET is_blocked = 0, is_banned = 0, ban_expires = NULL, is_flagged = 0, suspicion_score = 0 WHERE id = ?",
+                args: [appeal.user_id]
+            });
+            // Update Appeal Status
+            await db.execute({ sql: "UPDATE appeals SET status = 'approved' WHERE id = ?", args: [appealId] });
+        } else {
+            // Reject Appeal
+            await db.execute({ sql: "UPDATE appeals SET status = 'rejected' WHERE id = ?", args: [appealId] });
+        }
+        res.redirect('/admin_dashboard');
+    } catch (err) {
+        console.error("Appeal Action Error:", err);
         res.redirect('/admin_dashboard');
     }
 });
