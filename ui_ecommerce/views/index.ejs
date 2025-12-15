@@ -234,8 +234,9 @@
         <% if (typeof products !=='undefined' && products.length> 0) { %>
             <% products.forEach(function(product) { %>
                 <div class="product-card">
-                    <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || 'https://via.placeholder.com/300x200?text=No+Image') %>"
-                        alt="<%= product.title %>" class="product-image">
+                    <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || '/images/placeholder.svg') %>"
+                        alt="<%= product.title %>" class="product-image"
+                        onerror="this.onerror=null;this.src='/images/placeholder.svg';">
 
                     <div class="product-info">
                         <span class="product-cat">

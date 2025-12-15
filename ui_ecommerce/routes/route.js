@@ -413,7 +413,7 @@ router.post("/login", async (req, res) => {
             return res.redirect('/verify-otp');
         } else {
             // SKIP OTP - DIRECT LOGIN
-            req.session.user = { id: user.id, username: user.username, role: user.role };
+            req.session.user = { id: user.id, username: user.username, role: user.role, email: user.email };
             console.log(`[AUTH] User ${user.id} logged in directly (Skipped OTP).`);
             return res.redirect('/');
         }
@@ -1152,7 +1152,7 @@ router.post('/paystack/initialize', checkBan, async (req, res) => {
         const response = await axios.post(
             'https://api.paystack.co/transaction/initialize',
             {
-                email: user.username + "@example.com",
+                email: user.email,
                 amount: Math.round(amount * 100),
                 reference: reference,
                 callback_url: "https://ui-ecommerce-production.up.railway.app/paystack/callback"
@@ -1267,7 +1267,7 @@ router.post('/ads/paystack/initialize', checkBan, async (req, res) => {
         const response = await axios.post(
             'https://api.paystack.co/transaction/initialize',
             {
-                email: user.username + "@example.com",
+                email: user.email,
                 amount: price * 100,
                 reference: reference,
                 callback_url: "https://ui-ecommerce-production.up.railway.app/ads/paystack/callback"

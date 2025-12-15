@@ -58,7 +58,8 @@
 
                 <div class="profile-actions">
                     <img src="<%= user.profile_image && !user.profile_image.startsWith('http') ? '/uploads/' + user.profile_image : (user.profile_image || 'https://ui-avatars.com/api/?name=' + user.username + '&background=4f46e5&color=fff') %>"
-                        class="profile-img" onclick="toggleProfileMenu(event)">
+                        class="profile-img" onclick="toggleProfileMenu(event)"
+                        onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=<%= user.username %>&background=4f46e5&color=fff';">
                     <!-- Simple absolute upload trigger for profile pic if needed, hidden for clean look -->
 
                     <div id="profileDropdown" class="dropdown-menu">
@@ -235,9 +236,10 @@
                                     <tr>
                                         <td>
                                             <div style="display: flex; align-items: center; gap: 10px;">
-                                                <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || 'https://via.placeholder.com/40') %>"
+                                                <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || '/images/placeholder.svg') %>"
                                                     width="40" height="40"
-                                                    style="border-radius: 6px; object-fit: cover;">
+                                                    style="border-radius: 6px; object-fit: cover;"
+                                                    onerror="this.onerror=null;this.src='/images/placeholder.svg';">
                                                 <div style="font-weight: 500;">
                                                     <%= product.title %>
                                                 </div>

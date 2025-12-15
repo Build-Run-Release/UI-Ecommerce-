@@ -250,7 +250,7 @@
 
             const handler = PaystackPop.setup({
                 key: PAYSTACK_PUBLIC_KEY,
-                email: "<%= user.email || user.username + '@example.com' %>",
+                email: "<%= user.email %>",
                 amount: amount * 100, // Convert to Kobo
                 currency: "NGN",
                 ref: '' + Math.floor((Math.random() * 1000000000) + 1),
