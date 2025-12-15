@@ -12,6 +12,7 @@ const SALT_ROUNDS = 10;
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 const { checkProductPricing, checkSpamming, flagUser, checkDescriptionContent, checkBankDetails, checkAccountVelocity } = require('../utils/fraud_engine');
+const { sendEmail } = require('../utils/otp_mailer');
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
@@ -1326,5 +1327,49 @@ router.get('/ads/paystack/callback', async (req, res) => {
 });
 
 
+
+
+// --- FEEDBACK ROUTE ---
+router.get('/feedback', csrfProtection, (req, res) => {
+    res.render('feedback', {
+        user: req.session.user,
+        csrfToken: req.csrfToken(),
+        msg: req.query.msg
+    });
+});
+
+router.post('/feedback', csrfProtection, async (req, res) => {
+    const { name, email, message_type, message } = req.body;
+
+    // Construct Email
+    const subject = `[Feedback] ${message_type} from ${name}`;
+    const htmlBody = `
+        <h3>New Feedback Submission</h3>
+        <p><strong>From:</strong> ${name} (${email})</p>
+        <p><strong>Topic:</strong> ${message_type}</p>
+        <hr/>
+        <p><strong>Message:</strong></p>
+        <blockquote style="background: #f9f9f9; padding: 10px; border-left: 5px solid #ccc;">
+            ${message.replace(/\n/g, '<br>')}
+        </blockquote>
+    `;
+
+    try {
+        // Send to Admin
+        await sendEmail('Bomane.ar@gmail.com', subject, htmlBody);
+        res.render('feedback', {
+            user: req.session.user,
+            csrfToken: req.csrfToken(),
+            msg: "Message sent! We'll get back to you soon."
+        });
+    } catch (err) {
+        console.error("Feedback Email Error:", err);
+        res.render('feedback', {
+            user: req.session.user,
+            csrfToken: req.csrfToken(),
+            msg: "Error sending message. Please try again later."
+        });
+    }
+});
 
 module.exports = router;
