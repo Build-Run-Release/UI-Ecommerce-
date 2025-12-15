@@ -113,7 +113,7 @@
             <h2 style="margin-top: 0;">Order Summary</h2>
 
             <img src="<%= (product.image_url || product.image) && !(product.image_url || product.image).startsWith('http') ? '/uploads/' + (product.image_url || product.image) : (product.image_url || product.image || '/images/placeholder.svg') %>"
-                class="product-preview" onerror="this.onerror=null;this.src='/images/placeholder.svg';">
+                class="product-preview">
 
             <span class="label">Product</span>
             <div class="value">
@@ -165,6 +165,16 @@
 
     </div>
 
+    <script>
+        // Global Error Handler for Images (CSP Compliant)
+        window.addEventListener('error', function (e) {
+            if (e.target.tagName && e.target.tagName.toLowerCase() === 'img') {
+                console.log('Image load error fixed:', e.target.src);
+                e.target.src = '/images/placeholder.svg';
+                e.target.onerror = null;
+            }
+        }, true);
+    </script>
 </body>
 
 </html>

@@ -235,8 +235,7 @@
             <% products.forEach(function(product) { %>
                 <div class="product-card">
                     <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || '/images/placeholder.svg') %>"
-                        alt="<%= product.title %>" class="product-image"
-                        onerror="this.onerror=null;this.src='/images/placeholder.svg';">
+                        alt="<%= product.title %>" class="product-image">
 
                     <div class="product-info">
                         <span class="product-cat">

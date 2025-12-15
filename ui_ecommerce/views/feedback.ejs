@@ -34,16 +34,16 @@
                         <input type="hidden" name="_csrf"
                             value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                        <label>Name</label>
-                        <input type="text" name="name" placeholder="Your Name" value="<%= user ? user.username : '' %>"
-                            required>
+                        <label for="name">Name</label>
+                        <input type="text" id="name" name="name" placeholder="Your Name"
+                            value="<%= user ? user.username : '' %>" required>
 
-                        <label>Email</label>
-                        <input type="email" name="email" placeholder="Your Email" value="<%= user ? user.email : '' %>"
-                            required>
+                        <label for="email">Email</label>
+                        <input type="email" id="email" name="email" placeholder="Your Email"
+                            value="<%= user ? user.email : '' %>" required>
 
-                        <label>Topic</label>
-                        <select name="message_type" required>
+                        <label for="message_type">Topic</label>
+                        <select id="message_type" name="message_type" required>
                             <option value="" disabled selected>Select a topic...</option>
                             <option value="complaint">Complaint / Report User</option>
                             <option value="suggestion">Suggestion / Feature Request</option>
@@ -51,8 +51,8 @@
                             <option value="other">Other</option>
                         </select>
 
-                        <label>Message</label>
-                        <textarea name="message" rows="5" placeholder="Describe your issue or idea..."
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" rows="5" placeholder="Describe your issue or idea..."
                             required></textarea>
 
                         <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Submit

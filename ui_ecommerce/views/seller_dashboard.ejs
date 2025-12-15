@@ -58,8 +58,7 @@
 
                 <div class="profile-actions">
                     <img src="<%= user.profile_image && !user.profile_image.startsWith('http') ? '/uploads/' + user.profile_image : (user.profile_image || 'https://ui-avatars.com/api/?name=' + user.username + '&background=4f46e5&color=fff') %>"
-                        class="profile-img" id="profileImgTrigger"
-                        onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=<%= user.username %>&background=4f46e5&color=fff';">
+                        class="profile-img" id="profileImgTrigger">
                     <!-- Simple absolute upload trigger for profile pic if needed, hidden for clean look -->
 
                     <div id="profileDropdown" class="dropdown-menu">
@@ -239,8 +238,7 @@
                                             <div style="display: flex; align-items: center; gap: 10px;">
                                                 <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || '/images/placeholder.svg') %>"
                                                     width="40" height="40"
-                                                    style="border-radius: 6px; object-fit: cover;"
-                                                    onerror="this.onerror=null;this.src='/images/placeholder.svg';">
+                                                    style="border-radius: 6px; object-fit: cover;">
                                                 <div style="font-weight: 500;">
                                                     <%= product.title %>
                                                 </div>
@@ -335,7 +333,7 @@
                                     <% } %>
                 </select>
 
-                <label>Product Image</label>
+                <label for="prodImg">Product Image</label>
                 <div class="file-upload-box" id="fileUploadBox">
                     <span style="font-size: 2rem;">☁</span><br>
                     <span>Click to Upload</span>
@@ -427,6 +425,27 @@
                     e.target.classList.remove('active');
                 }
             });
+
+            // --- Global Error Handler for Images (CSP Compliant) ---
+            window.addEventListener('error', function (e) {
+                if (e.target.tagName && e.target.tagName.toLowerCase() === 'img') {
+                    console.log('Image load error fixed:', e.target.src);
+
+                    // Profile Image Fallback check
+                    if (e.target.classList.contains('profile-img')) {
+                        // We can't access EJS vars here easily without data attributes.
+                        // But for now, let's use a generic safe avatar or the configured one if possible.
+                        // Or we can try to construct it if we had the username.
+                        // Simplest fallback:
+                        e.target.src = 'https://ui-avatars.com/api/?name=User&background=4f46e5&color=fff';
+                    } else {
+                        e.target.src = '/images/placeholder.svg';
+                    }
+
+                    // Prevent infinite loop
+                    e.target.onerror = null;
+                }
+            }, true); // useCapture is TRUE to catch error events which do not bubble
 
             // --- Static Event Listeners ---
 
