@@ -12,7 +12,7 @@ const SALT_ROUNDS = 10;
 const csurf = require('csurf');
 const cookieParser = require('cookie-parser');
 const { checkProductPricing, checkSpamming, flagUser, checkDescriptionContent, checkBankDetails, checkAccountVelocity } = require('../utils/fraud_engine');
-const { sendEmail } = require('../utils/otp_mailer');
+
 
 // --- PASTE THIS AT THE TOP OF routes/route.js ---
 
@@ -160,7 +160,7 @@ router.post('/seller/add-product', checkBan, upload.single('image'), csrfProtect
     }
 });
 
-const { sendEmail, generateOTP } = require('../utils/otp_mailer');
+const { sendEmail: mailerSend, generateOTP } = require('../utils/otp_mailer');
 const svgCaptcha = require('svg-captcha');
 
 // --- CAPTCHA ROUTE ---
@@ -400,12 +400,12 @@ router.post("/login", async (req, res) => {
             });
 
             // Send Email (SendPulse API)
-            const { sendEmail } = require('../utils/otp_mailer');
+            // const { sendEmail } = require('../utils/otp_mailer'); // Removed local require
 
             // Log for Dev/Debug (remove in strict prod if needed, but useful now)
             console.log(`[LOGIN OTP DEBUG] User: ${user.email} | Code: ${otp}`);
 
-            await sendEmail(user.email, "Login Verification Code", `<h3>Your Login Code: ${otp}</h3><p>Valid for 10 minutes.</p>`);
+            await mailerSend(user.email, "Login Verification Code", `<h3>Your Login Code: ${otp}</h3><p>Valid for 10 minutes.</p>`);
 
             console.log(`[AUTH] OTP Triggered for user ${user.id}. Risk: ${isHighRisk}, Random: ${isRandomCheck}`);
 
@@ -1356,7 +1356,7 @@ router.post('/feedback', csrfProtection, async (req, res) => {
 
     try {
         // Send to Admin
-        await sendEmail('Bomane.ar@gmail.com', subject, htmlBody);
+        await mailerSend('Bomane.ar@gmail.com', subject, htmlBody);
         res.render('feedback', {
             user: req.session.user,
             csrfToken: req.csrfToken(),
