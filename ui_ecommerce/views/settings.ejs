@@ -73,44 +73,31 @@
         <!-- Messages -->
         <div class="settings-content">
 
-            <script>
-                const urlParams = new URLSearchParams(window.location.search);
-                const msg = urlParams.get('msg');
-                const error = urlParams.get('error');
-
-                if (msg === 'profile_updated') {
-                    document.write('<div class="alert alert-success">Profile details updated successfully!</div>');
-                } else if (msg === 'password_changed') {
-                    document.write('<div class="alert alert-success">Password changed successfully!</div>');
-                } else if (error === 'invalid_password') {
-                    document.write('<div class="alert alert-error">Incorrect current password. Please try again.</div>');
-                } else if (error === 'invalid_captcha') {
-                    document.write('<div class="alert alert-error">Invalid Captcha Code. Please try again.</div>');
-                }
-            </script>
+            <div id="alertContainer"></div>
 
             <!-- Profile Info Form -->
             <h2 class="section-title">Profile Information</h2>
             <form action="/settings/profile" method="POST">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                <label>Username</label>
-                <input type="text" value="<%= user.username %>" disabled
-                    style="background: #f3f4f6; cursor: not-allowed;">
+                <label for="username">Username</label>
+                <input type="text" id="username" value="<%= user.username %>" disabled
+                    style="background: #f3f4f6; cursor: not-allowed;" autocomplete="username">
 
-                <label>Email Address</label>
-                <input type="email" name="email" value="<%= user.email || '' %>" placeholder="you@university.edu.ng">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" value="<%= user.email || '' %>"
+                    placeholder="you@university.edu.ng" autocomplete="email">
 
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div>
-                        <label>Bank Name</label>
-                        <input type="text" name="bank_name" value="<%= user.bank_name || '' %>"
-                            placeholder="e.g. GTBank">
+                        <label for="bank_name">Bank Name</label>
+                        <input type="text" id="bank_name" name="bank_name" value="<%= user.bank_name || '' %>"
+                            placeholder="e.g. GTBank" autocomplete="organization">
                     </div>
                     <div>
-                        <label>Account Number</label>
-                        <input type="text" name="account_number" value="<%= user.account_number || '' %>"
-                            placeholder="0123456789">
+                        <label for="account_number">Account Number</label>
+                        <input type="text" id="account_number" name="account_number"
+                            value="<%= user.account_number || '' %>" placeholder="0123456789" autocomplete="off">
                     </div>
                 </div>
 
@@ -124,20 +111,23 @@
             <form action="/settings/password" method="POST">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                <label>Current Password</label>
-                <input type="password" name="current_password" required>
+                <label for="current_password">Current Password</label>
+                <input type="password" id="current_password" name="current_password" required
+                    autocomplete="current-password">
 
-                <label>New Password</label>
-                <input type="password" name="new_password" required minlength="6">
+                <label for="new_password">New Password</label>
+                <input type="password" id="new_password" name="new_password" required minlength="6"
+                    autocomplete="new-password">
 
                 <div style="margin: 15px 0;">
-                    <label>Security Check</label>
+                    <label for="captcha">Security Check</label>
                     <div style="display: flex; gap: 10px; align-items: center;">
                         <div style="background: #eee; padding: 5px; border-radius: 4px;">
-                            <img src="/captcha" alt="Captcha" onclick="this.src='/captcha?'+Math.random()"
-                                style="cursor: pointer;" title="Click to refresh">
+                            <img src="/captcha" alt="Captcha" class="captcha-img" style="cursor: pointer;"
+                                title="Click to refresh">
                         </div>
-                        <input type="text" name="captcha" placeholder="Enter code" required style="width: 120px;">
+                        <input type="text" id="captcha" name="captcha" placeholder="Enter code" required
+                            style="width: 120px;" autocomplete="off">
                     </div>
                     <% if (typeof captchaError !=='undefined' && captchaError) { %>
                         <div style="color: red; font-size: 0.8rem; margin-top: 5px;">
@@ -153,6 +143,7 @@
 
     </div>
 
+    <script src="/js/settings.js"></script>
 </body>
 
 </html>

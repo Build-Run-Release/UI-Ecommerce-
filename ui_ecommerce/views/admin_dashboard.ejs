@@ -35,12 +35,12 @@
 
 <body>
 
-    <div class="overlay" onclick="toggleSidebar()"></div>
+    <div class="overlay"></div>
 
     <nav class="sidebar" id="sidebar">
         <div class="brand">
             <span>Admin Panel</span>
-            <button class="close-sidebar" onclick="toggleSidebar()">×</button>
+            <button class="close-sidebar">×</button>
         </div>
 
         <div class="nav-links">
@@ -56,7 +56,7 @@
     <main class="main-content">
         <div class="header">
             <div class="header-left">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <button class="menu-toggle">☰</button>
                 <h1 style="margin: 0;">Dashboard</h1>
             </div>
         </div>
@@ -221,7 +221,7 @@
                                                             <span class="badge badge-danger">Permanent Ban</span>
                                                             <form action="/admin/user/<%= u.id %>/delete" method="POST"
                                                                 style="display:inline-block; margin-left: 5px;"
-                                                                onsubmit="return confirm('Are you sure you want to permanently DELETE this user? This cannot be undone.');">
+                                                                style="display:inline-block; margin-left: 5px;">
                                                                 <input type="hidden" name="_csrf"
                                                                     value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                                                                 <button class="btn btn-danger btn-sm"
@@ -264,7 +264,7 @@
     <!-- Ban Modal -->
     <div id="banModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="closeBanModal()">&times;</span>
+            <span class="close-modal">&times;</span>
             <h2>Ban User</h2>
             <p>Select ban type for <strong id="modalUsername">User</strong>:</p>
 
@@ -272,7 +272,7 @@
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
                 <label>Ban Type</label>
-                <select id="banType" name="type" onchange="toggleDurationInput()">
+                <select id="banType" name="type">
                     <option value="permanent">Permanent Ban</option>
                     <option value="temporary">Temporary Ban</option>
                 </select>
@@ -290,81 +290,7 @@
         </div>
     </div>
 
-    <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.querySelector('.overlay').classList.toggle('active');
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            console.log("Admin Dashboard DOM Loaded");
-
-            // Attach event listeners to all Ban Buttons
-            const banButtons = document.querySelectorAll('.btn-ban-trigger');
-            banButtons.forEach(btn => {
-                btn.addEventListener('click', function () {
-                    const userId = this.getAttribute('data-userid');
-                    const username = this.getAttribute('data-username');
-                    openBanModal(userId, username);
-                });
-            });
-        });
-
-        function openBanModal(userId, username) {
-            console.log("Opening ban modal for:", userId);
-            try {
-                const nameSpan = document.getElementById('modalUsername');
-                if (nameSpan) nameSpan.textContent = username;
-
-                const form = document.getElementById('banForm');
-                if (form) form.action = `/admin/user/${userId}/ban`;
-
-                const typeSelect = document.getElementById('banType');
-                if (typeSelect) typeSelect.value = 'permanent';
-
-                const durationGroup = document.getElementById('durationGroup');
-                if (durationGroup) durationGroup.style.display = 'none';
-
-                const modal = document.getElementById('banModal');
-                if (modal) {
-                    modal.classList.add('active');
-                    modal.style.display = 'flex';
-                }
-            } catch (err) {
-                console.error("Error opening modal:", err);
-                alert("Error: " + err.message);
-            }
-        }
-
-        function closeBanModal() {
-            const modal = document.getElementById('banModal');
-            if (modal) {
-                modal.classList.remove('active');
-                modal.style.display = 'none';
-            }
-        }
-
-        function toggleDurationInput() {
-            const type = document.getElementById('banType').value;
-            const durationGroup = document.getElementById('durationGroup');
-            const durationInput = durationGroup.querySelector('input');
-
-            if (type === 'temporary') {
-                durationGroup.style.display = 'block';
-                if (durationInput) durationInput.required = true;
-            } else {
-                durationGroup.style.display = 'none';
-                if (durationInput) durationInput.required = false;
-            }
-        }
-
-        window.onclick = function (event) {
-            const modal = document.getElementById('banModal');
-            if (event.target === modal) {
-                closeBanModal();
-            }
-        }
-    </script>
+    <script src="/js/admin_dashboard.js"></script>
 </body>
 
 </html>

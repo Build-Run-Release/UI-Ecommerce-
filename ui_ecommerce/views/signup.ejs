@@ -130,13 +130,16 @@
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
                     <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                    <input type="text" id="username" name="username" placeholder="Choose a username" required
+                        autocomplete="username">
 
                     <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Create a password" required>
+                    <input type="password" id="password" name="password" placeholder="Create a password" required
+                        autocomplete="new-password">
 
                     <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="example@ui.edu.ng" required>
+                    <input type="email" id="email" name="email" placeholder="example@ui.edu.ng" required
+                        autocomplete="email">
 
                     <div style="margin: 20px 0; display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="terms" name="terms" required style="width: auto; margin: 0;">

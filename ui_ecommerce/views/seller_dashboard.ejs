@@ -283,15 +283,15 @@
 
                     <label for="bank_name">Bank Name</label>
                     <input type="text" id="bank_name" name="bank_name" value="<%= user.bank_name || '' %>"
-                        placeholder="e.g. GTBank" required>
+                        placeholder="e.g. GTBank" required autocomplete="organization">
 
                     <label for="account_number">Account Number</label>
                     <input type="text" id="account_number" name="account_number"
-                        value="<%= user.account_number || '' %>" placeholder="0123456789" required>
+                        value="<%= user.account_number || '' %>" placeholder="0123456789" required autocomplete="off">
 
                     <label for="bank_code">Bank Code</label>
                     <input type="text" id="bank_code" name="bank_code" value="<%= user.bank_code || '' %>"
-                        placeholder="058" required>
+                        placeholder="058" required autocomplete="off">
 
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Save Details</button>
                 </form>

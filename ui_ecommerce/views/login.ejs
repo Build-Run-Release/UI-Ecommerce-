@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>UI Ecommerce - Login</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
+
     <style>
         /* 1. General Page Styling */
         body {
@@ -36,7 +37,8 @@
         form {
             display: flex;
             flex-direction: column;
-            align-items: flex-start; /* Aligns labels to left */
+            align-items: flex-start;
+            /* Aligns labels to left */
         }
 
         label {
@@ -47,11 +49,13 @@
         }
 
         input {
-            width: 100%; /* Full width of the card */
+            width: 100%;
+            /* Full width of the card */
             padding: 10px;
             border: 1px solid #ccc;
             border-radius: 5px;
-            box-sizing: border-box; /* Ensures padding doesn't break width */
+            box-sizing: border-box;
+            /* Ensures padding doesn't break width */
             font-size: 16px;
         }
 
@@ -83,7 +87,7 @@
             margin-top: 20px;
             font-size: 14px;
         }
-        
+
         .links a {
             color: #007bff;
             text-decoration: none;
@@ -106,33 +110,37 @@
         }
     </style>
 </head>
+
 <body>
 
     <div class="login-container">
         <h1>Login</h1>
 
-        <% if (typeof error !== 'undefined' && error) { %>
+        <% if (typeof error !=='undefined' && error) { %>
             <div class="error-message">
                 <%= error %>
             </div>
-        <% } %>
+            <% } %>
 
-        <form action="/login" method="POST">
-            <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                <form action="/login" method="POST">
+                    <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" placeholder="Enter your username" required
+                        autocomplete="username">
 
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required
+                        autocomplete="current-password">
 
-            <button type="submit">Login</button>
-        </form>
+                    <button type="submit">Login</button>
+                </form>
 
-        <div class="links">
-            Don't have an account? <a href="/signup">Sign Up</a>
-        </div>
+                <div class="links">
+                    Don't have an account? <a href="/signup">Sign Up</a>
+                </div>
     </div>
 
 </body>
+
 </html>
