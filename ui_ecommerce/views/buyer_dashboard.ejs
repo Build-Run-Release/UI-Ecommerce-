@@ -10,12 +10,12 @@
 
 <body>
 
-    <div class="overlay" onclick="toggleSidebar()"></div>
+    <div class="overlay"></div>
 
     <div class="sidebar" id="sidebar">
         <div class="brand">
             <span>UI Market</span>
-            <button class="close-sidebar" onclick="toggleSidebar()">×</button>
+            <button class="close-sidebar">×</button>
         </div>
 
         <div class="nav-links">
@@ -33,7 +33,7 @@
 
         <div class="header">
             <div class="header-left">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <button class="menu-toggle">☰</button>
                 <h1 style="margin: 0; font-size: 1.5rem;">My Dashboard</h1>
             </div>
 
@@ -44,7 +44,8 @@
                             0).toLocaleString() %></strong>
                 </div>
 
-                <button class="btn btn-success btn-sm" onclick="initiatePayment()">+ Fund</button>
+                <button class="btn btn-success btn-sm" id="fundAccountBtn" data-paystack-key="<%= paystackKey %>"
+                    data-user-email="<%= user.email %>">+ Fund</button>
             </div>
         </div>
 
@@ -230,41 +231,7 @@
     <!-- Paystack Inline Script -->
     <script src="https://js.paystack.co/v1/inline.js"></script>
 
-    <script>
-        const PAYSTACK_PUBLIC_KEY = '<%= paystackKey %>';
-
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.querySelector('.overlay').classList.toggle('active');
-        }
-
-        function initiatePayment() {
-            const amountStr = prompt("Enter amount to fund (₦):");
-            if (!amountStr) return;
-
-            const amount = parseFloat(amountStr);
-            if (isNaN(amount) || amount <= 0) {
-                alert("Please enter a valid amount.");
-                return;
-            }
-
-            const handler = PaystackPop.setup({
-                key: PAYSTACK_PUBLIC_KEY,
-                email: "<%= user.email %>",
-                amount: amount * 100, // Convert to Kobo
-                currency: "NGN",
-                ref: '' + Math.floor((Math.random() * 1000000000) + 1),
-                callback: function (response) {
-                    window.location.href = "/paystack/verify?reference=" + response.reference;
-                },
-                onClose: function () {
-                    alert('Transaction was closed.');
-                }
-            });
-
-            handler.openIframe();
-        }
-    </script>
+    <script src="/js/buyer_dashboard.js"></script>
 
 </body>
 
