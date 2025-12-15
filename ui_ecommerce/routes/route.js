@@ -472,7 +472,7 @@ router.get('/logout', (req, res) => {
 });
 
 // --- 3. SELLER DASHBOARD ---
-router.get('/seller/dashboard', noCache, checkBan, async (req, res) => {
+router.get('/seller/dashboard', noCache, checkBan, csrfProtection, async (req, res) => {
     if (!req.session.user || req.session.user.role !== 'seller') return res.redirect('/login');
     const sellerId = req.session.user.id;
     try {
@@ -616,7 +616,7 @@ router.post('/seller/product/:id/delete', async (req, res) => {
 // --- BUYER DASHBOARD & ACTIONS ---
 
 // 1. GET: Buyer Dashboard
-router.get('/buyer/dashboard', noCache, checkBan, async (req, res) => {
+router.get('/buyer/dashboard', noCache, checkBan, csrfProtection, async (req, res) => {
     if (!req.session.user) return res.redirect('/login');
 
     const buyerId = req.session.user.id;
