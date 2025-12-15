@@ -1,14 +1,16 @@
 window.addEventListener('scroll', function () {
     var header = document.querySelector('header');
-    header.classList.toggle('sticky', window.scrollY > 0);
+    if (header) {
+        header.classList.toggle('sticky', window.scrollY > 0);
+    }
 });
 
 function toggleMenu() {
     console.log("Toggle menu clicked");
     var menuToggle = document.querySelector('.toggle');
     var menu = document.querySelector('.menu');
-    menuToggle.classList.toggle('active');
-    menu.classList.toggle('active');
+    if (menuToggle) menuToggle.classList.toggle('active');
+    if (menu) menu.classList.toggle('active');
 }
 
 document.addEventListener('DOMContentLoaded', function () {

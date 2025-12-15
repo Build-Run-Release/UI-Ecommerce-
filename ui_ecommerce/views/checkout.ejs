@@ -118,6 +118,11 @@
             <span class="label">Product</span>
             <div class="value">
                 <%= product.name || product.title %>
+                    <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
+                        Seller: <strong>
+                            <%= product.seller_name || 'Unknown' %>
+                        </strong>
+                    </div>
             </div>
 
             <span class="label">Description</span>
@@ -128,6 +133,13 @@
             <div
                 style="margin-top: 30px; padding: 15px; background: #e0f2fe; border-radius: 8px; color: #0369a1; font-size: 0.9rem; border: 1px solid #bae6fd;">
                 <strong>🛡 Safe & Secure:</strong> Funds are held in escrow until you receive your item.
+            </div>
+
+            <div style="margin-top: 15px; text-align: center;">
+                <button type="button" id="openReportModalBtn"
+                    style="background: none; border: none; color: #ef4444; font-size: 0.85rem; cursor: pointer; text-decoration: underline;">
+                    Report this Product
+                </button>
             </div>
         </div>
 
@@ -158,11 +170,43 @@
             </form>
 
             <div style="text-align: center; margin-top: 20px;">
-                <img src="https://upload.wikimedia.org/wikipedia/commons/2/29/Paystack_Logo.png"
-                    style="height: 20px; opacity: 0.6;">
+                <img src="https://assets.paystack.com/assets/img/logo/paystack-logo-blue.png"
+                    style="height: 25px; opacity: 0.8;">
             </div>
         </div>
 
+    </div>
+
+    <!-- Report Modal -->
+    <div id="reportModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Report Product</h3>
+                <span class="close-modal" id="closeReportModalBtn">&times;</span>
+            </div>
+            <form action="/report/product" method="POST">
+                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                <input type="hidden" name="productId" value="<%= product.id %>">
+
+                <div class="form-group">
+                    <label>Reason</label>
+                    <select name="reason" required class="form-control"
+                        style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                        <option value="Fraud/Scam">Fraud / Scam</option>
+                        <option value="Prohibited Item">Prohibited Item</option>
+                        <option value="Wrong Category">Wrong Category</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Details</label>
+                    <textarea name="details" rows="3" class="form-control" style="width: 100%; padding: 10px;" required
+                        placeholder="Please describe the issue..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-danger" style="width: 100%; margin-top: 10px;">Submit
+                    Report</button>
+            </form>
+        </div>
     </div>
 
     <script src="/js/main.js"></script>

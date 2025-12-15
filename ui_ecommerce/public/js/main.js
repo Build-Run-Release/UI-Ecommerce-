@@ -22,4 +22,28 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         });
     });
+
+    // --- Report Modal Logic ---
+    const openReportBtn = document.getElementById('openReportModalBtn');
+    const closeReportBtn = document.getElementById('closeReportModalBtn');
+    const reportModal = document.getElementById('reportModal');
+
+    if (openReportBtn && reportModal) {
+        openReportBtn.addEventListener('click', function () {
+            reportModal.classList.add('active'); // Using 'active' class for display:block
+        });
+    }
+
+    if (closeReportBtn && reportModal) {
+        closeReportBtn.addEventListener('click', function () {
+            reportModal.classList.remove('active');
+        });
+    }
+
+    // Close modal on outside click
+    window.addEventListener('click', function (e) {
+        if (e.target === reportModal) {
+            reportModal.classList.remove('active');
+        }
+    });
 });

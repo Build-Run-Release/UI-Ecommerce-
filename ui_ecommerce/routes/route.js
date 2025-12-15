@@ -1093,7 +1093,10 @@ router.get('/buy/:id', checkBan, async (req, res) => {
     const productId = req.params.id;
 
     try {
-        const { rows } = await db.execute({ sql: "SELECT * FROM products WHERE id = ?", args: [productId] });
+        const { rows } = await db.execute({
+            sql: "SELECT products.*, users.username as seller_name FROM products JOIN users ON products.seller_id = users.id WHERE products.id = ?",
+            args: [productId]
+        });
         const product = rows[0];
 
         if (!product) {
@@ -1369,6 +1372,33 @@ router.post('/feedback', csrfProtection, async (req, res) => {
             csrfToken: req.csrfToken(),
             msg: "Error sending message. Please try again later."
         });
+    }
+});
+
+// --- PRODUCT REPORTING ROUTE ---
+router.post('/report/product', async (req, res) => {
+    if (!req.session.user) return res.redirect('/login');
+
+    const { productId, reason, details } = req.body;
+    const reportingUser = req.session.user;
+
+    const subject = `[Report] Product #${productId} Reported`;
+    const htmlBody = `
+        <h3>Product Reported</h3>
+        <p><strong>Reporter:</strong> ${reportingUser.username} (ID: ${reportingUser.id})</p>
+        <p><strong>Product ID:</strong> ${productId}</p>
+        <p><strong>Reason:</strong> ${reason}</p>
+        <p><strong>Details:</strong> ${details || 'None provided'}</p>
+        <hr/>
+        <p><a href="https://ui-ecommerce-production.up.railway.app/buy/${productId}">View Product</a></p>
+    `;
+
+    try {
+        await mailerSend('Bomane.ar@gmail.com', subject, htmlBody);
+        res.redirect(`/buy/${productId}?msg=report_sent`);
+    } catch (err) {
+        console.error("Report Email Error:", err);
+        res.redirect(`/buy/${productId}?error=report_failed`);
     }
 });
 

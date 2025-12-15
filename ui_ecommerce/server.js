@@ -42,6 +42,7 @@ app.use(
                 frameSrc: ["'self'", "https://checkout.paystack.com", "https://standard.paystack.co"],
                 imgSrc: ["'self'", "data:", "blob:", "https://res.cloudinary.com", "https://assets.paystack.com", "https://ui-avatars.com", "https://via.placeholder.com"],
                 connectSrc: ["'self'", "https://checkout.paystack.com"],
+                formAction: ["'self'", "https://ui-ecommerce-production.up.railway.app", "https://checkout.paystack.com"],
             },
         },
     })
