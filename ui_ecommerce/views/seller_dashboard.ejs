@@ -11,18 +11,18 @@
 
 <body>
 
-    <div class="overlay" onclick="toggleSidebar()"></div>
+    <div class="overlay" id="mainOverlay"></div>
 
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <div class="brand">
             <span>Seller Center</span>
-            <button class="close-sidebar" onclick="toggleSidebar()">×</button>
+            <button class="close-sidebar" id="closeSidebarBtn">×</button>
         </div>
 
         <div class="nav-links">
             <a href="/seller/dashboard" class="active">Dashboard</a>
-            <a href="#" onclick="event.preventDefault(); toggleModal('addProductModal')">＋ List New Item</a>
+            <a href="#" id="navAddProductBtn">＋ List New Item</a>
             <a href="#orders">Incoming Orders</a>
             <a href="#inventory">My Inventory</a>
             <a href="/settings">Settings</a>
@@ -40,12 +40,12 @@
         <!-- Header -->
         <div class="header">
             <div class="header-left">
-                <button class="menu-toggle" onclick="toggleSidebar()">☰</button>
+                <button class="menu-toggle" id="menuToggleBtn">☰</button>
                 <h1 style="margin: 0; font-size: 1.5rem;">Dashboard</h1>
             </div>
 
             <div class="header-actions" style="display: flex; align-items: center; gap: 20px;">
-                <button type="button" class="btn btn-primary" onclick="toggleModal('addProductModal')">
+                <button type="button" class="btn btn-primary" id="headerAddProductBtn">
                     <span>＋</span> <span style="display: none; @media(min-width: 600px){ display: inline; }">List
                         Item</span>
                 </button>
@@ -58,7 +58,7 @@
 
                 <div class="profile-actions">
                     <img src="<%= user.profile_image && !user.profile_image.startsWith('http') ? '/uploads/' + user.profile_image : (user.profile_image || 'https://ui-avatars.com/api/?name=' + user.username + '&background=4f46e5&color=fff') %>"
-                        class="profile-img" onclick="toggleProfileMenu(event)"
+                        class="profile-img" id="profileImgTrigger"
                         onerror="this.onerror=null;this.src='https://ui-avatars.com/api/?name=<%= user.username %>&background=4f46e5&color=fff';">
                     <!-- Simple absolute upload trigger for profile pic if needed, hidden for clean look -->
 
@@ -186,18 +186,19 @@
 
                                                                     <!-- Dispute -->
                                                                     <% if (!order.disputed) { %>
-                                                                        <form action="/order/<%= order.id %>/dispute"
+                                                                        action="/order/<%= order.id %>/dispute"
                                                                             method="POST"
-                                                                            onsubmit="return confirm('Report a problem with this order?');">
+                                                                            data-confirm="Report a problem with this
+                                                                            order?">
                                                                             <input type="hidden" name="_csrf"
                                                                                 value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                                                                             <button type="submit"
                                                                                 class="btn btn-danger btn-sm">Report</button>
-                                                                        </form>
-                                                                        <% } else { %>
-                                                                            <span
-                                                                                class="badge badge-warning">Disputed</span>
-                                                                            <% } %>
+                                                                            </form>
+                                                                            <% } else { %>
+                                                                                <span
+                                                                                    class="badge badge-warning">Disputed</span>
+                                                                                <% } %>
                                                                 </div>
                                                                 <% } %>
                                                     </div>
@@ -218,7 +219,7 @@
                 <div
                     style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; margin-bottom: 20px;">
                     <h2 style="border: none; margin: 0; padding: 0;">Inventory</h2>
-                    <button class="btn btn-outline btn-sm" onclick="toggleModal('addProductModal')">+ Add</button>
+                    <button class="btn btn-outline btn-sm" id="inventoryAddProductBtn">+ Add</button>
                 </div>
 
                 <div class="table-responsive">
@@ -249,12 +250,15 @@
                                         </td>
                                         <td>
                                             <div style="display: flex; gap: 8px;">
-                                                <button class="btn btn-outline btn-sm"
-                                                    onclick="openEditModal('<%= product.id %>', '<%= product.title %>', '<%= product.price %>', '<%= product.description %>', '<%= product.category %>')">
+                                                <button class="btn btn-outline btn-sm edit-product-btn"
+                                                    data-id="<%= product.id %>" data-title="<%= product.title %>"
+                                                    data-price="<%= product.price %>"
+                                                    data-desc="<%= product.description %>"
+                                                    data-cat="<%= product.category %>">
                                                     ✎
                                                 </button>
                                                 <form action="/seller/product/<%= product.id %>/delete" method="POST"
-                                                    onsubmit="return confirm('Delete this item?');">
+                                                    data-confirm="Delete this item?">
                                                     <input type="hidden" name="_csrf"
                                                         value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                                                     <button type="submit" class="btn btn-danger btn-sm">×</button>
@@ -279,16 +283,17 @@
                 <form action="/seller/onboard" method="POST">
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                    <label>Bank Name</label>
-                    <input type="text" name="bank_name" value="<%= user.bank_name || '' %>" placeholder="e.g. GTBank"
-                        required>
+                    <label for="bank_name">Bank Name</label>
+                    <input type="text" id="bank_name" name="bank_name" value="<%= user.bank_name || '' %>"
+                        placeholder="e.g. GTBank" required>
 
-                    <label>Account Number</label>
-                    <input type="text" name="account_number" value="<%= user.account_number || '' %>"
-                        placeholder="0123456789" required>
+                    <label for="account_number">Account Number</label>
+                    <input type="text" id="account_number" name="account_number"
+                        value="<%= user.account_number || '' %>" placeholder="0123456789" required>
 
-                    <label>Bank Code</label>
-                    <input type="text" name="bank_code" value="<%= user.bank_code || '' %>" placeholder="058" required>
+                    <label for="bank_code">Bank Code</label>
+                    <input type="text" id="bank_code" name="bank_code" value="<%= user.bank_code || '' %>"
+                        placeholder="058" required>
 
                     <button type="submit" class="btn btn-primary" style="width: 100%;">Save Details</button>
                 </form>
@@ -300,23 +305,24 @@
     <!-- Add Product Modal -->
     <div id="addProductModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="toggleModal('addProductModal')">&times;</span>
+            <span class="close-modal" id="closeAddProductModalBtn">&times;</span>
             <h2>List New Product</h2>
 
             <form action="/seller/add-product" method="POST" enctype="multipart/form-data">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                <label>Product Title</label>
-                <input type="text" name="title" required placeholder="e.g. iPhone 12">
+                <label for="prodTitle">Product Title</label>
+                <input type="text" id="prodTitle" name="title" required placeholder="e.g. iPhone 12">
 
-                <label>Price (₦)</label>
-                <input type="number" name="price" required placeholder="150000">
+                <label for="prodPrice">Price (₦)</label>
+                <input type="number" id="prodPrice" name="price" required placeholder="150000">
 
-                <label>Description</label>
-                <textarea name="description" rows="3" required placeholder="Condition, color, defects..."></textarea>
+                <label for="prodDesc">Description</label>
+                <textarea id="prodDesc" name="description" rows="3" required
+                    placeholder="Condition, color, defects..."></textarea>
 
-                <label>Category</label>
-                <select name="category" required>
+                <label for="prodCat">Category</label>
+                <select id="prodCat" name="category" required>
                     <option value="" disabled selected>Select Category</option>
                     <% if (typeof categories !=='undefined' ) { %>
                         <% categories.forEach(function(cat) { %>
@@ -330,11 +336,10 @@
                 </select>
 
                 <label>Product Image</label>
-                <div class="file-upload-box" onclick="document.getElementById('prodImg').click()">
+                <div class="file-upload-box" id="fileUploadBox">
                     <span style="font-size: 2rem;">☁</span><br>
                     <span>Click to Upload</span>
-                    <input type="file" name="image" id="prodImg" accept="image/*" style="display: none;"
-                        onchange="previewFile()">
+                    <input type="file" name="image" id="prodImg" accept="image/*" style="display: none;">
                 </div>
 
                 <div id="previewContainer" style="display: none; text-align: center; margin-top: 15px;">
@@ -352,22 +357,22 @@
     <!-- Edit Product Modal -->
     <div id="editProductModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal" onclick="toggleModal('editProductModal')">&times;</span>
+            <span class="close-modal" id="closeEditProductModalBtn">&times;</span>
             <h2>Edit Product</h2>
 
             <form id="editForm" action="" method="POST">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                <label>Product Title</label>
+                <label for="editTitle">Product Title</label>
                 <input type="text" id="editTitle" name="title" required>
 
-                <label>Price (₦)</label>
+                <label for="editPrice">Price (₦)</label>
                 <input type="number" id="editPrice" name="price" required>
 
-                <label>Description</label>
+                <label for="editDesc">Description</label>
                 <textarea id="editDesc" name="description" rows="3" required></textarea>
 
-                <label>Category</label>
+                <label for="editCategory">Category</label>
                 <select id="editCategory" name="category" required>
                     <% if (typeof categories !=='undefined' ) { %>
                         <% categories.forEach(function(cat) { %>
@@ -390,70 +395,118 @@
     </div>
 
     <script>
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.querySelector('.overlay').classList.toggle('active');
-        }
-
-        function toggleProfileMenu(event) {
-            event.stopPropagation();
-            document.getElementById("profileDropdown").classList.toggle("show");
-        }
-
-        function toggleModal(modalId) {
-            console.log("Toggling modal:", modalId);
-            var modal = document.getElementById(modalId);
-            if (modal) {
-                modal.classList.toggle('active');
-            } else {
-                console.error("Modal not found:", modalId);
-            }
-        }
-
-        function previewFile() {
-            const preview = document.getElementById('imgPreview');
-            const container = document.getElementById('previewContainer');
-            const file = document.getElementById('prodImg').files[0];
-            const reader = new FileReader();
-
-            reader.onloadend = function () {
-                preview.src = reader.result;
-                container.style.display = 'block';
+        document.addEventListener('DOMContentLoaded', function () {
+            // --- Helper Functions ---
+            function toggleModal(modalId) {
+                console.log("Toggling modal:", modalId);
+                const modal = document.getElementById(modalId);
+                if (modal) modal.classList.toggle('active');
+                else console.error("Modal not found:", modalId);
             }
 
-            if (file) {
-                reader.readAsDataURL(file);
-            } else {
-                preview.src = "";
+            function toggleSidebar() {
+                document.getElementById('sidebar').classList.toggle('active');
+                document.querySelector('.overlay').classList.toggle('active');
             }
-        }
 
-        // Populate Edit Modal
-        function openEditModal(id, title, price, description, category) {
-            document.getElementById('editTitle').value = title;
-            document.getElementById('editPrice').value = price;
-            document.getElementById('editDesc').value = description;
-            document.getElementById('editCategory').value = category || 'Other';
-
-            // Set Form Action Dynamically
-            document.getElementById('editForm').action = "/seller/product/" + id + "/edit";
-
-            toggleModal('editProductModal');
-        }
-
-        window.onclick = function (event) {
-            if (!event.target.closest('.profile-actions')) {
-                const dropdowns = document.getElementsByClassName("dropdown-menu");
-                for (let i = 0; i < dropdowns.length; i++) {
-                    if (dropdowns[i].classList.contains('show')) {
-                        dropdowns[i].classList.remove('show');
+            // --- Event Delegation for Dynamic Content ---
+            document.body.addEventListener('click', function (e) {
+                // Profile Dropdown Toggle
+                if (e.target.closest('#profileImgTrigger')) {
+                    e.stopPropagation();
+                    document.getElementById("profileDropdown").classList.toggle("show");
+                } else {
+                    // Close dropdown if clicking outside
+                    if (!e.target.closest('.profile-actions')) {
+                        document.querySelectorAll('.dropdown-menu.show').forEach(el => el.classList.remove('show'));
                     }
                 }
+
+                // Modal Closer (Clicking background)
+                if (e.target.classList.contains('modal')) {
+                    e.target.classList.remove('active');
+                }
+            });
+
+            // --- Static Event Listeners ---
+
+            // Sidebar Triggers
+            const menuToggle = document.getElementById('menuToggleBtn');
+            if (menuToggle) menuToggle.addEventListener('click', toggleSidebar);
+
+            const closeSidebar = document.getElementById('closeSidebarBtn');
+            if (closeSidebar) closeSidebar.addEventListener('click', toggleSidebar);
+
+            const overlay = document.getElementById('mainOverlay');
+            if (overlay) overlay.addEventListener('click', toggleSidebar);
+
+            // Add Product Triggers
+            const addBtns = ['navAddProductBtn', 'headerAddProductBtn', 'inventoryAddProductBtn'];
+            addBtns.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) {
+                    btn.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        toggleModal('addProductModal');
+                    });
+                }
+            });
+
+            // Close Modal Triggers
+            const closeAdd = document.getElementById('closeAddProductModalBtn');
+            if (closeAdd) closeAdd.addEventListener('click', () => toggleModal('addProductModal'));
+
+            const closeEdit = document.getElementById('closeEditProductModalBtn');
+            if (closeEdit) closeEdit.addEventListener('click', () => toggleModal('editProductModal'));
+
+            // File Upload Triggers
+            const uploadBox = document.getElementById('fileUploadBox');
+            if (uploadBox) {
+                uploadBox.addEventListener('click', () => document.getElementById('prodImg').click());
             }
-            if (event.target.classList.contains('modal')) {
-                event.target.classList.remove('active');
+
+            const prodImg = document.getElementById('prodImg');
+            if (prodImg) {
+                prodImg.addEventListener('change', function () {
+                    const preview = document.getElementById('imgPreview');
+                    const container = document.getElementById('previewContainer');
+                    const file = this.files[0];
+                    const reader = new FileReader();
+
+                    reader.onloadend = function () {
+                        preview.src = reader.result;
+                        container.style.display = 'block';
+                    }
+
+                    if (file) reader.readAsDataURL(file);
+                    else preview.src = "";
+                });
             }
-        }
+
+            // --- Edit Buttons (Class based) ---
+            document.querySelectorAll('.edit-product-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    const { id, title, price, desc, cat } = this.dataset;
+
+                    document.getElementById('editTitle').value = title;
+                    document.getElementById('editPrice').value = price;
+                    document.getElementById('editDesc').value = desc;
+                    document.getElementById('editCategory').value = cat || 'Other';
+                    document.getElementById('editForm').action = "/seller/product/" + id + "/edit";
+
+                    toggleModal('editProductModal');
+                });
+            });
+
+            // --- Confirmation Forms ---
+            document.querySelectorAll('form[data-confirm]').forEach(form => {
+                form.addEventListener('submit', function (e) {
+                    if (!confirm(this.dataset.confirm)) {
+                        e.preventDefault();
+                    }
+                });
+            });
+        });
     </script>
 </body>
 
