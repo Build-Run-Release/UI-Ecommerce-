@@ -107,17 +107,26 @@
                                     </td>
                                     <td>
                                         <% if (!order.buyer_confirmed && !order.escrow_released) { %>
-                                            <div
-                                                style="background: #f3f4f6; padding: 5px; border-radius: 4px; border: 1px dashed #aaa; text-align: center;">
-                                                <strong style="font-size: 1.1em; letter-spacing: 2px;">
-                                                    <%= order.delivery_code %>
-                                                </strong>
-                                                <div style="font-size: 0.75rem; color: #dc2626; margin-top: 2px;">Give
-                                                    to seller ONLY on receipt</div>
-                                            </div>
-                                            <% } else { %>
-                                                <span style="color: #bbb;">Used</span>
-                                                <% } %>
+                                            <% if (order.delivery_code) { %>
+                                                <div
+                                                    style="background: #eef2ff; padding: 8px; border-radius: 6px; border: 1px dashed #6366f1; text-align: center;">
+                                                    <span
+                                                        style="font-size: 0.75rem; color: #4f46e5; text-transform: uppercase; font-weight: 700;">Delivery
+                                                        Code</span>
+                                                    <div
+                                                        style="font-size: 1.25em; letter-spacing: 3px; font-weight: 800; color: #312e81; margin: 4px 0;">
+                                                        <%= order.delivery_code %>
+                                                    </div>
+                                                    <div style="font-size: 0.7rem; color: #ef4444; font-weight: 600;">
+                                                        GIVE TO SELLER UPON RECEIPT</div>
+                                                </div>
+                                                <% } else { %>
+                                                    <span style="color: #666;">Generating...</span>
+                                                    <% } %>
+                                                        <% } else { %>
+                                                            <span
+                                                                style="color: #bbb; text-decoration: line-through;">Used</span>
+                                                            <% } %>
                                     </td>
                                     <td>
                                         <% if (order.seller_confirmed && !order.buyer_confirmed) { %>

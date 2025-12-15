@@ -478,7 +478,11 @@ router.get('/seller/dashboard', noCache, checkBan, csrfProtection, async (req, r
     const sellerId = req.session.user.id;
     try {
         const { rows: products } = await db.execute({ sql: "SELECT * FROM products WHERE seller_id = ?", args: [sellerId] });
-        const { rows: orders } = await db.execute({ sql: "SELECT * FROM orders WHERE seller_id = ?", args: [sellerId] });
+        // Update: Join products to get details for the orders list
+        const { rows: orders } = await db.execute({
+            sql: "SELECT orders.*, products.title as product_title, products.image_url FROM orders LEFT JOIN products ON orders.product_id = products.id WHERE orders.seller_id = ? ORDER BY orders.id DESC",
+            args: [sellerId]
+        });
         const { rows: users } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [sellerId] });
         const user = users[0];
 
@@ -1193,8 +1197,12 @@ router.get(['/paystack/verify', '/paystack/callback'], async (req, res) => {
             const currentUser = req.session.user;
 
             // B. Check if this reference belongs to an existing ORDER
+            console.log(`[VERIFY] Payment Success: ${reference}, Amount: ${amountPaid}`);
             const { rows } = await db.execute({ sql: "SELECT * FROM orders WHERE payment_reference = ?", args: [reference] });
             const order = rows[0];
+
+            if (!order) console.log(`[VERIFY] No order found for ref: ${reference}`);
+            else console.log(`[VERIFY] Found Order #${order.id}. Current Status: ${order.status}`);
 
             if (order) {
                 // --- SCENARIO 1: IT IS A PRODUCT PURCHASE ---

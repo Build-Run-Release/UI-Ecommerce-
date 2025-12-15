@@ -121,23 +121,35 @@
                                     <tr>
                                         <td>#<%= order.id %>
                                         </td>
-                                        <td>Item #<%= order.product_id %>
+                                        <td>
+                                            <div style="display: flex; align-items: center; gap: 10px;">
+                                                <img src="<%= order.image_url && !order.image_url.startsWith('http') ? '/uploads/' + order.image_url : (order.image_url || '/images/placeholder.svg') %>"
+                                                    width="40" height="40"
+                                                    style="border-radius: 4px; object-fit: cover;">
+                                                <div>
+                                                    <div style="font-weight: 500;">
+                                                        <%= order.product_title || ('Item #' + order.product_id) %>
+                                                    </div>
+                                                    <small style="color: grey;">
+                                                        <%= new Date(order.created_at).toLocaleDateString() %>
+                                                    </small>
+                                                </div>
+                                            </div>
                                         </td>
-                                        <td>₦<%= order.seller_amount %>
+                                        <td>₦<%= order.seller_amount ? order.seller_amount.toLocaleString() : '0' %>
                                         </td>
                                         <td>
                                             <% if (order.buyer_confirmed) { %>
                                                 <span class="badge badge-success">Completed</span>
                                                 <% } else if (order.seller_confirmed) { %>
-                                                    <span class="badge badge-blue">Shipped</span>
+                                                    <span class="badge badge-blue">Shipped (Timer Active)</span>
                                                     <% } else { %>
-                                                        <span class="badge badge-warning">Pending</span>
+                                                        <span class="badge badge-warning">Pending Delivery</span>
                                                         <% } %>
                                         </td>
                                         <td>
-                                        <td>
                                             <% if (order.buyer_confirmed || order.escrow_released) { %>
-                                                <span class="badge badge-success">Completed</span>
+                                                <span class="badge badge-success">Funds Released</span>
                                                 <% } else { %>
                                                     <div style="display: flex; flex-direction: column; gap: 5px;">
 
