@@ -453,7 +453,14 @@ router.post("/login", async (req, res) => {
             // SKIP OTP - DIRECT LOGIN
             req.session.user = { id: user.id, username: user.username, role: user.role, email: user.email };
             console.log(`[AUTH] User ${user.id} logged in directly (Skipped OTP).`);
-            return res.redirect('/');
+
+            if (user.role === 'admin') {
+                return res.redirect('/admin_dashboard');
+            } else if (user.role === 'seller') {
+                return res.redirect('/seller/dashboard');
+            } else {
+                return res.redirect('/buyer/dashboard');
+            }
         }
     } catch (err) {
         console.error(err);
