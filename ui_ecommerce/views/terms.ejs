@@ -4,88 +4,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Terms & Conditions - UI Market</title>
-    <link rel="stylesheet" href="/css/modern.css">
-    <style>
-        .terms-container {
-            max-width: 800px;
-            margin: 40px auto;
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
-            line-height: 1.6;
-        }
-
-        h2 {
-            color: var(--primary-color);
-            margin-top: 30px;
-        }
-
-        ul {
-            padding-left: 20px;
-        }
-
-        li {
-            margin-bottom: 10px;
-        }
-    </style>
+    <title>Terms & Conditions | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
 </head>
 
-<body style="background-color: var(--bg-color);">
+<body>
 
-    <nav class="nav"
-        style="background: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center;">
-        <a href="/" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">UI Market</a>
-        <a href="/signup" class="btn btn-primary btn-sm">Back to Sign Up</a>
+    <!-- Navbar -->
+    <nav class="navbar-rewrite flex justify-between items-center">
+        <a href="/" class="font-bold text-primary" style="font-size: 1.25rem;">CampusMarket</a>
+        <a href="/signup" class="btn btn-sm btn-outline">Back to Sign Up</a>
     </nav>
 
-    <div class="terms-container">
-        <h1 style="text-align: center; margin-bottom: 40px;">Terms and Conditions</h1>
+    <div class="container" style="max-width: 800px; margin-top: 2rem;">
 
-        <p>Welcome to UI Market. By using our platform, you agree to the following rules designed to keep our community
-            safe.</p>
+        <div class="card" style="line-height: 1.7;">
+            <h1 style="text-align: center; margin-bottom: 2rem; font-size: 1.75rem;">Terms and Conditions</h1>
 
-        <h2>1. User Responsibilities</h2>
-        <ul>
-            <li>You must provide accurate information, including a valid email address.</li>
-            <li>You are responsible for maintaining the confidentiality of your account credentials.</li>
-            <li>You agree not to use the platform for any illegal activities or to sell prohibited items.</li>
-        </ul>
+            <p class="text-muted" style="text-align: center; margin-bottom: 2rem;">
+                Last Updated: Dec 2024
+            </p>
 
-        <h2>2. Buying & Selling Policy</h2>
-        <ul>
-            <li><strong>Sellers:</strong> You must own the item you are selling. Misrepresentation of items is strictly
-                prohibited.</li>
-            <li><strong>Buyers:</strong> You agree to pay for items you order. False claims of non-receipt are
-                considered fraud.</li>
-            <li><strong>Price Guard:</strong> Extremely low or high prices compared to market averages may be flagged or
-                rejected.</li>
-        </ul>
+            <h3 style="color: var(--primary); margin-top: 1.5rem;">1. User Responsibilities</h3>
+            <ul style="padding-left: 1.5rem; list-style-type: disc; margin-bottom: 1rem;">
+                <li>You must provide accurate information, including valid university affiliation.</li>
+                <li>You are responsible for keeping your account credentials secure.</li>
+                <li>Illegal activities or prohibited items (weapons, drugs, academic dishonesty tools) are strictly
+                    banned.</li>
+            </ul>
 
-        <h2>3. Escrow & Delivery Code</h2>
-        <ul>
-            <li><strong>Escrow:</strong> Buyer funds are held securely until delivery is confirmed.</li>
-            <li><strong>Delivery Code:</strong> Buyers receive a secret code upon ordering. <strong>DO NOT</strong> give
-                this code to the seller until you have physically received and inspected the item.</li>
-            <li>Providing the code to the seller releases the funds immediately. This action is irreversible.</li>
-        </ul>
+            <h3 style="color: var(--primary); margin-top: 1.5rem;">2. Buying & Selling Policy</h3>
+            <ul style="padding-left: 1.5rem; list-style-type: disc; margin-bottom: 1rem;">
+                <li><strong>Sellers:</strong> You must own the item. Misrepresentation is fraud.</li>
+                <li><strong>Buyers:</strong> You agree to pay for items you order.</li>
+                <li><strong>Safe Meetups:</strong> We strongly recommend using designated Safe Meetup Spots on campus
+                    for exchanges.</li>
+            </ul>
 
-        <h2>4. Fraud & Account Suspension</h2>
-        <ul>
-            <li>We use automated systems to detect suspicious behavior (e.g., spamming, unrealistic pricing).</li>
-            <li>Users flagged for fraud may have their accounts suspended or permanently banned.</li>
-            <li>Repeat offenders will be reported to university authorities if necessary.</li>
-        </ul>
+            <h3 style="color: var(--primary); margin-top: 1.5rem;">3. Escrow & Delivery Code</h3>
+            <div
+                style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; margin-bottom: 1rem;">
+                <strong>How it works:</strong>
+                <ol style="padding-left: 1.5rem; margin-top: 0.5rem; list-style-type: decimal;">
+                    <li>Buyer pays -> Funds held in Escrow.</li>
+                    <li>Buyer gets a <strong>Secret Delivery Code</strong>.</li>
+                    <li>Meetup happens -> Buyer inspects item.</li>
+                    <li>If happy, Buyer gives Code to Seller.</li>
+                    <li>Seller enters Code -> Funds released instantly.</li>
+                </ol>
+            </div>
+            <p class="text-danger font-bold text-sm">NEVER give the code until you have the item in hand!</p>
 
-        <h2>5. Content Policy</h2>
-        <ul>
-            <li>Offensive, hateful, or inappropriate content is not allowed in product listings or feedback.</li>
-        </ul>
+            <h3 style="color: var(--primary); margin-top: 1.5rem;">4. Fraud & Suspension</h3>
+            <ul style="padding-left: 1.5rem; list-style-type: disc; margin-bottom: 1rem;">
+                <li>Suspicious behavior (spam, price gouging) is flagged automatically.</li>
+                <li>Admins reserve the right to ban users permanently for fraud or harassment.</li>
+            </ul>
 
-        <div style="text-align: center; margin-top: 40px;">
-            <p style="color: #666;">Last Updated: Dec 2024</p>
         </div>
+
+        <div style="text-align: center; margin-top: 2rem; margin-bottom: 3rem;">
+            <a href="/" class="text-primary font-bold">Return to Home</a>
+        </div>
+
     </div>
 
 </body>

@@ -4,122 +4,253 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Dashboard</title>
-    <link rel="stylesheet" href="/css/modern.css">
+    <title>Admin Dashboard | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
     <style>
-        /* Extra styles for Admin Badges not in base theme */
-        .role-admin {
+        /* Specific Admin Tweaks */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge-admin {
             background: #000;
-            color: white;
+            color: #fff;
         }
 
-        .role-seller {
-            background: var(--primary-color);
-            color: white;
+        .badge-seller {
+            background: var(--primary-light);
+            color: var(--primary);
         }
 
-        .role-buyer {
-            background: var(--secondary-color);
-            color: white;
+        .badge-default {
+            background: #f1f5f9;
+            color: #64748b;
         }
 
-        .text-danger {
-            color: #ef4444 !important;
+        .badge-danger {
+            background: #fee2e2;
+            color: var(--danger);
         }
 
-        .text-warning {
-            color: #f59e0b !important;
+        .badge-success {
+            background: #dcfce7;
+            color: #16a34a;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #d97706;
         }
     </style>
 </head>
 
 <body>
 
-    <div class="overlay"></div>
-
-    <nav class="sidebar" id="sidebar">
-        <div class="brand">
-            <span>Admin Panel</span>
-            <button class="close-sidebar">×</button>
+    <!-- Navbar -->
+    <nav class="navbar-rewrite flex justify-between items-center">
+        <div class="flex items-center gap-4">
+            <a href="/" class="font-bold text-primary" style="font-size: 1.25rem;">CampusAdmin</a>
+            <span class="badge" style="background: black; color: white;">SUPERUSER</span>
         </div>
-
-        <div class="nav-links">
-            <a href="#" class="active">Overview</a>
-            <a href="#users">User Management</a>
-            <a href="/">View Live Site</a>
-            <div style="margin-top: auto;">
-                <a href="/logout" style="color: var(--danger-color);">Logout</a>
-            </div>
+        <div class="flex items-center gap-4">
+            <a href="/" class="text-sm font-medium">View Site</a>
+            <a href="/logout" class="text-sm font-medium text-accent">Logout</a>
         </div>
     </nav>
 
-    <main class="main-content">
-        <div class="header">
-            <div class="header-left">
-                <button class="menu-toggle">☰</button>
-                <h1 style="margin: 0;">Dashboard</h1>
+    <div class="container" style="margin-top: 2rem;">
+
+        <div class="flex justify-between items-center" style="margin-bottom: 1.5rem;">
+            <h1>Dashboard</h1>
+            <div class="text-muted text-sm">Welcome back, Admin</div>
+        </div>
+
+        <!-- Dashboard Tabs -->
+        <div class="dash-nav">
+            <div class="dash-tab active" onclick="switchTab('overview')">Overview</div>
+            <div class="dash-tab" onclick="switchTab('products')">Products</div>
+            <div class="dash-tab" onclick="switchTab('users')">User Management</div>
+            <div class="dash-tab" onclick="switchTab('moderation')">Moderation (<%= (flaggedUsers ? flaggedUsers.length
+                    : 0) + (appeals ? appeals.length : 0) %>)</div>
+            <div class="dash-tab" onclick="switchTab('feedback')">Feedback</div>
+        </div>
+
+        <!-- TAB: OVERVIEW -->
+        <div id="tab-overview" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4" style="margin-bottom: 2rem;">
+                <div class="stat-card">
+                    <div class="stat-value">
+                        <%= users.length %>
+                    </div>
+                    <div class="stat-label">Total Users</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value text-primary">₦<%= (stats.total_revenue || 0).toLocaleString() %>
+                    </div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        <%= stats.total_orders || 0 %>
+                    </div>
+                    <div class="stat-label">Total Orders</div>
+                </div>
+            </div>
+
+            <!-- Quick Alerts -->
+            <% if (flaggedUsers && flaggedUsers.length> 0) { %>
+                <div class="card" style="border-left: 4px solid var(--danger); margin-bottom: 1rem;">
+                    <div class="flex justify-between items-center">
+                        <div class="font-bold text-accent">⚠️ <%= flaggedUsers.length %> Suspicious Users Detected</div>
+                        <button onclick="switchTab('moderation')" class="btn btn-sm btn-outline">Review</button>
+                    </div>
+                </div>
+                <% } %>
+        </div>
+
+        <!-- TAB: PRODUCTS -->
+        <div id="tab-products" class="tab-content">
+            <div class="card">
+                <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+                    <h3>All Products</h3>
+                    <input type="text" placeholder="Search products..." class="input-base" style="max-width: 250px;">
+                </div>
+                <div class="table-responsive">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Seller</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (typeof allProducts !=='undefined' && allProducts.length> 0) { %>
+                                <% allProducts.forEach(function(p) { %>
+                                    <tr>
+                                        <td>
+                                            <div class="font-bold">
+                                                <%= p.name %>
+                                            </div>
+                                            <div class="text-xs text-muted">ID: <%= p.id %>
+                                            </div>
+                                        </td>
+                                        <td>₦<%= p.price.toLocaleString() %>
+                                        </td>
+                                        <td>
+                                            <%= p.seller_name %>
+                                        </td>
+                                        <td>
+                                            <%= new Date(p.created_at).toLocaleDateString() %>
+                                        </td>
+                                        <td>
+                                            <form action="/admin/product/<%= p.id %>/delete" method="POST"
+                                                onsubmit="return confirm('Delete this product permanently?');">
+                                                <input type="hidden" name="_csrf"
+                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                <button class="btn btn-secondary"
+                                                    style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: var(--danger);">Delete</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                                        <% } else { %>
+                                            <tr>
+                                                <td colspan="5" class="text-center text-muted">No products found.</td>
+                                            </tr>
+                                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
-        <div class="stats-grid">
-            <div class="card stat-card">
-                <span class="stat-label">Total Users</span>
-                <span class="stat-value">
-                    <%= users.length %>
-                </span>
-            </div>
-            <div class="card stat-card" style="border-left: 4px solid var(--success-color);">
-                <span class="stat-label">Revenue</span>
-                <span class="stat-value">₦<%= (stats.total_revenue || 0).toLocaleString() %></span>
-            </div>
-            <div class="card stat-card" style="border-left: 4px solid var(--warning-color);">
-                <span class="stat-label">Total Orders</span>
-                <span class="stat-value">
-                    <%= stats.total_orders || 0 %>
-                </span>
-            </div>
-        </div>
-
-        <!-- SUSPICIOUS USERS SECTION -->
-        <% if (typeof flaggedUsers !=='undefined' && flaggedUsers.length> 0) { %>
-            <div class="card" style="border: 1px solid #fee2e2;">
-                <h2 style="color: var(--danger-color);">⚠️ Suspicious Activity Detected</h2>
+        <!-- TAB: USERS -->
+        <div id="tab-users" class="tab-content">
+            <div class="card">
+                <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+                    <h3>All Users</h3>
+                    <input type="text" placeholder="Search users..." class="input-base" style="max-width: 250px;">
+                </div>
                 <div class="table-responsive">
                     <table>
                         <thead>
                             <tr>
                                 <th>User</th>
-                                <th>Suspicion Score</th>
+                                <th>Role</th>
                                 <th>Status</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <% flaggedUsers.forEach(function(u) { %>
+                            <% users.forEach(function(u) { %>
                                 <tr>
                                     <td>
-                                        <strong>
+                                        <div class="font-bold">
                                             <%= u.username %>
-                                        </strong><br>
-                                        <small>ID: <%= u.id %></small>
-                                    </td>
-                                    <td>
-                                        <div class="<%= u.suspicion_score > 100 ? 'text-danger' : 'text-warning' %>"
-                                            style="font-weight: bold;">
-                                            <%= u.suspicion_score %>
                                         </div>
-                                        <small style="color: #666;">Points</small>
+                                        <div class="text-xs text-muted">
+                                            <%= u.email || 'No Email' %>
+                                        </div>
                                     </td>
                                     <td>
-                                        <% if (u.is_flagged) { %>
-                                            <span class="badge badge-danger">FLAGGED</span>
-                                            <% } else { %>
-                                                <span class="badge badge-warning">Watchlist</span>
-                                                <% } %>
+                                        <% let roleBadge='badge-default' ; if(u.role==='admin' ) roleBadge='badge-admin'
+                                            ; if(u.role==='seller' ) roleBadge='badge-seller' ; %>
+                                            <span class="badge <%= roleBadge %>">
+                                                <%= u.role.toUpperCase() %>
+                                            </span>
                                     </td>
                                     <td>
-                                        <button class="btn btn-danger btn-sm btn-ban-trigger" data-userid="<%= u.id %>"
-                                            data-username="<%= u.username %>">Restrict</button>
+                                        <% if (u.ban_expires && new Date(Number(u.ban_expires))> new Date()) { %>
+                                            <span class="badge" style="background: #fef3c7; color: #d97706;">Temp
+                                                Ban</span>
+                                            <% } else if (Number(u.is_blocked) !==0) { %>
+                                                <span class="badge"
+                                                    style="background: #fee2e2; color: #ef4444;">Banned</span>
+                                                <% } else { %>
+                                                    <span class="badge"
+                                                        style="background: #dcfce7; color: #16a34a;">Active</span>
+                                                    <% } %>
+                                    </td>
+                                    <td>
+                                        <% if (u.role !=='admin' ) { %>
+                                            <% if (Number(u.is_blocked) !==0 || (u.ban_expires && new
+                                                Date(Number(u.ban_expires))> new Date())) { %>
+                                                <form action="/admin/user/<%= u.id %>/unban" method="POST"
+                                                    style="display:inline;">
+                                                    <input type="hidden" name="_csrf"
+                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                    <button class="btn btn-primary"
+                                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Unban</button>
+                                                </form>
+                                                <% } else { %>
+                                                    <button class="btn btn-secondary btn-ban-trigger"
+                                                        data-userid="<%= u.id %>" data-username="<%= u.username %>"
+                                                        style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: var(--danger);">
+                                                        Ban
+                                                    </button>
+                                                    <% } %>
+
+                                                        <% if (Number(u.is_blocked) !==0) { %>
+                                                            <!-- Delete Button for Perm Banned -->
+                                                            <form action="/admin/user/<%= u.id %>/delete" method="POST"
+                                                                style="display:inline;">
+                                                                <input type="hidden" name="_csrf"
+                                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                                <button
+                                                                    onclick="return confirm('Permanently delete this user?')"
+                                                                    class="btn btn-outline"
+                                                                    style="padding: 0.25rem 0.5rem; font-size: 0.75rem; color: var(--danger); border-color: var(--danger);">X</button>
+                                                            </form>
+                                                            <% } %>
+
+                                                                <% } %>
                                     </td>
                                 </tr>
                                 <% }); %>
@@ -127,234 +258,245 @@
                     </table>
                 </div>
             </div>
-            <% } %>
+        </div>
 
-                <!-- APPEALS SECTION (NEW) -->
-                <% if (typeof appeals !=='undefined' && appeals.length> 0) { %>
-                    <div class="card" style="border-left: 4px solid #3b82f6;">
-                        <h2 style="color: #1e40af;">⚖️ Pending Appeals</h2>
-                        <div class="table-responsive">
-                            <table>
-                                <thead>
+        <!-- TAB: MODERATION -->
+        <div id="tab-moderation" class="tab-content">
+
+            <!-- Suspicious Users -->
+            <div class="card" style="margin-bottom: 2rem;">
+                <h3 class="flex items-center gap-2" style="margin-bottom: 1rem;">
+                    <span>⚠️ Suspicious Activity</span>
+                    <span class="badge" style="background: #fee2e2; color: var(--danger);">
+                        <%= flaggedUsers ? flaggedUsers.length : 0 %>
+                    </span>
+                </h3>
+                <% if (typeof flaggedUsers !=='undefined' && flaggedUsers.length> 0) { %>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Score</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% flaggedUsers.forEach(function(u) { %>
                                     <tr>
-                                        <th>Date</th>
-                                        <th>User</th>
-                                        <th>Appeal Message</th>
-                                        <th>Actions</th>
+                                        <td>
+                                            <%= u.username %>
+                                        </td>
+                                        <td class="font-bold text-accent">
+                                            <%= u.suspicion_score %>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-secondary btn-ban-trigger" data-userid="<%= u.id %>"
+                                                data-username="<%= u.username %>"
+                                                style="padding: 0.25rem 0.5rem; font-size: 0.75rem; background: var(--danger);">
+                                                Restrict
+                                            </button>
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    <% appeals.forEach(function(appeal) { %>
-                                        <tr>
-                                            <td>
-                                                <%= new Date(appeal.created_at).toLocaleDateString() %>
-                                            </td>
-                                            <td>
-                                                <strong>
-                                                    <%= appeal.username %>
-                                                </strong>
-                                                <div style="font-size: 0.8em; color: #666;">
-                                                    <%= appeal.email %>
-                                                </div>
-                                            </td>
-                                            <td style="max-width: 300px; white-space: normal;">
-                                                <div
-                                                    style="background: #f8fafc; padding: 8px; border-radius: 4px; border: 1px solid #e2e8f0;">
-                                                    "<%= appeal.message %>"
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <form action="/admin/appeal/<%= appeal.id %>/action" method="POST"
-                                                    style="display: flex; gap: 5px;">
-                                                    <input type="hidden" name="_csrf"
-                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-
-                                                    <button type="submit" name="action" value="approve"
-                                                        class="btn btn-success btn-sm" title="Unban User">✅
-                                                        Approve</button>
-                                                    <button type="submit" name="action" value="reject"
-                                                        class="btn btn-danger btn-sm" title="Reject Appeal">❌
-                                                        Reject</button>
-                                                </form>
-                                            </td>
-                                        </tr>
-                                        <% }); %>
-                                </tbody>
-                            </table>
-                        </div>
+                                    <% }); %>
+                            </tbody>
+                        </table>
                     </div>
-                    <% } %>
+                    <% } else { %>
+                        <p class="text-muted">No suspicious activity detected.</p>
+                        <% } %>
+            </div>
 
-                        <!-- FEEDBACK SECTION -->
-                        <% if (typeof feedback !=='undefined' && feedback.length> 0) { %>
-                            <div class="card" id="feedback">
-                                <h2>📢 User Feedback & Complaints</h2>
-                                <div class="table-responsive">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>Date</th>
-                                                <th>User / Email</th>
-                                                <th>Type</th>
-                                                <th>Message</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <% feedback.forEach(function(f) { %>
-                                                <tr>
-                                                    <td>
-                                                        <%= new Date(f.created_at).toLocaleDateString() %><br>
-                                                            <small>
-                                                                <%= new Date(f.created_at).toLocaleTimeString() %>
-                                                            </small>
-                                                    </td>
-                                                    <td>
-                                                        <strong>
-                                                            <%= f.name || 'Anonymous' %>
-                                                        </strong><br>
-                                                        <small>
-                                                            <%= f.email || 'No Email' %>
-                                                        </small>
-                                                        <% if (f.user_id) { %>
-                                                            <br><a href="#user-<%= f.user_id %>"
-                                                                style="font-size: 0.8em;">(View
-                                                                User)</a>
-                                                            <% } %>
-                                                    </td>
-                                                    <td>
-                                                        <span
-                                                            class="badge <%= f.message_type === 'complaint' ? 'badge-danger' : 'badge-success' %>">
-                                                            <%= f.message_type ? f.message_type.toUpperCase()
-                                                                : 'GENERAL' %>
-                                                        </span>
-                                                    </td>
-                                                    <td style="max-width: 300px; white-space: normal;">
-                                                        <%= f.message %>
-                                                    </td>
-                                                </tr>
-                                                <% }); %>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            <% } %>
+            <!-- Appeals -->
+            <div class="card">
+                <h3 class="flex items-center gap-2" style="margin-bottom: 1rem;">
+                    <span>⚖️ Appeals</span>
+                    <span class="badge" style="background: var(--primary-light); color: var(--primary);">
+                        <%= appeals ? appeals.length : 0 %>
+                    </span>
+                </h3>
+                <% if (typeof appeals !=='undefined' && appeals.length> 0) { %>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Message</th>
+                                    <th>Decision</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% appeals.forEach(function(a) { %>
+                                    <tr>
+                                        <td>
+                                            <div class="font-bold">
+                                                <%= a.username %>
+                                            </div>
+                                            <div class="text-xs text-muted">
+                                                <%= new Date(a.created_at).toLocaleDateString() %>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <div
+                                                style="background: #f8fafc; padding: 0.5rem; border-radius: 4px; font-size: 0.9rem;">
+                                                "<%= a.message %>"
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <form action="/admin/appeal/<%= a.id %>/action" method="POST"
+                                                class="flex gap-2">
+                                                <input type="hidden" name="_csrf"
+                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                <button name="action" value="approve" class="btn btn-primary"
+                                                    style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Approve</button>
+                                                <button name="action" value="reject" class="btn btn-outline"
+                                                    style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">Reject</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } else { %>
+                        <p class="text-muted">No pending appeals.</p>
+                        <% } %>
+            </div>
+        </div>
 
-                                <div class="card" id="users">
-                                    <h2>User Management</h2>
-                                    <div class="table-responsive">
-                                        <table>
-                                            <thead>
-                                                <tr>
-                                                    <th>ID</th>
-                                                    <th>User Details</th>
-                                                    <th>Role</th>
-                                                    <th>Status</th>
-                                                    <th>Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <% users.forEach(function(u) { %>
-                                                    <tr>
-                                                        <td>#<%= u.id %>
-                                                        </td>
-                                                        <td>
-                                                            <strong>
-                                                                <%= u.username %>
-                                                            </strong><br>
-                                                            <small style="color: var(--text-muted);">
-                                                                <%= u.email || 'No email' %>
-                                                            </small>
-                                                        </td>
-                                                        <td><span class="badge role-<%= u.role %>">
-                                                                <%= u.role.toUpperCase() %>
-                                                            </span></td>
-                                                        <td>
-                                                            <% if (u.ban_expires && new Date(Number(u.ban_expires))> new
-                                                                Date())
-                                                                { %>
-                                                                <span class="badge badge-warning">
-                                                                    Temp Ban (<%= Math.ceil((new
-                                                                        Date(Number(u.ban_expires)) - new Date()) /
-                                                                        (1000 * 60 * 60 * 24)) %>d)
-                                                                </span>
-                                                                <% } else if (Number(u.is_blocked) !==0) { %>
-                                                                    <span class="badge badge-danger">Permanent
-                                                                        Ban</span>
-                                                                    <form action="/admin/user/<%= u.id %>/delete"
-                                                                        method="POST"
-                                                                        style="display:inline-block; margin-left: 5px;"
-                                                                        style="display:inline-block; margin-left: 5px;">
-                                                                        <input type="hidden" name="_csrf"
-                                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                                        <button class="btn btn-danger btn-sm"
-                                                                            style="background-color: #7f1d1d; font-size: 0.7rem; padding: 2px 5px;">X</button>
-                                                                    </form>
-                                                                    <% } else { %>
-                                                                        <span class="badge badge-success">Active</span>
-                                                                        <% } %>
-                                                        </td>
-                                                        <td>
-                                                            <% if (u.role !=='admin' ) { %>
-                                                                <% if (Number(u.is_blocked) !==0 || (u.ban_expires &&
-                                                                    new Date(Number(u.ban_expires))> new Date())) { %>
-                                                                    <form action="/admin/user/<%= u.id %>/unban"
-                                                                        method="POST" style="display:inline;">
-                                                                        <input type="hidden" name="_csrf"
-                                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                                        <button
-                                                                            class="btn btn-success btn-sm">Unban</button>
-                                                                    </form>
-                                                                    <% } else { %>
-                                                                        <button type="button"
-                                                                            class="btn btn-danger btn-sm btn-ban-trigger"
-                                                                            data-userid="<%= u.id %>"
-                                                                            data-username="<%= u.username %>">
-                                                                            Ban
-                                                                        </button>
-                                                                        <% } %>
-                                                                            <% } else { %>
-                                                                                <span
-                                                                                    style="color: var(--text-muted);">—</span>
-                                                                                <% } %>
-                                                        </td>
-                                                    </tr>
-                                                    <% }); %>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-    </main>
+        <!-- TAB: FEEDBACK -->
+        <div id="tab-feedback" class="tab-content">
+            <div class="card">
+                <h3>User Feedback</h3>
+                <% if (typeof feedback !=='undefined' && feedback.length> 0) { %>
+                    <div class="table-responsive">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>User</th>
+                                    <th>Type</th>
+                                    <th>Message</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <% feedback.forEach(function(f) { %>
+                                    <tr>
+                                        <td>
+                                            <div class="font-bold">
+                                                <%= f.name || 'Anonymous' %>
+                                            </div>
+                                            <div class="text-xs text-muted">
+                                                <%= f.email %>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span
+                                                class="badge <%= f.message_type === 'complaint' ? 'badge-danger' : 'badge-success' %>">
+                                                <%= f.message_type ? f.message_type.toUpperCase() : 'General' %>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <%= f.message %>
+                                        </td>
+                                    </tr>
+                                    <% }); %>
+                            </tbody>
+                        </table>
+                    </div>
+                    <% } else { %>
+                        <p class="text-muted">No feedback received.</p>
+                        <% } %>
+            </div>
+        </div>
 
-    <!-- Ban Modal -->
-    <div id="banModal" class="modal">
-        <div class="modal-content">
-            <span class="close-modal">&times;</span>
-            <h2>Ban User</h2>
-            <p>Select ban type for <strong id="modalUsername">User</strong>:</p>
+    </div>
+
+    <!-- Ban Modal (Hidden Default) -->
+    <div id="banModal"
+        style="display:none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center;">
+        <div class="card" style="width: 100%; max-width: 400px; padding: 2rem;">
+            <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+                <h3>Restrict User</h3>
+                <button onclick="document.getElementById('banModal').style.display='none'"
+                    style="background:none; border:none; font-size: 1.5rem;">&times;</button>
+            </div>
+            <p style="margin-bottom: 1rem;">Action for: <strong id="modalUsername">User</strong></p>
 
             <form id="banForm" method="POST">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                <label>Ban Type</label>
-                <select id="banType" name="type">
-                    <option value="permanent">Permanent Ban</option>
-                    <option value="temporary">Temporary Ban</option>
-                </select>
-
-                <div id="durationGroup" style="display: none;">
-                    <label>Duration (Days)</label>
-                    <input type="number" name="days" placeholder="e.g. 7" min="1">
+                <div style="margin-bottom: 1rem;">
+                    <label class="text-sm font-bold">Restriction Type</label>
+                    <select name="type" class="input-base" id="banType">
+                        <option value="temporary">Temporary Suspension</option>
+                        <option value="permanent">Permanent Ban</option>
+                    </select>
                 </div>
 
-                <label>Reason (Optional)</label>
-                <input type="text" name="reason" placeholder="Violation of terms...">
+                <div id="durationGroup" style="margin-bottom: 1rem;">
+                    <label class="text-sm font-bold">Duration (Days)</label>
+                    <input type="number" name="days" class="input-base" value="7" min="1">
+                </div>
 
-                <button type="submit" class="btn btn-danger" style="width: 100%; margin-top: 20px;">Confirm Ban</button>
+                <div style="margin-bottom: 1rem;">
+                    <label class="text-sm font-bold">Reason</label>
+                    <input type="text" name="reason" class="input-base" placeholder="e.g. Violation of ToS">
+                </div>
+
+                <button class="btn btn-secondary" style="width: 100%; background: var(--danger);">Confirm
+                    Restriction</button>
             </form>
         </div>
     </div>
 
-    <script src="/js/admin_dashboard.js"></script>
+    <script>
+        // Simple Tab Switcher
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
+
+            // Show target
+            document.getElementById('tab-' + tabId).classList.add('active');
+
+            // Highlight nav
+            // Heuristic to find the specific tab button (could be improved with IDs)
+            const buttons = document.querySelectorAll('.dash-tab');
+            if (tabId === 'overview') buttons[0].classList.add('active');
+            if (tabId === 'products') buttons[1].classList.add('active');
+            if (tabId === 'users') buttons[2].classList.add('active');
+            if (tabId === 'moderation') buttons[3].classList.add('active');
+            if (tabId === 'feedback') buttons[4].classList.add('active');
+        }
+
+        // Modal Logic
+        const banBtns = document.querySelectorAll('.btn-ban-trigger');
+        const modal = document.getElementById('banModal');
+        const form = document.getElementById('banForm');
+        const usernameSpan = document.getElementById('modalUsername');
+        const banType = document.getElementById('banType');
+        const durationGroup = document.getElementById('durationGroup');
+
+        banBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const uid = btn.dataset.userid;
+                const uname = btn.dataset.username;
+
+                form.action = '/admin/user/' + uid + '/ban';
+                usernameSpan.innerText = uname;
+
+                modal.style.display = 'flex';
+            });
+        });
+
+        banType.addEventListener('change', (e) => {
+            if (e.target.value === 'permanent') {
+                durationGroup.style.display = 'none';
+            } else {
+                durationGroup.style.display = 'block';
+            }
+        });
+    </script>
 </body>
 
 </html>

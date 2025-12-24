@@ -4,183 +4,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Suspended - UI Market</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-            color: #333;
-        }
-
-        .container {
-            background: white;
-            padding: 40px;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            border-top: 6px solid #dc3545;
-            /* Red top border */
-        }
-
-        .icon {
-            font-size: 4rem;
-            color: #dc3545;
-            margin-bottom: 20px;
-        }
-
-        h1 {
-            margin: 0 0 10px;
-            color: #333;
-            font-size: 1.8rem;
-        }
-
-        p {
-            color: #666;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-
-        .ban-details {
-            background-color: #fff5f5;
-            border: 1px solid #ffc9c9;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 25px;
-            text-align: left;
-        }
-
-        .ban-details strong {
-            color: #dc3545;
-            display: block;
-            margin-bottom: 5px;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-        }
-
-        .ban-details span {
-            color: #333;
-            font-size: 0.95rem;
-        }
-
-        .actions {
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border-radius: 6px;
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 0.9rem;
-            transition: 0.2s;
-            border: none;
-            cursor: pointer;
-        }
-
-        .btn-logout {
-            background-color: #333;
-            color: white;
-        }
-
-        .btn-logout:hover {
-            background-color: #555;
-        }
-
-        .btn-support {
-            background-color: transparent;
-            color: #007bff;
-            border: 1px solid #007bff;
-        }
-
-        .btn-support:hover {
-            background-color: #e6f0ff;
-        }
-
-        .timer {
-            font-size: 1.2rem;
-            font-weight: bold;
-            color: #e67e22;
-            /* Orange for temp ban */
-            margin-bottom: 15px;
-            display: block;
-        }
-    </style>
+    <title>Account Suspended | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
 </head>
 
-<body>
+<body style="display:flex; align-items:center; justify-content:center; min-height:100vh; background: #fef2f2;">
 
-    <div class="container">
-        <div class="icon">🚫</div>
+    <div class="card"
+        style="width: 100%; max-width: 500px; padding: 2.5rem; text-align: center; border-top: 6px solid var(--danger);">
+
+        <div style="font-size: 4rem; margin-bottom: 1rem;">🚫</div>
 
         <% if (user.ban_expires && new Date(user.ban_expires)> new Date()) { %>
-            <h1>Temporary Suspension</h1>
-            <p>Your access to <strong>UI Market</strong> has been temporarily suspended due to a violation of our terms.
-            </p>
+            <h1 class="text-danger font-bold" style="margin-bottom: 0.5rem;">Temporary Suspension</h1>
+            <p class="text-muted" style="margin-bottom: 1.5rem;">Your access has been temporarily restricted due to a
+                violation of our terms.</p>
 
-            <div class="timer">
-                Lifted on: <%= new Date(user.ban_expires).toLocaleDateString('en-GB', { day: 'numeric' , month: 'long' ,
-                    year: 'numeric' }) %>
+            <div
+                style="background: #fffbeb; padding: 1rem; border-radius: 8px; color: #b45309; margin-bottom: 1.5rem; font-weight: bold;">
+                Access Restored: <%= new Date(user.ban_expires).toLocaleDateString('en-GB', { day: 'numeric' ,
+                    month: 'long' , year: 'numeric' }) %>
             </div>
             <% } else { %>
-                <h1>Account Banned</h1>
-                <p>Your account has been permanently banned from <strong>UI Market</strong>. You can no longer access
-                    your dashboard or make transactions.</p>
+                <h1 class="text-danger font-bold" style="margin-bottom: 0.5rem;">Account Banned</h1>
+                <p class="text-muted" style="margin-bottom: 1.5rem;">Your account has been permanently banned from
+                    Campus Market.</p>
                 <% } %>
 
-                    <div class="ban-details">
-                        <strong>Reason for Suspension:</strong>
-                        <span>
+                    <div
+                        style="text-align: left; background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 2rem;">
+                        <div class="text-xs font-bold text-muted uppercase">Reason for Suspension</div>
+                        <div class="font-bold text-main">
                             <%= user.ban_reason || 'Violation of Community Guidelines' %>
-                        </span>
+                        </div>
                     </div>
 
-                    <p style="font-size: 0.85rem; color: #888;">
-                        If you believe this is a mistake, please contact support with your User ID: <strong>#<%= user.id
-                                %></strong>
-                    </p>
-
-                    <div class="actions">
-                        <a href="/logout" class="btn btn-logout">Logout</a>
+                    <div class="flex justify-center gap-4" style="margin-bottom: 2rem;">
+                        <a href="/logout" class="btn btn-secondary">Logout</a>
                     </div>
 
+                    <!-- Appeals Section -->
                     <% if (locals.pendingAppeal) { %>
                         <div
-                            style="margin-top: 20px; padding: 15px; background: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; color: #0d47a1;">
-                            <strong>Appeal Submitted</strong>
-                            <p style="margin: 5px 0 0; font-size: 0.9rem;">Your appeal is currently under review by our
-                                administrators. Please check back later.</p>
+                            style="background: #eff6ff; padding: 1rem; border-radius: 8px; border: 1px solid #bfdbfe; color: #1e40af;">
+                            <strong>Appeal Under Review</strong>
+                            <p class="text-xs" style="margin-top: 0.25rem;">Administrators are reviewing your case.</p>
                         </div>
                         <% } else { %>
-                            <div style="margin-top: 25px; text-align: left;">
-                                <h3 style="font-size: 1.1rem; border-bottom: 2px solid #eee; padding-bottom: 5px;">
-                                    Appeal Suspension</h3>
-                                <form action="/appeal" method="POST">
+                            <div style="text-align: left; border-top: 1px solid var(--border); padding-top: 1.5rem;">
+                                <h3 style="font-size: 1.1rem; margin-bottom: 1rem;">Appeal Suspension</h3>
+                                <form action="/appeal" method="POST" class="flex flex-col gap-3">
                                     <input type="hidden" name="_csrf"
                                         value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                    <div style="margin-bottom: 10px;">
-                                        <label
-                                            style="display: block; font-size: 0.9rem; margin-bottom: 5px; color: #555;">Reason
-                                            for Appeal:</label>
-                                        <textarea name="message" rows="3" required
-                                            style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-family: inherit;"
-                                            placeholder="Explain why your ban should be lifted..."></textarea>
-                                    </div>
-                                    <button type="submit" class="btn btn-support"
-                                        style="width: 100%; cursor: pointer;">Submit Appeal</button>
-                                    <p style="font-size: 0.8rem; color: #777; margin-top: 10px;">Note: Spamming appeals
-                                        may result in a permanent block.</p>
+                                    <textarea name="message" class="input-base" rows="3"
+                                        placeholder="Explain why your ban should be lifted..." required></textarea>
+                                    <button class="btn btn-primary btn-outline" style="width: 100%;">Submit
+                                        Appeal</button>
+                                    <p class="text-xs text-muted">Note: Spamming appeals may result in a permanent IP
+                                        block.</p>
                                 </form>
                             </div>
                             <% } %>
+
+                                <div class="text-xs text-muted" style="margin-top: 1.5rem;">
+                                    Reference ID: #<%= user.id %>
+                                </div>
     </div>
 
 </body>

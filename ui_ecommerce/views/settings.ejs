@@ -4,146 +4,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account Settings - UI Market</title>
-    <link rel="stylesheet" href="/css/modern.css">
-    <style>
-        body {
-            background-color: var(--bg-color);
-        }
-
-        .settings-container {
-            max-width: 600px;
-            margin: 40px auto;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-            overflow: hidden;
-        }
-
-        .settings-header {
-            padding: 30px;
-            background: #1e293b;
-            color: white;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .settings-content {
-            padding: 30px;
-        }
-
-        .section-title {
-            font-size: 1.1rem;
-            font-weight: 700;
-            color: var(--text-main);
-            margin-bottom: 20px;
-            border-bottom: 2px solid var(--border-color);
-            padding-bottom: 10px;
-        }
-
-        .alert {
-            padding: 15px;
-            border-radius: 6px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
-
-        .alert-success {
-            background: #d1fae5;
-            color: #065f46;
-        }
-
-        .alert-error {
-            background: #fee2e2;
-            color: #991b1b;
-        }
-    </style>
+    <title>Settings | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
 </head>
 
 <body>
 
-    <nav class="settings-header">
-        <h1 style="margin: 0; font-size: 1.4rem;">Account Settings</h1>
-        <a href="/" style="color: rgba(255,255,255,0.7);">&larr; Back to Home</a>
+    <!-- Navbar -->
+    <nav class="navbar-rewrite flex justify-between items-center">
+        <a href="/" class="font-bold text-primary" style="font-size: 1.25rem;">CampusMarket</a>
+        <a href="/" class="btn btn-sm btn-outline">Back to Home</a>
     </nav>
 
-    <div class="settings-container">
+    <div class="container" style="max-width: 800px; margin-top: 2rem;">
 
-        <!-- Messages -->
-        <div class="settings-content">
+        <div class="flex justify-between items-center" style="margin-bottom: 1.5rem;">
+            <h1>Account Settings</h1>
+        </div>
 
-            <div id="alertContainer"></div>
+        <!-- Profile Card -->
+        <div class="card" style="margin-bottom: 2rem;">
+            <h3 style="margin-bottom: 1rem;">Profile Information</h3>
 
-            <!-- Profile Info Form -->
-            <h2 class="section-title">Profile Information</h2>
-            <form action="/settings/profile" method="POST">
+            <form action="/settings/profile" method="POST" class="flex flex-col gap-4">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                <label for="username">Username</label>
-                <input type="text" id="username" value="<%= user.username %>" disabled
-                    style="background: #f3f4f6; cursor: not-allowed;" autocomplete="username">
-
-                <label for="email">Email Address</label>
-                <input type="email" id="email" name="email" value="<%= user.email || '' %>"
-                    placeholder="you@university.edu.ng" autocomplete="email">
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div class="grid grid-cols-2" style="gap: 1rem;">
                     <div>
-                        <label for="bank_name">Bank Name</label>
-                        <input type="text" id="bank_name" name="bank_name" value="<%= user.bank_name || '' %>"
-                            placeholder="e.g. GTBank" autocomplete="organization">
+                        <label class="text-xs font-bold text-muted uppercase">Username</label>
+                        <input type="text" value="<%= user.username %>" class="input-base" disabled
+                            style="background: #f1f5f9; color: #64748b;">
                     </div>
                     <div>
-                        <label for="account_number">Account Number</label>
-                        <input type="text" id="account_number" name="account_number"
-                            value="<%= user.account_number || '' %>" placeholder="0123456789" autocomplete="off">
+                        <label class="text-xs font-bold text-muted uppercase">Email</label>
+                        <input type="email" name="email" value="<%= user.email || '' %>" class="input-base">
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Save Changes</button>
+                <div class="grid grid-cols-2" style="gap: 1rem;">
+                    <div>
+                        <label class="text-xs font-bold text-muted uppercase">Bank Name</label>
+                        <input type="text" name="bank_name" value="<%= user.bank_name || '' %>" class="input-base"
+                            placeholder="e.g. GTBank">
+                    </div>
+                    <div>
+                        <label class="text-xs font-bold text-muted uppercase">Account Number</label>
+                        <input type="text" name="account_number" value="<%= user.account_number || '' %>"
+                            class="input-base" placeholder="0123456789">
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button class="btn btn-primary">Save Profile</button>
+                </div>
             </form>
+        </div>
 
-            <br><br>
+        <!-- Security Card -->
+        <div class="card">
+            <h3 style="margin-bottom: 1rem;">Security</h3>
 
-            <!-- Password Form -->
-            <h2 class="section-title">Security</h2>
-            <form action="/settings/password" method="POST">
+            <form action="/settings/password" method="POST" class="flex flex-col gap-4">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                <label for="current_password">Current Password</label>
-                <input type="password" id="current_password" name="current_password" required
-                    autocomplete="current-password">
+                <div>
+                    <label class="text-xs font-bold text-muted uppercase">Current Password</label>
+                    <input type="password" name="current_password" class="input-base" required>
+                </div>
 
-                <label for="new_password">New Password</label>
-                <input type="password" id="new_password" name="new_password" required minlength="6"
-                    autocomplete="new-password">
+                <div>
+                    <label class="text-xs font-bold text-muted uppercase">New Password</label>
+                    <input type="password" name="new_password" class="input-base" required minlength="6">
+                </div>
 
-                <div style="margin: 15px 0;">
-                    <label for="captcha">Security Check</label>
-                    <div style="display: flex; gap: 10px; align-items: center;">
-                        <div style="background: #eee; padding: 5px; border-radius: 4px;">
-                            <img src="/captcha" alt="Captcha" class="captcha-img" style="cursor: pointer;"
-                                title="Click to refresh">
+                <!-- Captcha -->
+                <div>
+                    <label class="text-xs font-bold text-muted uppercase">Security Check</label>
+                    <div class="flex items-center gap-2">
+                        <div style="background: #f1f5f9; padding: 4px; border-radius: 4px;">
+                            <img src="/captcha" alt="Captcha" style="cursor: pointer;" title="Refresh"
+                                onclick="this.src='/captcha?'+Date.now()">
                         </div>
-                        <input type="text" id="captcha" name="captcha" placeholder="Enter code" required
-                            style="width: 120px;" autocomplete="off">
+                        <input type="text" name="captcha" class="input-base" style="width: 150px;"
+                            placeholder="Enter Code" required>
                     </div>
                     <% if (typeof captchaError !=='undefined' && captchaError) { %>
-                        <div style="color: red; font-size: 0.8rem; margin-top: 5px;">
+                        <div class="text-xs" style="color: var(--danger); margin-top: 4px;">
                             <%= captchaError %>
                         </div>
                         <% } %>
                 </div>
 
-                <button type="submit" class="btn btn-outline" style="margin-top: 10px;">Update Password</button>
+                <div class="flex justify-end">
+                    <button class="btn btn-secondary">Update Password</button>
+                </div>
             </form>
-
         </div>
 
     </div>
-
-    <script src="/js/settings.js"></script>
 </body>
 
 </html>

@@ -1,143 +1,48 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 
 <head>
-    <title>UI Ecommerce - Login</title>
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <style>
-        /* 1. General Page Styling */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f0f2f5;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-
-        /* 2. The Login Card */
-        .login-container {
-            background-color: white;
-            padding: 40px;
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
-        }
-
-        /* 3. Form Elements */
-        form {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            /* Aligns labels to left */
-        }
-
-        label {
-            margin-top: 15px;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #555;
-        }
-
-        input {
-            width: 100%;
-            /* Full width of the card */
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            box-sizing: border-box;
-            /* Ensures padding doesn't break width */
-            font-size: 16px;
-        }
-
-        input:focus {
-            border-color: #007bff;
-            outline: none;
-        }
-
-        /* 4. Buttons */
-        button {
-            margin-top: 25px;
-            width: 100%;
-            padding: 12px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-
-        button:hover {
-            background-color: #0056b3;
-        }
-
-        /* 5. Links and Errors */
-        .links {
-            margin-top: 20px;
-            font-size: 14px;
-        }
-
-        .links a {
-            color: #007bff;
-            text-decoration: none;
-        }
-
-        .links a:hover {
-            text-decoration: underline;
-        }
-
-        .error-message {
-            background-color: #ffe6e6;
-            color: #d8000c;
-            border: 1px solid #d8000c;
-            padding: 10px;
-            border-radius: 5px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            width: 100%;
-            box-sizing: border-box;
-        }
-    </style>
+    <title>Login | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
 </head>
 
-<body>
+<body style="display:flex; align-items:center; justify-content:center; height:100vh;">
 
-    <div class="login-container">
-        <h1>Login</h1>
+    <div class="card" style="width: 100%; max-width: 400px; padding: 2rem;">
+        <div class="text-center" style="margin-bottom: 2rem;">
+            <h1 class="text-primary font-bold" style="font-size: 1.5rem;">CampusMarket</h1>
+            <p class="text-muted">Log in to your account</p>
+        </div>
 
         <% if (typeof error !=='undefined' && error) { %>
-            <div class="error-message">
+            <div
+                style="background: #fee2e2; color: #b91c1c; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; margin-bottom: 1rem;">
                 <%= error %>
             </div>
             <% } %>
 
-                <form action="/login" method="POST">
+                <form action="/login" method="POST" class="flex flex-col gap-4">
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                    <label for="username">Username</label>
-                    <input type="text" id="username" name="username" placeholder="Enter your username" required
-                        autocomplete="username">
+                    <div>
+                        <label class="text-xs font-bold text-muted uppercase">Username</label>
+                        <input type="text" name="username" class="input-base" placeholder="Enter your username"
+                            required>
+                    </div>
 
-                    <label for="password">Password</label>
-                    <input type="password" id="password" name="password" placeholder="Enter your password" required
-                        autocomplete="current-password">
+                    <div>
+                        <label class="text-xs font-bold text-muted uppercase">Password</label>
+                        <input type="password" name="password" class="input-base" placeholder="Enter your password"
+                            required>
+                    </div>
 
-                    <button type="submit">Login</button>
+                    <button class="btn btn-primary" style="width: 100%;">Log In</button>
                 </form>
 
-                <div class="links">
-                    Don't have an account? <a href="/signup">Sign Up</a>
+                <div class="text-center" style="margin-top: 1.5rem; font-size: 0.9rem;">
+                    Don't have an account? <a href="/signup" class="text-primary font-bold">Sign Up</a>
                 </div>
     </div>
 

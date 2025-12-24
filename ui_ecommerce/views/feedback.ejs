@@ -4,61 +4,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Submit Feedback - UI Market</title>
-    <link rel="stylesheet" href="/css/modern.css">
+    <title>Feedback | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
 </head>
 
-<body style="background-color: var(--bg-color);">
+<body>
 
-    <nav class="nav"
-        style="background: white; padding: 15px 5%; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-        <a href="/" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">UI Market</a>
-        <a href="/" class="btn btn-outline btn-sm">Back to Home</a>
+    <!-- Navbar -->
+    <nav class="navbar-rewrite flex justify-between items-center">
+        <a href="/" class="font-bold text-primary" style="font-size: 1.25rem;">CampusMarket</a>
+        <a href="/" class="btn btn-sm btn-outline">Back to Home</a>
     </nav>
 
-    <div style="max-width: 600px; margin: 40px auto; padding: 20px;">
+    <div class="container" style="max-width: 600px; margin-top: 3rem;">
+
         <div class="card">
-            <h1>Submit Feedback</h1>
-            <p style="color: var(--text-muted); margin-bottom: 20px;">
-                Have a suggestion, complaint, or report? Let us know.
-            </p>
+            <h1 style="margin-bottom: 0.5rem;">Submit Feedback</h1>
+            <p class="text-muted" style="margin-bottom: 1.5rem;">Have a suggestion, complaint, or bug report? Let us
+                know.</p>
 
             <% if (typeof msg !=='undefined' && msg) { %>
                 <div
-                    style="background: #dcfce7; color: #166534; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                    style="background: #dcfce7; color: #166534; padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem; font-weight: bold;">
                     <%= msg %>
                 </div>
                 <% } %>
 
-                    <form action="/feedback" method="POST">
+                    <form action="/feedback" method="POST" class="flex flex-col gap-4">
                         <input type="hidden" name="_csrf"
                             value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
-                        <label for="name">Name</label>
-                        <input type="text" id="name" name="name" placeholder="Your Name"
-                            value="<%= user ? user.username : '' %>" required>
+                        <div class="grid grid-cols-2" style="gap: 1rem;">
+                            <div>
+                                <label class="text-xs font-bold text-muted uppercase">Name</label>
+                                <input type="text" name="name" value="<%= user ? user.username : '' %>"
+                                    class="input-base" required>
+                            </div>
+                            <div>
+                                <label class="text-xs font-bold text-muted uppercase">Email</label>
+                                <input type="email" name="email" value="<%= user ? user.email : '' %>"
+                                    class="input-base" required>
+                            </div>
+                        </div>
 
-                        <label for="email">Email</label>
-                        <input type="email" id="email" name="email" placeholder="Your Email"
-                            value="<%= user ? user.email : '' %>" required>
+                        <div>
+                            <label class="text-xs font-bold text-muted uppercase">Topic</label>
+                            <select name="message_type" class="input-base" required>
+                                <option value="" disabled selected>Select a topic...</option>
+                                <option value="complaint">Complaint / Report User</option>
+                                <option value="suggestion">Suggestion / Feature Request</option>
+                                <option value="bug">Report a Bug</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
 
-                        <label for="message_type">Topic</label>
-                        <select id="message_type" name="message_type" required>
-                            <option value="" disabled selected>Select a topic...</option>
-                            <option value="complaint">Complaint / Report User</option>
-                            <option value="suggestion">Suggestion / Feature Request</option>
-                            <option value="bug">Report a Bug</option>
-                            <option value="other">Other</option>
-                        </select>
+                        <div>
+                            <label class="text-xs font-bold text-muted uppercase">Message</label>
+                            <textarea name="message" class="input-base" rows="5"
+                                placeholder="Describe your issue or idea..." required></textarea>
+                        </div>
 
-                        <label for="message">Message</label>
-                        <textarea id="message" name="message" rows="5" placeholder="Describe your issue or idea..."
-                            required></textarea>
-
-                        <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">Submit
-                            Feedback</button>
+                        <button class="btn btn-primary" style="width: 100%;">Submit Feedback</button>
                     </form>
         </div>
+
     </div>
 
 </body>

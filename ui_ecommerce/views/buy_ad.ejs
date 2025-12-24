@@ -1,197 +1,110 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Promote Your Items - UI Market</title>
+    <title>Promote Item | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
     <style>
-        /* 1. Base Styles (Consistent with Checkout) */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f4f7f6;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            padding: 20px;
-        }
-
-        /* 2. Container */
-        .ad-container {
-            background: white;
-            width: 100%;
-            max-width: 550px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-
-        .header {
-            background-color: #2c3e50; /* Matches Seller Dashboard Sidebar */
-            padding: 30px;
-            color: white;
-            text-align: center;
-        }
-
-        .header h1 { margin: 0; font-size: 1.5rem; font-weight: 600; }
-        .header p { margin: 10px 0 0; opacity: 0.8; font-size: 0.95rem; }
-
-        .body { padding: 30px; }
-
-        /* 3. Form Elements */
-        label.section-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #444;
-            font-size: 0.95rem;
-        }
-
-        textarea {
-            width: 100%;
-            padding: 12px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-sizing: border-box;
-            font-family: inherit;
-            resize: vertical;
-            margin-bottom: 25px;
-            font-size: 1rem;
-        }
-        textarea:focus { outline: none; border-color: #007bff; }
-
-        /* 4. Pricing Options (Radio Cards) */
-        .pricing-options {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            margin-bottom: 30px;
-        }
-
-        .price-option {
-            display: flex;
-            align-items: center;
-            border: 2px solid #f0f2f5;
-            padding: 15px;
+        .pricing-option {
+            border: 2px solid var(--border);
+            padding: 1rem;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s;
-            position: relative;
-        }
-
-        /* Highlight selected option */
-        .price-option:hover { border-color: #bdc3c7; }
-        
-        /* Hide default radio */
-        .price-option input[type="radio"] {
-            margin-right: 15px;
-            accent-color: #28a745;
-            transform: scale(1.3);
-        }
-
-        .option-details { flex: 1; }
-        .option-title { font-weight: bold; color: #333; display: block; }
-        .option-price { color: #28a745; font-weight: bold; font-size: 1.1rem; }
-
-        /* 5. Pay Button */
-        .btn-pay {
-            background-color: #28a745; /* Green for Payment */
-            color: white;
-            width: 100%;
-            padding: 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: background 0.2s;
+            transition: 0.2s;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 10px;
+            gap: 1rem;
         }
-        .btn-pay:hover { background-color: #218838; }
 
-        .back-link {
-            display: block;
-            text-align: center;
-            margin-top: 20px;
-            color: #666;
-            text-decoration: none;
-            font-size: 0.9rem;
+        .pricing-option:hover,
+        .pricing-option.selected {
+            border-color: var(--primary);
+            background: #eff6ff;
         }
-        .back-link:hover { text-decoration: underline; }
+
+        .pricing-option input {
+            transform: scale(1.2);
+            accent-color: var(--primary);
+        }
     </style>
 </head>
-<body>
 
-    <div class="ad-container">
-        <div class="header">
-            <h1>Boost Your Sales 🚀</h1>
-            <p>Get your items pinned to the campus Homepage.</p>
+<body
+    style="display:flex; align-items:center; justify-content:center; min-height:100vh; background: #f8fafc; padding: 2rem;">
+
+    <div class="card" style="width: 100%; max-width: 500px; padding: 0; overflow: hidden;">
+
+        <div style="background: #1e293b; color: white; padding: 2rem; text-align: center;">
+            <h1 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 0.5rem;" class="text-white">Boost Your Sales
+                🚀</h1>
+            <p style="opacity: 0.8; font-size: 0.9rem;">Pin your items to the Campus Homepage.</p>
         </div>
 
-        <div class="body">
-            <form action="/ads/paystack/initialize" method="POST">
+        <div style="padding: 2rem;">
+            <form action="/ads/paystack/initialize" method="POST" class="flex flex-col gap-4">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                
-                <label class="section-label">Ad Message</label>
-                <textarea name="message" rows="3" placeholder="e.g. 50% OFF on all Textbooks! Check out my profile." required maxlength="100"></textarea>
 
-                <label class="section-label">Select Duration</label>
-                <div class="pricing-options">
-                    
-                    <label class="price-option" onclick="selectRadio(this)">
-                        <input type="radio" name="plan" value="1_day_500" checked>
-                        <div class="option-details">
-                            <span class="option-title">24 Hours Boost</span>
-                            <small style="color: #666;">Great for flash sales</small>
-                        </div>
-                        <div class="option-price">₦500</div>
-                    </label>
-
-                    <label class="price-option" onclick="selectRadio(this)">
-                        <input type="radio" name="plan" value="3_day_1200">
-                        <div class="option-details">
-                            <span class="option-title">3 Days Boost</span>
-                            <small style="color: #666;">Best value for weekends</small>
-                        </div>
-                        <div class="option-price">₦1,200</div>
-                    </label>
-
-                    <label class="price-option" onclick="selectRadio(this)">
-                        <input type="radio" name="plan" value="7_day_2500">
-                        <div class="option-details">
-                            <span class="option-title">7 Days Boost</span>
-                            <small style="color: #666;">Maximum visibility</small>
-                        </div>
-                        <div class="option-price">₦2,500</div>
-                    </label>
-
+                <div>
+                    <label class="text-xs font-bold text-muted uppercase">Short Ad Message</label>
+                    <textarea name="message" class="input-base" rows="3"
+                        placeholder="e.g. 50% OFF on all Textbooks! Check out my profile." required
+                        maxlength="100"></textarea>
                 </div>
 
-                <button type="submit" class="btn-pay">
-                    <span>Pay & Publish Ad</span>
-                </button>
-            </form>
+                <div>
+                    <label class="text-xs font-bold text-muted uppercase">Select Duration</label>
+                    <div class="flex flex-col gap-3" style="margin-top: 0.5rem;">
 
-            <a href="/seller/dashboard" class="back-link">Cancel and Go Back</a>
+                        <label class="pricing-option selected" onclick="selectOption(this)">
+                            <input type="radio" name="plan" value="1_day_500" checked>
+                            <div class="flex-1">
+                                <div class="font-bold">24 Hours Boost</div>
+                                <small class="text-muted">Great for flash sales</small>
+                            </div>
+                            <div class="font-bold text-primary">₦500</div>
+                        </label>
+
+                        <label class="pricing-option" onclick="selectOption(this)">
+                            <input type="radio" name="plan" value="3_day_1200">
+                            <div class="flex-1">
+                                <div class="font-bold">3 Days Boost</div>
+                                <small class="text-muted">Best value for weekends</small>
+                            </div>
+                            <div class="font-bold text-primary">₦1,200</div>
+                        </label>
+
+                        <label class="pricing-option" onclick="selectOption(this)">
+                            <input type="radio" name="plan" value="7_day_2500">
+                            <div class="flex-1">
+                                <div class="font-bold">7 Days Boost</div>
+                                <small class="text-muted">Maximum visibility</small>
+                            </div>
+                            <div class="font-bold text-primary">₦2,500</div>
+                        </label>
+
+                    </div>
+                </div>
+
+                <div style="margin-top: 1rem;">
+                    <button class="btn btn-primary" style="width: 100%;">Pay & Publish Ad</button>
+                    <a href="/seller/dashboard" class="btn btn-secondary"
+                        style="width: 100%; margin-top: 0.5rem; text-align: center;">Cancel</a>
+                </div>
+
+            </form>
         </div>
+
     </div>
 
     <script>
-        function selectRadio(element) {
-            // Remove border color from all
-            document.querySelectorAll('.price-option').forEach(el => {
-                el.style.borderColor = '#f0f2f5';
-                el.style.backgroundColor = 'transparent';
-            });
-            // Add border color to selected
-            element.style.borderColor = '#007bff';
-            element.style.backgroundColor = '#f8f9fa';
+        function selectOption(el) {
+            document.querySelectorAll('.pricing-option').forEach(opt => opt.classList.remove('selected'));
+            el.classList.add('selected');
         }
     </script>
 
 </body>
+
 </html>

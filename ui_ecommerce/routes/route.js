@@ -1085,6 +1085,11 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
         // A3. Fetch User Feedback
         const { rows: feedback } = await db.execute({ sql: "SELECT * FROM feedback ORDER BY created_at DESC" });
 
+        // A4. Fetch All Products (for management)
+        const { rows: allProducts } = await db.execute({
+            sql: "SELECT products.*, users.username as seller_name FROM products JOIN users ON products.seller_id = users.id ORDER BY created_at DESC"
+        });
+
         // B. Fetch Platform Stats
         const statsQuery = "SELECT COUNT(*) as total_orders, SUM(service_fee) as total_revenue FROM orders";
         const { rows: statsRes } = await db.execute({ sql: statsQuery });
@@ -1100,6 +1105,7 @@ router.get('/admin_dashboard', noCache, async (req, res) => {
             users: users,
             flaggedUsers: flaggedUsers,
             feedback: feedback,
+            allProducts: allProducts, // Pass products
             appeals: appeals, // Pass appeals
             stats: stats,
             csrfToken: req.csrfToken ? req.csrfToken() : ''
@@ -1178,6 +1184,20 @@ router.post('/admin/user/:id/delete', async (req, res) => {
         res.redirect('/admin_dashboard');
     } catch (err) {
         console.error("Error deleting user:", err);
+        res.redirect('/admin_dashboard');
+    }
+});
+
+// 2.5 POST: Admin Delete Product
+router.post('/admin/product/:id/delete', async (req, res) => {
+    if (!req.session.user || req.session.user.role !== 'admin') return res.status(403).send("Unauthorized");
+
+    const productId = req.params.id;
+    try {
+        await db.execute({ sql: "DELETE FROM products WHERE id = ?", args: [productId] });
+        res.redirect('/admin_dashboard');
+    } catch (err) {
+        console.error("Error deleting product:", err);
         res.redirect('/admin_dashboard');
     }
 });
