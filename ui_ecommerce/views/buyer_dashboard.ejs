@@ -4,244 +4,234 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Buyer Dashboard - UI Market</title>
-    <link rel="stylesheet" href="/css/modern.css">
+    <title>Buyer Dashboard | Campus Market</title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
+    <style>
+        .dash-nav {
+            display: flex;
+            gap: 1rem;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 1.5rem;
+            overflow-x: auto;
+        }
+
+        .dash-tab {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        .dash-tab.active {
+            border-bottom-color: var(--primary);
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            text-align: center;
+        }
+    </style>
 </head>
 
-<body>
+<body style="background: var(--bg-body);">
 
-    <div class="overlay"></div>
-
-    <div class="sidebar" id="sidebar">
-        <div class="brand">
-            <span>UI Market</span>
-            <button class="close-sidebar">×</button>
-        </div>
-
-        <div class="nav-links">
-            <a href="/buyer/dashboard" class="active">Dashboard</a>
-            <a href="/">Browse Shop</a>
-            <a href="/settings">Settings</a>
-            <a href="/feedback">Feedback/Report</a>
-            <div style="margin-top: auto;">
-                <a href="/logout" style="color: #ef4444;">Logout</a>
+    <!-- Navbar -->
+    <nav class="navbar-rewrite">
+        <div class="container flex justify-between items-center">
+            <a href="/" class="font-bold text-primary">CampusMarket</a>
+            <div class="flex gap-2">
+                <a href="/" class="btn btn-outline text-sm">Shop</a>
+                <a href="/logout" class="btn btn-outline text-sm"
+                    style="border-color: var(--danger); color: var(--danger);">Logout</a>
             </div>
         </div>
-    </div>
+    </nav>
 
-    <div class="main-content">
+    <div class="container" style="margin-top: 2rem; padding-bottom: 4rem;">
 
-        <div class="header">
-            <div class="header-left">
-                <button class="menu-toggle">☰</button>
-                <h1 style="margin: 0; font-size: 1.5rem;">My Dashboard</h1>
+        <!-- Header -->
+        <div class="flex justify-between items-end" style="margin-bottom: 2rem;">
+            <div>
+                <h1 style="font-size: 1.5rem;">My Dashboard</h1>
+                <p class="text-muted">Welcome, <strong>
+                        <%= user.username %>
+                    </strong></p>
             </div>
+            <button id="fundAccountBtn" class="btn btn-success" data-paystack-key="<%= paystackKey %>"
+                data-user-email="<%= user.email %>">+ Fund Wallet</button>
+        </div>
 
-            <div class="header-actions" style="display: flex; align-items: center; gap: 20px;">
-                <div style="text-align: right;">
-                    <small style="color: var(--text-muted);">Wallet Balance</small><br>
-                    <strong style="color: var(--text-main); font-size: 1.1rem;">₦<%= (user.wallet_balance ||
-                            0).toLocaleString() %></strong>
+        <!-- Stats Overview -->
+        <div class="grid grid-cols-2 md:grid-cols-4" style="gap: 1rem; margin-bottom: 2rem;">
+            <div class="stat-card">
+                <div style="font-size: 1.5rem; font-weight: 700;">₦<%= (user.wallet_balance || 0).toLocaleString() %>
                 </div>
-
-                <button class="btn btn-success btn-sm" id="fundAccountBtn" data-paystack-key="<%= paystackKey %>"
-                    data-user-email="<%= user.email %>">+ Fund</button>
+                <div class="text-xs uppercase text-muted">Balance</div>
             </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="card stat-card" style="border-left: 4px solid var(--primary-color);">
-                <span class="stat-label">Wallet Balance</span>
-                <span class="stat-value">₦<%= (user.wallet_balance || 0).toLocaleString() %></span>
-            </div>
-
-            <div class="card stat-card" style="border-left: 4px solid var(--success-color);">
-                <span class="stat-label">Total Orders</span>
-                <span class="stat-value">
+            <div class="stat-card">
+                <div style="font-size: 1.5rem; font-weight: 700;">
                     <%= (typeof orders !=='undefined' ) ? orders.length : 0 %>
-                </span>
-            </div>
-
-            <div class="card stat-card" style="border-left: 4px solid var(--warning-color);">
-                <span class="stat-label">Pending Items</span>
-                <span class="stat-value">
-                    <%= (typeof cartItems !=='undefined' ) ? cartItems.length : 0 %>
-                </span>
-            </div>
-        </div>
-
-        <!-- Recent Orders -->
-        <div class="card">
-            <h2>My Orders</h2>
-            <div class="table-responsive">
-                <% if (typeof orders !=='undefined' && orders.length> 0) { %>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Order #</th>
-                                <th>Item</th>
-                                <th>Amount</th>
-                                <th>Status</th>
-                                <th>Secret Code</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% orders.forEach(function(order) { %>
-                                <tr>
-                                    <td>#<%= order.id %>
-                                    </td>
-                                    <td>
-                                        <%= order.product_title || 'Item #' + order.product_id %>
-                                    </td>
-                                    <td>₦<%= order.amount.toLocaleString() %>
-                                    </td>
-                                    <td>
-                                        <% if (order.buyer_confirmed) { %>
-                                            <span class="badge badge-success">Completed</span>
-                                            <% } else if (order.seller_confirmed) { %>
-                                                <span class="badge badge-blue">Shipped</span>
-                                                <% } else { %>
-                                                    <span class="badge badge-warning">Processing</span>
-                                                    <% } %>
-                                    </td>
-                                    <td>
-                                        <% if (!order.buyer_confirmed && !order.escrow_released) { %>
-                                            <% if (order.delivery_code) { %>
-                                                <div
-                                                    style="background: #eef2ff; padding: 8px; border-radius: 6px; border: 1px dashed #6366f1; text-align: center;">
-                                                    <span
-                                                        style="font-size: 0.75rem; color: #4f46e5; text-transform: uppercase; font-weight: 700;">Delivery
-                                                        Code</span>
-                                                    <div
-                                                        style="font-size: 1.25em; letter-spacing: 3px; font-weight: 800; color: #312e81; margin: 4px 0;">
-                                                        <%= order.delivery_code %>
-                                                    </div>
-                                                    <div style="font-size: 0.7rem; color: #ef4444; font-weight: 600;">
-                                                        GIVE TO SELLER UPON RECEIPT</div>
-                                                </div>
-                                                <% } else { %>
-                                                    <span style="color: #666;">Generating...</span>
-                                                    <% } %>
-                                                        <% } else { %>
-                                                            <span
-                                                                style="color: #bbb; text-decoration: line-through;">Used</span>
-                                                            <% } %>
-                                    </td>
-                                    <td>
-                                        <% if (order.seller_confirmed && !order.buyer_confirmed) { %>
-                                            <form action="/order/<%= order.id %>/confirm/buyer" method="POST">
-                                                <input type="hidden" name="_csrf"
-                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                <button class="btn btn-success btn-sm">Confirm Receipt</button>
-                                            </form>
-                                            <% } else if (order.buyer_confirmed) { %>
-                                                <span style="color: var(--success-color);">✓ Received</span>
-                                                <% } else { %>
-                                                    <span style="color: var(--text-muted);">...</span>
-                                                    <% } %>
-                                    </td>
-                                </tr>
-                                <% }); %>
-                        </tbody>
-                    </table>
-                    <% } else { %>
-                        <p style="color: var(--text-muted);">No orders yet.</p>
-                        <% } %>
-            </div>
-        </div>
-
-        <% if (typeof cartItems !=='undefined' && cartItems.length> 0) { %>
-            <div class="card">
-                <h2>Shopping Cart</h2>
-                <div class="table-responsive">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Price</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <% cartItems.forEach(function(item) { %>
-                                <tr>
-                                    <td>
-                                        <%= item.title %>
-                                    </td>
-                                    <td>₦<%= item.price %>
-                                    </td>
-                                    <td>
-                                        <div style="display: flex; gap: 10px;">
-                                            <a href="/buy/<%= item.id %>" class="btn btn-primary btn-sm">Buy Now</a>
-                                            <form action="/cart/remove" method="POST">
-                                                <input type="hidden" name="cart_id" value="<%= item.cart_id %>">
-                                                <input type="hidden" name="_csrf"
-                                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                <button class="btn btn-danger btn-sm">Remove</button>
-                                            </form>
-                                        </div>
-                                    </td>
-                                </tr>
-                                <% }); %>
-                        </tbody>
-                    </table>
                 </div>
+                <div class="text-xs uppercase text-muted">Orders</div>
             </div>
-            <% } %>
+        </div>
 
-                <% if (typeof wishlistItems !=='undefined' && wishlistItems.length> 0) { %>
-                    <div class="card">
-                        <h2>My Wishlist</h2>
-                        <div class="table-responsive">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Item</th>
-                                        <th>Price</th>
-                                        <th>Action</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <% wishlistItems.forEach(function(item) { %>
-                                        <tr>
-                                            <td>
-                                                <%= item.title %>
-                                            </td>
-                                            <td>₦<%= item.price %>
-                                            </td>
-                                            <td>
-                                                <div style="display: flex; gap: 10px;">
-                                                    <form action="/cart/add" method="POST">
-                                                        <input type="hidden" name="product_id" value="<%= item.id %>">
-                                                        <input type="hidden" name="_csrf"
-                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                        <button class="btn btn-primary btn-sm">Move to Cart</button>
-                                                    </form>
-                                                    <form action="/wishlist/remove" method="POST">
-                                                        <input type="hidden" name="wishlist_id"
-                                                            value="<%= item.wishlist_id %>">
-                                                        <input type="hidden" name="_csrf"
-                                                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                                        <button class="btn btn-danger btn-sm">×</button>
-                                                    </form>
+        <!-- Dashboard Tabs -->
+        <div class="dash-nav">
+            <div class="dash-tab active" onclick="switchTab('orders')">My Orders</div>
+            <div class="dash-tab" onclick="switchTab('cart')">Shopping Cart (<%= (typeof cartItems !=='undefined' ) ?
+                    cartItems.length : 0 %>)</div>
+            <div class="dash-tab" onclick="switchTab('wishlist')">Wishlist</div>
+        </div>
+
+        <!-- TAB: ORDERS -->
+        <div id="tab-orders" class="tab-content active">
+            <% if (typeof orders !=='undefined' && orders.length> 0) { %>
+                <div class="grid gap-4">
+                    <% orders.forEach(function(order) { %>
+                        <div class="card flex flex-col md:flex-row justify-between gap-4">
+                            <div>
+                                <div class="font-bold">Order #<%= order.id %>
+                                </div>
+                                <div class="text-primary font-bold">₦<%= order.amount.toLocaleString() %>
+                                </div>
+                                <div class="text-sm">
+                                    <%= order.product_title || 'Item #' + order.product_id %>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col items-center justify-center gap-2">
+                                <% if (order.buyer_confirmed) { %>
+                                    <div class="badge badge-new" style="background: #dcfce7; color: #166534;">Completed
+                                    </div>
+                                    <% } else if (order.seller_confirmed) { %>
+                                        <div class="badge" style="background: #e0f2fe; color: #075985;">Shipped</div>
+
+                                        <% if (order.delivery_code) { %>
+                                            <div
+                                                style="background: #eef2ff; padding: 0.5rem; border: 1px dashed #6366f1; text-align: center; border-radius: 8px;">
+                                                <div class="text-xs font-bold text-primary uppercase">Delivery Code
                                                 </div>
-                                            </td>
-                                        </tr>
-                                        <% }); %>
-                                </tbody>
-                            </table>
+                                                <div style="font-size: 1.2rem; font-weight: 800; letter-spacing: 2px;">
+                                                    <%= order.delivery_code %>
+                                                </div>
+                                                <div class="text-xs text-danger">Give to seller on meetup</div>
+                                            </div>
+                                            <% } %>
+
+                                                <form action="/order/<%= order.id %>/confirm/buyer" method="POST"
+                                                    onsubmit="return confirm('Confirm that you have received the item?');">
+                                                    <input type="hidden" name="_csrf"
+                                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                                    <button class="btn btn-primary btn-sm">Confirm Receipt</button>
+                                                </form>
+
+                                                <% } else { %>
+                                                    <div class="badge badge-hot"
+                                                        style="background: #fff7ed; color: #c2410c;">Processing</div>
+                                                    <% } %>
+                            </div>
                         </div>
-                    </div>
+                        <% }); %>
+                </div>
+                <% } else { %>
+                    <div class="text-center text-muted" style="padding: 2rem;">No orders yet.</div>
                     <% } %>
+        </div>
+
+        <!-- TAB: CART -->
+        <div id="tab-cart" class="tab-content">
+            <% if (typeof cartItems !=='undefined' && cartItems.length> 0) { %>
+                <div class="grid gap-4">
+                    <% cartItems.forEach(function(item) { %>
+                        <div class="card flex justify-between items-center">
+                            <div>
+                                <div class="font-bold">
+                                    <%= item.title %>
+                                </div>
+                                <div class="text-primary">₦<%= item.price %>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <a href="/buy/<%= item.id %>" class="btn btn-primary btn-sm">Buy</a>
+                                <form action="/cart/remove" method="POST">
+                                    <input type="hidden" name="cart_id" value="<%= item.cart_id %>">
+                                    <input type="hidden" name="_csrf"
+                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                    <button class="btn btn-outline btn-sm text-danger"
+                                        style="border-color: var(--border);">Remove</button>
+                                </form>
+                            </div>
+                        </div>
+                        <% }); %>
+                </div>
+                <% } else { %>
+                    <div class="text-center text-muted" style="padding: 2rem;">Cart is empty.</div>
+                    <% } %>
+        </div>
+
+        <!-- TAB: WISHLIST -->
+        <div id="tab-wishlist" class="tab-content">
+            <% if (typeof wishlistItems !=='undefined' && wishlistItems.length> 0) { %>
+                <div class="grid gap-4">
+                    <% wishlistItems.forEach(function(item) { %>
+                        <div class="card flex justify-between items-center">
+                            <div>
+                                <div class="font-bold">
+                                    <%= item.title %>
+                                </div>
+                                <div class="text-muted">₦<%= item.price %>
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <form action="/cart/add" method="POST">
+                                    <input type="hidden" name="product_id" value="<%= item.id %>">
+                                    <input type="hidden" name="_csrf"
+                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                    <button class="btn btn-primary btn-sm">Add to Cart</button>
+                                </form>
+                                <form action="/wishlist/remove" method="POST">
+                                    <input type="hidden" name="wishlist_id" value="<%= item.wishlist_id %>">
+                                    <input type="hidden" name="_csrf"
+                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                    <button class="btn btn-outline btn-sm text-danger">×</button>
+                                </form>
+                            </div>
+                        </div>
+                        <% }); %>
+                </div>
+                <% } else { %>
+                    <div class="text-center text-muted" style="padding: 2rem;">Wishlist is empty.</div>
+                    <% } %>
+        </div>
 
     </div>
 
-    <!-- Paystack Inline Script -->
+    <!-- Paystack & Scripts -->
     <script src="https://js.paystack.co/v1/inline.js"></script>
-
+    <script>
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
     <script src="/js/buyer_dashboard.js"></script>
-
 </body>
 
 </html>

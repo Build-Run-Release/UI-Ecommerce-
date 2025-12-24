@@ -54,6 +54,11 @@ async function initDb() {
                 account_number TEXT,
                 paystack_subaccount_code TEXT,
                 bank_code TEXT,
+                bank_code TEXT,
+                university_id TEXT,
+                dorm TEXT,
+                is_verified_student INTEGER DEFAULT 0,
+                verification_doc_url TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`);
 
@@ -65,13 +70,24 @@ async function initDb() {
                 price DECIMAL(10,2),
                 category TEXT,
                 seller_id INTEGER REFERENCES users(id),
-                image_url TEXT
+                image_url TEXT,
+                condition TEXT,
+                campus_zone TEXT,
+                isbn TEXT
             )`);
 
             // 2b. Categories Table (NEW)
             await client.query(`CREATE TABLE IF NOT EXISTS categories (
                 id SERIAL PRIMARY KEY,
                 name TEXT UNIQUE NOT NULL
+            )`);
+
+            // 2c. Meetup Locations Table (NEW)
+            await client.query(`CREATE TABLE IF NOT EXISTS meetup_locations (
+                id SERIAL PRIMARY KEY,
+                name TEXT,
+                description TEXT,
+                image_url TEXT
             )`);
 
             // 3. Orders Table

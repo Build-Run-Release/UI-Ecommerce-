@@ -4,212 +4,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Checkout - UI Market</title>
-    <link rel="stylesheet" href="/css/modern.css">
-    <style>
-        body {
-            background-color: var(--bg-color);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .checkout-container {
-            display: flex;
-            background: white;
-            width: 100%;
-            max-width: 900px;
-            border-radius: 16px;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-        }
-
-        .product-section {
-            flex: 1;
-            padding: 40px;
-            background: white;
-            border-right: 1px solid var(--border-color);
-        }
-
-        .payment-section {
-            flex: 0.8;
-            padding: 40px;
-            background-color: #fafbfc;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-        }
-
-        .product-preview {
-            width: 100%;
-            height: 220px;
-            background-color: #f3f4f6;
-            border-radius: 12px;
-            margin-bottom: 20px;
-            object-fit: cover;
-        }
-
-        .label {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .value {
-            font-size: 1.2rem;
-            color: var(--text-main);
-            font-weight: 500;
-            margin-bottom: 20px;
-        }
-
-        .cost-row {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            color: var(--text-muted);
-        }
-
-        .total-row {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 2px dashed var(--border-color);
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: var(--success-color);
-        }
-
-        @media (max-width: 768px) {
-            .checkout-container {
-                flex-direction: column;
-                margin: 20px;
-            }
-
-            .product-section {
-                border-right: none;
-                border-bottom: 1px solid var(--border-color);
-                padding: 30px;
-            }
-
-            .payment-section {
-                padding: 30px;
-            }
-        }
-    </style>
+    <title>
+        <%= product.title %> | Campus Market
+    </title>
+    <link rel="stylesheet" href="/css/campus-theme.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
-<body>
+<body style="background: var(--bg-body); padding-bottom: 80px;">
 
-    <div class="checkout-container">
+    <!-- Navbar Minimal -->
+    <nav class="navbar-rewrite">
+        <div class="container flex justify-between items-center">
+            <a href="/" class="font-bold text-primary" style="font-size: 1.25rem;">&larr; Back</a>
+            <span class="font-medium text-muted">Item Details</span>
+        </div>
+    </nav>
 
-        <div class="product-section">
-            <a href="/"
-                style="text-decoration: none; color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px; display: inline-block;">&larr;
-                Cancel and go back</a>
-            <h2 style="margin-top: 0;">Order Summary</h2>
+    <div class="container" style="margin-top: 2rem;">
+        <div class="grid md:grid-cols-2" style="gap: 2rem;">
 
-            <img src="<%= (product.image_url || product.image) && !(product.image_url || product.image).startsWith('http') ? '/uploads/' + (product.image_url || product.image) : (product.image_url || product.image || '/images/placeholder.svg') %>"
-                class="product-preview">
+            <!-- Left: Image & Details -->
+            <div class="flex flex-col gap-4">
+                <div class="card" style="padding: 0; overflow: hidden; border: none;">
+                    <img src="<%= (product.image_url && !product.image_url.startsWith('http')) ? '/uploads/' + product.image_url : (product.image_url || '/images/placeholder.svg') %>"
+                        style="width: 100%; max-height: 400px; object-fit: cover; background: #f1f5f9;">
+                </div>
 
-            <span class="label">Product</span>
-            <div class="value">
-                <%= product.name || product.title %>
-                    <div style="font-size: 0.9rem; color: #666; margin-top: 5px;">
-                        Seller: <strong>
-                            <%= product.seller_name || 'Unknown' %>
-                        </strong>
+                <div class="card">
+                    <h1 style="font-size: 1.5rem; margin-bottom: 0.5rem;">
+                        <%= product.title %>
+                    </h1>
+                    <div class="flex items-center gap-2 text-muted text-sm" style="margin-bottom: 1rem;">
+                        <span class="badge badge-new"
+                            style="background: var(--bg-body); border: 1px solid var(--border); color: var(--text-main);">
+                            <%= product.condition || 'Used' %>
+                        </span>
+                        <span>•</span>
+                        <span>
+                            <%= product.category %>
+                        </span>
                     </div>
+
+                    <p style="white-space: pre-wrap; color: var(--text-muted); line-height: 1.6;">
+                        <%= product.description || 'No description provided.' %>
+                    </p>
+
+                    <% if (product.isbn) { %>
+                        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--border);">
+                            <span class="text-xs font-bold text-muted uppercase">ISBN / Edition</span>
+                            <div class="font-medium">
+                                <%= product.isbn %>
+                            </div>
+                        </div>
+                        <% } %>
+                </div>
+
+                <!-- Safety Map Placeholder -->
+                <div class="card">
+                    <h3 style="font-size: 1rem; margin-bottom: 0.5rem;">Suggested Meetup Zone</h3>
+                    <div class="flex items-center gap-2" style="margin-bottom: 0.5rem;">
+                        <span style="font-size: 1.2rem;">📍</span>
+                        <span class="font-bold">
+                            <%= product.campus_zone || 'Library / Student Union' %>
+                        </span>
+                    </div>
+                    <div
+                        style="background: #e0f2fe; padding: 1rem; border-radius: 8px; font-size: 0.9rem; color: #0369a1;">
+                        <strong>Campus Safety Tip:</strong> Always meet in public university areas during daylight
+                        hours.
+                    </div>
+                </div>
             </div>
 
-            <span class="label">Description</span>
-            <div class="value" style="font-size: 1rem; color: #555;">
-                <%= product.description || 'No description provided.' %>
-            </div>
+            <!-- Right: Seller & Action -->
+            <div class="flex flex-col gap-4">
 
-            <div
-                style="margin-top: 30px; padding: 15px; background: #e0f2fe; border-radius: 8px; color: #0369a1; font-size: 0.9rem; border: 1px solid #bae6fd;">
-                <strong>🛡 Safe & Secure:</strong> Funds are held in escrow until you receive your item.
-            </div>
+                <!-- Seller Card -->
+                <div class="card flex items-center gap-4">
+                    <img src="https://ui-avatars.com/api/?name=<%= product.seller_name %>&background=random"
+                        style="width: 50px; height: 50px; border-radius: 50%;">
+                    <div>
+                        <div class="text-xs text-muted uppercase font-bold">Seller</div>
+                        <div class="font-bold">
+                            <%= product.seller_name %>
+                        </div>
+                        <div class="text-xs text-muted">Verified Student (Blue Badge)</div>
+                    </div>
+                    <button class="btn btn-outline btn-sm" style="margin-left: auto;">Chat</button>
+                </div>
 
-            <div style="margin-top: 15px; text-align: center;">
+                <!-- Purchase Card -->
+                <div class="card" style="box-shadow: var(--shadow-lg); border: 1px solid var(--primary-light);">
+                    <div class="flex justify-between items-end" style="margin-bottom: 1rem;">
+                        <span class="text-muted font-medium">Price</span>
+                        <span class="text-primary font-bold" style="font-size: 1.8rem;">
+                            ₦<%= parseInt(product.price).toLocaleString() %>
+                        </span>
+                    </div>
+
+                    <div style="margin-bottom: 1.5rem; font-size: 0.9rem; color: var(--text-muted);">
+                        <div class="flex justify-between" style="padding: 4px 0;">
+                            <span>Protection Fee (10%)</span>
+                            <span>₦<%= parseInt(serviceFee).toLocaleString() %></span>
+                        </div>
+                        <div class="flex justify-between"
+                            style="padding: 4px 0; border-top: 1px dashed var(--border); margin-top: 4px; font-weight: 600; color: var(--text-main);">
+                            <span>Total</span>
+                            <span>₦<%= parseInt(total).toLocaleString() %></span>
+                        </div>
+                    </div>
+
+                    <form action="/paystack/initialize" method="POST">
+                        <input type="hidden" name="_csrf"
+                            value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                        <input type="hidden" name="productId" value="<%= product.id %>">
+                        <input type="hidden" name="amount" value="<%= total %>">
+                        <input type="hidden" name="serviceFee" value="<%= serviceFee %>">
+
+                        <button type="submit" class="btn btn-primary"
+                            style="width: 100%; font-size: 1.1rem; padding: 1rem;">
+                            Buy Now Securely
+                        </button>
+                    </form>
+
+                    <div style="display: flex; justify-content: center; gap: 10px; margin-top: 1rem; opacity: 0.6;">
+                        <img src="https://assets.paystack.com/assets/img/logo/paystack-logo-blue.png" height="20"
+                            alt="Paystack">
+                    </div>
+                </div>
+
+                <!-- Report Link -->
                 <button type="button" id="openReportModalBtn"
-                    style="background: none; border: none; color: #ef4444; font-size: 0.85rem; cursor: pointer; text-decoration: underline;">
-                    Report this Product
+                    style="background: none; border: none; color: var(--text-muted); font-size: 0.8rem; text-decoration: underline; cursor: pointer;">
+                    Report this item
                 </button>
             </div>
         </div>
-
-        <div class="payment-section">
-            <h2>Payment Details</h2>
-            <p style="color: var(--text-muted); font-size: 0.95rem; margin-bottom: 30px;">
-                Complete your purchase securely via Paystack.
-            </p>
-
-            <div class="cost-row">
-                <span>Subtotal</span>
-                <span>₦<%= parseInt(product.price).toLocaleString() %></span>
-            </div>
-            <div class="total-row">
-                <span>Total</span>
-                <span>₦<%= parseInt(total).toLocaleString() %></span>
-            </div>
-
-            <form action="/paystack/initialize" method="POST" style="margin-top: 30px;">
-                <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                <input type="hidden" name="productId" value="<%= product.id %>">
-                <input type="hidden" name="amount" value="<%= total %>">
-                <input type="hidden" name="serviceFee" value="<%= serviceFee %>">
-
-                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 15px; font-size: 1.1rem;">
-                    Pay ₦<%= parseInt(total).toLocaleString() %>
-                </button>
-            </form>
-
-            <div style="text-align: center; margin-top: 20px;">
-                <img src="https://assets.paystack.com/assets/img/logo/paystack-logo-blue.png"
-                    style="height: 25px; opacity: 0.8;">
-            </div>
-        </div>
-
     </div>
 
-    <!-- Report Modal -->
-    <div id="reportModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Report Product</h3>
-                <span class="close-modal" id="closeReportModalBtn">&times;</span>
-            </div>
-            <form action="/report/product" method="POST">
+    <!-- Report Modal Reuse (Keep Logic) -->
+    <div id="reportModal" class="modal"
+        style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+        <div class="card" style="width: 90%; max-width: 400px; position: relative;">
+            <button class="close-modal" id="closeReportModalBtn"
+                style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.5rem;">&times;</button>
+            <h3>Report Product</h3>
+            <form action="/report/product" method="POST" style="margin-top: 1rem;">
                 <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
                 <input type="hidden" name="productId" value="<%= product.id %>">
 
-                <div class="form-group">
-                    <label>Reason</label>
-                    <select name="reason" required class="form-control"
-                        style="width: 100%; padding: 10px; margin-bottom: 10px;">
+                <div style="margin-bottom: 1rem;">
+                    <label class="block text-sm font-bold mb-1">Reason</label>
+                    <select name="reason" required class="input-base">
                         <option value="Fraud/Scam">Fraud / Scam</option>
                         <option value="Prohibited Item">Prohibited Item</option>
-                        <option value="Wrong Category">Wrong Category</option>
                         <option value="Other">Other</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Details</label>
-                    <textarea name="details" rows="3" class="form-control" style="width: 100%; padding: 10px;" required
-                        placeholder="Please describe the issue..."></textarea>
+                <div style="margin-bottom: 1rem;">
+                    <textarea name="details" class="input-base" rows="3" required
+                        placeholder="Describe issue..."></textarea>
                 </div>
-                <button type="submit" class="btn btn-danger" style="width: 100%; margin-top: 10px;">Submit
-                    Report</button>
+                <button type="submit" class="btn btn-danger" style="width: 100%;">Submit Report</button>
             </form>
         </div>
     </div>
 
-    <script src="/js/main.js"></script>
+    <script>
+        // Modal Logic Rewrite for this page
+        const modal = document.getElementById('reportModal');
+        document.getElementById('openReportModalBtn').onclick = () => modal.style.display = 'flex';
+        document.getElementById('closeReportModalBtn').onclick = () => modal.style.display = 'none';
+        window.onclick = (e) => { if (e.target == modal) modal.style.display = 'none'; }
+    </script>
 </body>
 
 </html>

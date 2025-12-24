@@ -4,325 +4,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>UI Market - Home</title>
-    <link rel="stylesheet" href="/css/modern.css">
-    <style>
-        /* Specific Home Page Styles */
-        .hero {
-            background: linear-gradient(135deg, var(--primary-color) 0%, #4361ee 100%);
-            color: white;
-            padding: 80px 20px 60px;
-            text-align: center;
-            border-radius: 0 0 50% 50% / 20px;
-            margin-bottom: 40px;
-        }
-
-        .search-container {
-            max-width: 600px;
-            margin: 20px auto 0;
-            background: white;
-            border-radius: 50px;
-            padding: 5px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-            display: flex;
-        }
-
-        .search-input {
-            flex: 1;
-            border: none;
-            padding: 15px 25px;
-            font-size: 1rem;
-            outline: none;
-            border-radius: 50px;
-        }
-
-        .search-btn {
-            background-color: var(--dark-color);
-            color: white;
-            border: none;
-            padding: 10px 30px;
-            border-radius: 30px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        .search-btn:hover {
-            transform: scale(1.05);
-        }
-
-        /* Mobile Optimization */
-        @media (max-width: 600px) {
-            .hero {
-                padding: 60px 15px 40px;
-                border-radius: 0 0 30px 30px / 10px;
-            }
-
-            .search-container {
-                margin-top: 15px;
-                padding: 4px;
-                /* Tighter container */
-            }
-
-            .search-input {
-                padding: 12px 15px;
-                /* Smaller padded input */
-                font-size: 0.95rem;
-                width: 100%;
-                /* Ensure it shrinks */
-                min-width: 0;
-                /* Flexbox trick to allow shrinking */
-            }
-
-            .search-btn {
-                padding: 10px 20px;
-                /* Smaller button */
-                font-size: 0.9rem;
-            }
-        }
-
-        /* Category Scroll */
-        .category-scroll {
-            display: flex;
-            gap: 15px;
-            padding: 10px 5%;
-            overflow-x: auto;
-            border-bottom: 1px solid var(--border-color);
-            background: white;
-            white-space: nowrap;
-            scrollbar-width: none;
-        }
-
-        .category-scroll::-webkit-scrollbar {
-            display: none;
-        }
-
-        .cat-tag {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.9rem;
-            color: var(--text-muted);
-            background: var(--bg-color);
-            transition: all 0.2s;
-            border: 1px solid transparent;
-        }
-
-        .cat-tag:hover,
-        .cat-tag.active {
-            background: var(--primary-color);
-            color: white;
-            box-shadow: 0 4px 10px rgba(79, 70, 229, 0.2);
-        }
-
-        /* Product Grid adjustments */
-        .product-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 25px;
-            padding: 20px 5%;
-        }
-
-        .product-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            transition: all 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            border: 1px solid var(--border-color);
-        }
-
-        .product-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-        }
-
-        .product-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            background-color: #f3f4f6;
-        }
-
-        .product-info {
-            padding: 15px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .product-title {
-            margin: 0 0 5px;
-            font-size: 1.1rem;
-            color: var(--text-main);
-        }
-
-        .product-cat {
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            color: var(--text-muted);
-            font-weight: bold;
-            margin-bottom: 8px;
-        }
-
-        .product-price {
-            font-size: 1.25rem;
-            font-weight: 700;
-            color: var(--dark-color);
-            margin-top: auto;
-        }
-
-        .btn-buy {
-            display: block;
-            width: 100%;
-            padding: 10px;
-            margin-top: 15px;
-            background: var(--light-color);
-            color: var(--primary-color);
-            text-align: center;
-            border-radius: 8px;
-            font-weight: 600;
-            transition: 0.2s;
-        }
-
-        .btn-buy:hover {
-            background: var(--primary-color);
-            color: white;
-        }
-
-        .nav {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 5%;
-            background: white;
-        }
-    </style>
+    <title>Campus Market | UI</title>
+    <!-- New Campus Theme -->
+    <link rel="stylesheet" href="/css/campus-theme.css">
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
 
     <!-- Navbar -->
-    <nav class="nav">
-        <a href="/" style="font-size: 1.5rem; font-weight: 800; color: var(--primary-color);">UI Market</a>
-        <div style="display: flex; gap: 15px;">
+    <nav class="navbar-rewrite flex justify-between items-center">
+        <a href="/" class="font-bold text-primary" style="font-size: 1.25rem;">CampusMarket</a>
+
+        <div class="flex gap-2 items-center">
             <% if (typeof user !=='undefined' && user) { %>
-                <% if (user.role==='seller' ) { %>
-                    <a href="/seller/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
-                    <% } else if (user.role==='buyer' ) { %>
-                        <a href="/buyer/dashboard" class="btn btn-outline btn-sm">Dashboard</a>
-                        <% } else if (user.role==='admin' ) { %>
-                            <a href="/admin_dashboard" class="btn btn-outline btn-sm">Admin</a>
-                            <% } %>
-                                <a href="/logout" class="btn btn-danger btn-sm">Logout</a>
-                                <% } else { %>
-                                    <a href="/login" class="btn btn-outline btn-sm">Login</a>
-                                    <a href="/signup" class="btn btn-primary btn-sm">Sign Up</a>
-                                    <% } %>
+                <a href="<%= user.role === 'seller' ? '/seller/dashboard' : '/buyer/dashboard' %>"
+                    class="btn btn-outline text-sm">
+                    Dashboard
+                </a>
+                <% } else { %>
+                    <a href="/login" class="btn btn-outline text-sm">Login</a>
+                    <a href="/signup" class="btn btn-primary text-sm">Join</a>
+                    <% } %>
         </div>
     </nav>
 
-    <!-- Categories -->
-    <div class="category-scroll">
-        <a href="/" class="cat-tag <%= !currentCategory ? 'active' : '' %>">All</a>
-        <% if (typeof categories !=='undefined' && categories.length> 0) { %>
-            <% categories.forEach(function(cat) { %>
-                <a href="/?category=<%= cat %>" class="cat-tag <%= currentCategory === cat ? 'active' : '' %>">
-                    <%= cat %>
-                </a>
-                <% }); %>
-                    <% } %>
-    </div>
+    <!-- Hero Hub -->
+    <header class="hero-hub">
+        <div class="container">
+            <h1 style="font-size: 2rem; margin-bottom: 0.5rem;">The Campus Hub</h1>
+            <p style="opacity: 0.9;">Buy, sell, and trade safely within your university.</p>
 
-    <!-- Hero -->
-    <header class="hero">
-        <h1 style="margin: 0; font-size: 2.5rem;">Buy & Sell on Campus</h1>
-        <p style="opacity: 0.9; font-size: 1.1rem; margin-top: 10px;">Safe, fast, and reliable marketplace for UI
-            students.</p>
-
-        <% if (typeof user==='undefined' || !user) { %>
-            <div style="margin-bottom: 25px;">
-                <a href="/signup" class="btn btn-primary"
-                    style="background: white; color: var(--primary-color); padding: 12px 30px; border-radius: 30px; font-weight: bold; font-size: 1.1rem;">Get
-                    Started</a>
+            <div class="hero-search-wrapper">
+                <form action="/" method="GET" class="flex" style="width: 100%; align-items: center;">
+                    <input type="text" name="search" class="hero-search-input"
+                        placeholder="Search textbooks, furniture..."
+                        value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
+                    <button type="submit" class="btn btn-primary"
+                        style="border-radius: 99px; margin: 4px;">Search</button>
+                </form>
             </div>
-            <% } %>
-
-                <div class="search-container">
-                    <form action="/" method="GET" style="width: 100%; display: flex;">
-                        <input type="text" name="search" class="search-input"
-                            placeholder="Search for books, phones, etc..."
-                            value="<%= typeof searchTerm !== 'undefined' ? searchTerm : '' %>">
-                        <button type="submit" class="search-btn">Search</button>
-                    </form>
-                </div>
+        </div>
     </header>
 
-    <!-- Products -->
-    <div class="product-grid">
-        <% if (typeof products !=='undefined' && products.length> 0) { %>
-            <% products.forEach(function(product) { %>
-                <div class="product-card">
-                    <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || '/images/placeholder.svg') %>"
-                        alt="<%= product.title %>" class="product-image">
-
-                    <div class="product-info">
-                        <span class="product-cat">
-                            <%= product.category || 'Item' %>
-                        </span>
-                        <h3 class="product-title">
-                            <%= product.title %>
-                        </h3>
-
-                        <div class="product-price">₦<%= parseInt(product.price).toLocaleString() %>
+    <div class="container">
+        <!-- Categories (Scroll Snap) -->
+        <div class="scroll-snap-x" style="margin-bottom: 2rem;">
+            <a href="/" class="cat-bubble">
+                <div class="cat-icon <%= !currentCategory ? 'active' : '' %>">🏠</div>
+                <span class="text-xs font-medium">All</span>
+            </a>
+            <% if (typeof categories !=='undefined' ) { %>
+                <% categories.forEach(function(cat) { %>
+                    <a href="/?category=<%= cat %>" class="cat-bubble">
+                        <div class="cat-icon <%= currentCategory === cat ? 'active' : '' %>">
+                            <!-- Simple heuristic for icons -->
+                            <%= cat.toLowerCase().includes('book') ? '📚' : cat.toLowerCase().includes('tech') ? '💻' :
+                                cat.toLowerCase().includes('fashion') ? '👕' : '📦' %>
                         </div>
+                        <span class="text-xs font-medium">
+                            <%= cat %>
+                        </span>
+                    </a>
+                    <% }); %>
+                        <% } %>
+        </div>
 
-                        <a href="/buy/<%= product.id %>" class="btn-buy">View Details</a>
+        <!-- Section Header -->
+        <div class="flex justify-between items-center" style="margin-bottom: 1rem;">
+            <h2 style="font-size: 1.25rem;">Trending on Campus</h2>
+            <!-- Filter Toggle (Mobile) or Dropdown could go here -->
+        </div>
 
-                        <div style="display: flex; gap: 10px; margin-top: 10px;">
-                            <form action="/cart/add" method="POST" style="flex: 1;">
-                                <input type="hidden" name="product_id" value="<%= product.id %>">
-                                <input type="hidden" name="_csrf"
-                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                <button type="submit" class="btn btn-primary" style="width: 100%; border-radius: 8px;">+
-                                    Cart</button>
-                            </form>
+        <!-- Product Grid -->
+        <div class="product-grid grid grid-cols-2 md:grid-cols-3 md:grid-cols-4">
+            <% if (typeof products !=='undefined' && products.length> 0) { %>
+                <% products.forEach(function(product) { %>
+                    <div class="card product-card" style="padding: 0; border: none; overflow: hidden;">
+                        <a href="/buy/<%= product.id %>" class="product-img-wrapper">
+                            <img src="<%= product.image_url && !product.image_url.startsWith('http') ? '/uploads/' + product.image_url : (product.image_url || '/images/placeholder.svg') %>"
+                                alt="<%= product.title %>" class="product-img">
+                            <% if (product.condition==='New' ) { %>
+                                <span class="badge badge-new"
+                                    style="position: absolute; top: 8px; left: 8px;">New</span>
+                                <% } %>
+                        </a>
+                        <div class="product-info">
+                            <div class="flex justify-between items-start">
+                                <h3 class="font-medium text-sm" style="margin-bottom: 4px; line-height: 1.3;">
+                                    <a href="/buy/<%= product.id %>">
+                                        <%= product.title %>
+                                    </a>
+                                </h3>
+                            </div>
+                            <!-- Condition / Dorm Tag -->
+                            <div class="text-xs text-muted" style="margin-bottom: 8px;">
+                                <%= product.category %> • <%= product.campus_zone || 'Campus' %>
+                            </div>
 
-                            <form action="/wishlist/add" method="POST">
-                                <input type="hidden" name="product_id" value="<%= product.id %>">
-                                <input type="hidden" name="_csrf"
-                                    value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
-                                <button type="submit" class="btn btn-outline"
-                                    style="border-radius: 8px; padding: 10px;">♥</button>
-                            </form>
+                            <div class="product-price">₦<%= parseInt(product.price).toLocaleString() %>
+                            </div>
+
+                            <!-- Quick Actions (Hover or always visible on mobile?) -->
+                            <div class="flex gap-2" style="margin-top: 10px;">
+                                <form action="/cart/add" method="POST" class="flex-1">
+                                    <input type="hidden" name="product_id" value="<%= product.id %>">
+                                    <input type="hidden" name="_csrf"
+                                        value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
+                                    <button type="submit" class="btn btn-primary"
+                                        style="width: 100%; padding: 0.5rem; font-size: 0.8rem;">Add</button>
+                                </form>
+                            </div>
                         </div>
                     </div>
-                </div>
-                <% }); %>
-                    <% } else { %>
-                        <div style="grid-column: 1 / -1; text-align: center; padding: 60px; color: var(--text-muted);">
-                            <h3>No items found here.</h3>
-                            <p>Try clearing filters or searching for something else.</p>
-                            <br>
-                            <a href="/" class="btn btn-outline">Clear Filters</a>
-                        </div>
-                        <% } %>
+                    <% }); %>
+                        <% } else { %>
+                            <div style="grid-column: 1 / -1; text-align: center; padding: 4rem;">
+                                <p class="text-muted">No items found.</p>
+                                <a href="/" class="btn btn-outline" style="margin-top: 1rem;">Clear Filters</a>
+                            </div>
+                            <% } %>
+        </div>
     </div>
 
+    <!-- Safety / Campus Updates Banner (Fixed Bottom) -->
     <% if (typeof ads !=='undefined' && ads && ads.length> 0) { %>
         <div
-            style="position: fixed; bottom: 20px; right: 20px; background: #fff3cd; color: #856404; padding: 15px; border-radius: 12px; border: 1px solid #ffeeba; max-width: 300px; box-shadow: 0 10px 30px rgba(0,0,0,0.1);">
-            <strong>📢 Campus Updates</strong>
-            <ul style="padding-left: 20px; margin: 5px 0 0;">
+            style="position: fixed; bottom: 1rem; right: 1rem; left: 1rem; max-width: 400px; margin: 0 auto; background: var(--surface-card); border: 1px solid var(--border); padding: 1rem; border-radius: var(--radius-md); box-shadow: var(--shadow-lg); background: white; z-index: 100;">
+            <div class="flex justify-between items-center" style="margin-bottom: 0.5rem;">
+                <span class="font-bold text-sm text-primary">Campus Updates</span>
+                <button onclick="this.parentElement.parentElement.remove()"
+                    style="background:none; border:none; font-size:1.2rem;">&times;</button>
+            </div>
+            <ul class="text-sm text-muted">
                 <% ads.forEach(function(ad) { %>
-                    <li>
-                        <%= ad.message %>
+                    <li>• <%= ad.message %>
                     </li>
                     <% }); %>
             </ul>
-            <button class="close-ad-btn"
-                style="position: absolute; top: 5px; right: 8px; background: none; border: none; font-size: 1.2rem; cursor: pointer;">&times;</button>
         </div>
         <% } %>
 

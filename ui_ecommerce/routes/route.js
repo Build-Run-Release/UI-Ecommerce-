@@ -322,7 +322,7 @@ router.get("/", async (req, res) => {
         // OPTIMIZATION: Run independent queries in parallel
         const [productsRes, adsRes] = await Promise.all([
             db.execute({ sql: productQuery, args: params }),
-            db.execute({ sql: "SELECT * FROM ads WHERE status = 'active'" })
+            db.execute({ sql: "SELECT * FROM ads WHERE status = 'active' AND expiry_date > ?", args: [Math.floor(Date.now() / 1000)] })
         ]);
 
         const products = productsRes.rows;
