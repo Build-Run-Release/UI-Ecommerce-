@@ -137,9 +137,17 @@
                     <input type="password" id="password" name="password" placeholder="Create a password" required
                         autocomplete="new-password">
 
-                    <label for="email">Email Address</label>
-                    <input type="email" id="email" name="email" placeholder="example@ui.edu.ng" required
-                        autocomplete="email">
+                    <label for="email">School Email Address</label>
+                    <input type="email" id="email" name="email" placeholder="student@university.edu" required
+                        autocomplete="email" onchange="validateSchoolEmail(this)">
+                    <small style="color: #666; display: block; margin-top: 4px;">Must be a valid .edu or university
+                        domain.</small>
+
+                    <label for="dorm">Dorm / Residence Hall</label>
+                    <input type="text" id="dorm" name="dorm" placeholder="e.g. Mellanby Hall" required>
+
+                    <label for="university_id">Student ID Number</label>
+                    <input type="text" id="university_id" name="university_id" placeholder="Optional for now">
 
                     <div style="margin: 20px 0; display: flex; align-items: center; gap: 10px;">
                         <input type="checkbox" id="terms" name="terms" required style="width: auto; margin: 0;">

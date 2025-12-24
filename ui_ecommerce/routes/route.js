@@ -368,9 +368,15 @@ router.post("/signup", async (req, res) => {
         if (check.rows.length > 0) return res.render('signup', { error: "Username or Email already taken!", csrfToken: req.csrfToken() });
 
         const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+
+        // Simple heuristic: if email ends in .edu or .ng, mark as semi-verified
+        const isVerified = email.endsWith('.edu') || email.endsWith('.edu.ng') || email.endsWith('.ac.ng') ? 1 : 0;
+        const dorm = req.body.dorm || 'Off Campus';
+        const universityId = req.body.university_id || null;
+
         await db.execute({
-            sql: "INSERT INTO users (username, password, role, email) VALUES (?, ?, ?, ?)",
-            args: [username, hashedPassword, role, email]
+            sql: "INSERT INTO users (username, password, role, email, dorm, university_id, is_verified_student) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            args: [username, hashedPassword, role, email, dorm, universityId, isVerified]
         });
 
         // Auto Login logic -> NOW REDIRECT TO LOGIN (Security Best Practice: Force them to login/verify)
