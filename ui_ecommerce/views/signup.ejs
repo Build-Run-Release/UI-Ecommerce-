@@ -23,7 +23,7 @@
             </div>
             <% } %>
 
-                <form action="/signup" method="POST" class="flex flex-col gap-4">
+                <form action="/signup" method="POST" enctype="multipart/form-data" class="flex flex-col gap-4">
                     <input type="hidden" name="_csrf" value="<%= typeof csrfToken !== 'undefined' ? csrfToken : '' %>">
 
                     <div class="grid grid-cols-2" style="gap: 1rem;">
@@ -65,8 +65,11 @@
                     </div>
 
                     <div>
-                        <label class="text-xs font-bold text-muted uppercase">Student ID (Optional)</label>
-                        <input type="text" name="university_id" class="input-base" placeholder="Optional">
+                        <label class="text-xs font-bold text-muted uppercase">Student ID / Verification (Camera)</label>
+                        <input type="file" name="university_id_image" class="input-base" accept="image/*"
+                            capture="environment">
+                        <small class="text-muted text-xs">Snap a photo of your Student ID or select from
+                            gallery.</small>
                     </div>
 
                     <div class="flex items-center gap-2" style="margin-top: 0.5rem;">
