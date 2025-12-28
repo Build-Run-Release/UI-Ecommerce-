@@ -92,10 +92,10 @@
 
         <!-- Dashboard Tabs -->
         <div class="dash-nav">
-            <div class="dash-tab active" onclick="switchTab('orders')">My Orders</div>
-            <div class="dash-tab" onclick="switchTab('cart')">Shopping Cart (<%= (typeof cartItems !=='undefined' ) ?
+            <div class="dash-tab active" data-target="orders">My Orders</div>
+            <div class="dash-tab" data-target="cart">Shopping Cart (<%= (typeof cartItems !=='undefined' ) ?
                     cartItems.length : 0 %>)</div>
-            <div class="dash-tab" onclick="switchTab('wishlist')">Wishlist</div>
+            <div class="dash-tab" data-target="wishlist">Wishlist</div>
         </div>
 
         <!-- TAB: ORDERS -->
@@ -224,12 +224,25 @@
     <!-- Paystack & Scripts -->
     <script src="https://js.paystack.co/v1/inline.js"></script>
     <script>
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
-            document.getElementById('tab-' + tabId).classList.add('active');
-            event.target.classList.add('active');
-        }
+        // Tab Logic (Event Listeners)
+        document.querySelectorAll('.dash-tab').forEach(tab => {
+            tab.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
+
+                // Hide all
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
+
+                // Show target
+                const targetContent = document.getElementById('tab-' + targetId);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                }
+
+                // Make Active
+                this.classList.add('active');
+            });
+        });
     </script>
     <script src="/js/buyer_dashboard.js"></script>
 </body>
