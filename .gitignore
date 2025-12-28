@@ -1,4 +1,14 @@
 node_modules/
 .env
+.DS_Store
+.vscode/
+dist/
+coverage/
+
+# Data & Database
 ui_ecommerce/data/
 *.db
+
+# Secrets
+**/firebase_service_account.json
+
