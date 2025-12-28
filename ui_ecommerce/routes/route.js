@@ -504,49 +504,9 @@ router.post('/auth/verify-firebase', async (req, res) => {
 });
 
 
-// --- VERIFY OTP ROUTES ---
-router.get("/verify-otp", (req, res) => {
-    if (!req.session.temp_login_id) return res.redirect('/login');
-    res.render('verify-otp', { error: null });
-});
+// --- VERIFY OTP ROUTES REMOVED (Replaced by Firebase) ---
+// See /auth/verify-firebase for new MFA logic
 
-router.post("/verify-otp", async (req, res) => {
-    if (!req.session.temp_login_id) return res.redirect('/login');
-    const { otp } = req.body;
-
-    try {
-        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [req.session.temp_login_id] });
-        const user = rows[0];
-
-        if (!user || !user.otp_hash || !user.otp_expires) {
-            return res.render('verify-otp', { error: "Invalid request. Login again." });
-        }
-
-        if (Date.now() > user.otp_expires) {
-            return res.render('verify-otp', { error: "Code expired. Login again." });
-        }
-
-        const match = await bcrypt.compare(otp, user.otp_hash);
-        if (!match) {
-            return res.render('verify-otp', { error: "Invalid code." });
-        }
-
-        // --- OTP SUCCESS: LOG IN USER ---
-        req.session.user = user;
-        delete req.session.temp_login_id; // Clear temp
-
-        // Clear OTP from DB
-        await db.execute({ sql: "UPDATE users SET otp_hash = NULL, otp_expires = NULL WHERE id = ?", args: [user.id] });
-
-        if (user.role === 'admin') res.redirect('/admin_dashboard');
-        else if (user.role === 'seller') res.redirect('/seller/dashboard');
-        else res.redirect('/');
-
-    } catch (err) {
-        console.error(err);
-        res.render('verify-otp', { error: "Verification failed." });
-    }
-});
 
 router.get('/logout', (req, res) => {
     req.session.destroy(() => res.redirect('/'));

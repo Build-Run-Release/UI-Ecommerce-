@@ -71,12 +71,12 @@
 
         <!-- Dashboard Tabs -->
         <div class="dash-nav">
-            <div class="dash-tab active" onclick="switchTab('overview', this)">Overview</div>
-            <div class="dash-tab" onclick="switchTab('products', this)">Products</div>
-            <div class="dash-tab" onclick="switchTab('users', this)">User Management</div>
-            <div class="dash-tab" onclick="switchTab('moderation', this)">Moderation (<%= (flaggedUsers ?
-                    flaggedUsers.length : 0) + (appeals ? appeals.length : 0) %>)</div>
-            <div class="dash-tab" onclick="switchTab('feedback', this)">Feedback</div>
+            <div class="dash-tab active" data-target="overview">Overview</div>
+            <div class="dash-tab" data-target="products">Products</div>
+            <div class="dash-tab" data-target="users">User Management</div>
+            <div class="dash-tab" data-target="moderation">Moderation (<%= (flaggedUsers ? flaggedUsers.length : 0) +
+                    (appeals ? appeals.length : 0) %>)</div>
+            <div class="dash-tab" data-target="feedback">Feedback</div>
         </div>
 
         <!-- TAB: OVERVIEW -->
@@ -450,20 +450,27 @@
     </div>
 
     <script>
-        // Simple Tab Switcher
-        function switchTab(tabId, element) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-            document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
+        // Tab Logic (Event Listeners)
+        document.querySelectorAll('.dash-tab').forEach(tab => {
+            tab.addEventListener('click', function () {
+                const targetId = this.getAttribute('data-target');
 
-            // Show target
-            document.getElementById('tab-' + tabId).classList.add('active');
+                // Hide all
+                document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+                document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
 
-            // Highlight nav
-            if (element) {
-                element.classList.add('active');
-            }
-        }
+                // Show target
+                const targetContent = document.getElementById('tab-' + targetId);
+                if (targetContent) {
+                    targetContent.classList.add('active');
+                } else {
+                    console.error("Tab content not found for:", targetId);
+                }
+
+                // Activate Tab
+                this.classList.add('active');
+            });
+        });
 
         // Modal Logic
         const banBtns = document.querySelectorAll('.btn-ban-trigger');
