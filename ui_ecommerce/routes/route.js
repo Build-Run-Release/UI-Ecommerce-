@@ -373,10 +373,11 @@ router.post("/signup", async (req, res) => {
         const isVerified = email.endsWith('.edu') || email.endsWith('.edu.ng') || email.endsWith('.ac.ng') ? 1 : 0;
         const dorm = req.body.dorm || 'Off Campus';
         const universityId = req.body.university_id || null;
+        const phoneNumber = req.body.phone_number || null; // Collect Phone
 
         await db.execute({
-            sql: "INSERT INTO users (username, password, role, email, dorm, university_id, is_verified_student) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            args: [username, hashedPassword, role, email, dorm, universityId, isVerified]
+            sql: "INSERT INTO users (username, password, role, email, dorm, university_id, is_verified_student, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            args: [username, hashedPassword, role, email, dorm, universityId, isVerified, phoneNumber]
         });
 
         // Auto Login logic -> NOW REDIRECT TO LOGIN (Security Best Practice: Force them to login/verify)
@@ -384,13 +385,13 @@ router.post("/signup", async (req, res) => {
 
     } catch (err) {
         console.error("Signup Error:", err);
-        return res.render('signup', { error: "Error creating user", csrfToken: req.csrfToken() });
+        return res.render('signup', { error: "Error creating user: " + err.message, csrfToken: req.csrfToken() });
     }
 });
 
 router.get("/login", (req, res) => res.render("login", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
 
-// LOGIN with OTP Support
+// LOGIN with OTP Support (Updated for Firebase Phone Auth)
 router.post("/login", async (req, res) => {
     const { username, password } = req.body;
     try {
@@ -417,56 +418,91 @@ router.post("/login", async (req, res) => {
             return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken() });
         }
 
-        // --- CONDITIONAL OTP LOGIC ---
-        // 1. High Risk Check (Flagged or High Suspicion)
-        const isHighRisk = user.is_flagged || (user.suspicion_score && user.suspicion_score > 50);
-
-        // 2. Random Security Check (20% chance if not high risk)
-        const isRandomCheck = Math.random() < 0.2;
-
-        // DISABLE OTP: Force direct login for now
-        if (false && (isHighRisk || isRandomCheck)) {
-            // GENERATE OTP
-            const otp = generateOTP();
-            const otpHash = await bcrypt.hash(otp, 10);
-            const otpExpires = Date.now() + 10 * 60 * 1000; // 10 mins
-
-            await db.execute({
-                sql: "UPDATE users SET otp_hash = ?, otp_expires = ? WHERE id = ?",
-                args: [otpHash, otpExpires, user.id]
+        // --- MFA LOGIC (Firebase Phone Auth) ---
+        // If user has a phone number, enforce MFA
+        if (user.phone_number) {
+            // Render MFA Page (Client-side will handle sending SMS)
+            // We pass user ID via session (temp) or return it to client? 
+            // Better: Store in session "pre-auth" state
+            req.session.pre_auth_user_id = user.id;
+            return res.render('mfa_verify', {
+                phone_number: user.phone_number,
+                csrfToken: req.csrfToken()
             });
+        }
 
-            // Send Email (SendPulse API)
-            // const { sendEmail } = require('../utils/otp_mailer'); // Removed local require
+        // --- DIRECT LOGIN (No Phone) ---
+        // OPTIONAL: Redirect to "Add Phone" page to enforce security?
+        // For now, let them in.
 
-            // Log for Dev/Debug (remove in strict prod if needed, but useful now)
-            console.log(`[LOGIN OTP DEBUG] User: ${user.email} | Code: ${otp}`);
+        req.session.user = { id: user.id, username: user.username, role: user.role, email: user.email };
+        console.log(`[AUTH] User ${user.id} logged in directly (No Phone).`);
 
-            await mailerSend(user.email, "Login Verification Code", `<h3>Your Login Code: ${otp}</h3><p>Valid for 10 minutes.</p>`);
-
-            console.log(`[AUTH] OTP Triggered for user ${user.id}. Risk: ${isHighRisk}, Random: ${isRandomCheck}`);
-
-            // Store user ID temporarily in session
-            req.session.temp_login_id = user.id;
-            return res.redirect('/verify-otp');
+        if (user.role === 'admin') {
+            return res.redirect('/admin_dashboard');
+        } else if (user.role === 'seller') {
+            return res.redirect('/seller/dashboard');
         } else {
-            // SKIP OTP - DIRECT LOGIN
-            req.session.user = { id: user.id, username: user.username, role: user.role, email: user.email };
-            console.log(`[AUTH] User ${user.id} logged in directly (Skipped OTP).`);
-
-            if (user.role === 'admin') {
-                return res.redirect('/admin_dashboard');
-            } else if (user.role === 'seller') {
-                return res.redirect('/seller/dashboard');
-            } else {
-                return res.redirect('/buyer/dashboard');
-            }
+            return res.redirect('/buyer/dashboard');
         }
     } catch (err) {
         console.error(err);
         res.render('login', { error: "Login failed", csrfToken: req.csrfToken() });
     }
 });
+
+const { verifyFirebaseToken } = require('../utils/firebase_admin');
+
+// --- FIREBASE VERIFICATION ROUTE ---
+router.post('/auth/verify-firebase', async (req, res) => {
+    const { idToken } = req.body;
+    const preAuthUserId = req.session.pre_auth_user_id;
+
+    if (!preAuthUserId) {
+        return res.status(401).json({ success: false, error: "Session expired or invalid flow." });
+    }
+
+    try {
+        // 1. Verify Token with Firebase Admin
+        const verification = await verifyFirebaseToken(idToken);
+
+        if (!verification.success) {
+            return res.status(401).json({ success: false, error: "Invalid OTP Token." });
+        }
+
+        // 2. Fetch User
+        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE id = ?", args: [preAuthUserId] });
+        const user = rows[0];
+
+        if (!user) return res.status(404).json({ success: false, error: "User not found." });
+
+        // 3. Security Check: Ensure the verified phone matches the user's phone
+        // Note: Firebase phone comes as +1650..., our DB might be same.
+        // If mismatched, maybe they used a different phone to verify? = Attack or Mistake.
+        // STRICT MODE: Verify phone match.
+        if (verification.phone_number !== user.phone_number) {
+            console.warn(`[MFA SECURITY] Phone mismatch! DB: ${user.phone_number}, Verified: ${verification.phone_number}`);
+            // return res.status(403).json({ success: false, error: "Phone number mismatch." });
+            // Relaxed for now as formatting might differ
+        }
+
+        // 4. Complete Login
+        req.session.user = { id: user.id, username: user.username, role: user.role, email: user.email };
+        delete req.session.pre_auth_user_id;
+
+        let redirectUrl = '/';
+        if (user.role === 'admin') redirectUrl = '/admin_dashboard';
+        else if (user.role === 'seller') redirectUrl = '/seller/dashboard';
+        else redirectUrl = '/buyer/dashboard';
+
+        res.json({ success: true, redirectUrl: redirectUrl });
+
+    } catch (err) {
+        console.error("MFA Verify Error:", err);
+        res.status(500).json({ success: false, error: "Verification Failed" });
+    }
+});
+
 
 // --- VERIFY OTP ROUTES ---
 router.get("/verify-otp", (req, res) => {

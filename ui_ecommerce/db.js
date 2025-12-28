@@ -59,6 +59,7 @@ async function initDb() {
                 dorm TEXT,
                 is_verified_student INTEGER DEFAULT 0,
                 verification_doc_url TEXT,
+                phone_number TEXT UNIQUE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )`);
 
@@ -198,6 +199,8 @@ async function initDb() {
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_expires BIGINT`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ban_reason TEXT`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_otp_sent_at BIGINT`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number TEXT UNIQUE`);
 
             // Orders Table: Seller Protection
             await client.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivery_code TEXT`);

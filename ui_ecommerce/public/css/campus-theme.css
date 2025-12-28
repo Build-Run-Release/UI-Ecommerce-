@@ -273,9 +273,12 @@ h4 {
 .scroll-snap-x {
     overflow-x: auto;
     display: flex;
-    gap: 1rem;
+    gap: 2rem;
+    /* Increased gap */
     padding-bottom: 0.5rem;
     scrollbar-width: none;
+    justify-content: center;
+    /* Center filters */
     /* Hide scrollbar Firefox */
 }
 
@@ -363,6 +366,7 @@ h4 {
     top: 0;
     z-index: 50;
 }
+
 /* --- Tables --- */
 .table-responsive {
     overflow-x: auto;
@@ -375,7 +379,8 @@ table {
     font-size: 0.95rem;
 }
 
-th, td {
+th,
+td {
     padding: 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border);
@@ -432,8 +437,15 @@ tr:last-child td {
 }
 
 @keyframes fadeIn {
-    from { opacity: 0; transform: translateY(5px); }
-    to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* Stat Cards */

@@ -21,6 +21,8 @@ async function runMigration() {
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS dorm TEXT`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS is_verified_student INTEGER DEFAULT 0`);
             await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS verification_doc_url TEXT`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_otp_sent_at BIGINT`);
+            await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone_number TEXT UNIQUE`);
 
             // Products
             await client.query(`ALTER TABLE products ADD COLUMN IF NOT EXISTS condition TEXT`);

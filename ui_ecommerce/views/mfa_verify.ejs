@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>MFA Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="<%= csrfToken %>">
+    <link rel="stylesheet" href="/css/modern.css">
+
+    <!-- Firebase App (the core Firebase SDK) is always required and must be listed first -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+    <script src="/js/firebase_config.js"></script>
+    <script>
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+    </script>
+</head>
+
+<body>
+    <div class="auth-container">
+        <h2>Security Verification</h2>
+        <p>We need to verify your phone number ending in <strong>
+                <%= phone_number.slice(-4) %>
+            </strong></p>
+
+        <div id="step-1">
+            <div id="recaptcha-container"></div>
+            <br>
+            <button onclick="onSignInSubmit('<%= phone_number %>')" class="btn-primary">Send Verification Code</button>
+        </div>
+
+        <div id="step-2" style="display:none;">
+            <p>Enter the 6-digit code sent to your phone:</p>
+            <input type="text" id="otp-input" placeholder="123456" class="form-input"
+                style="text-align:center; letter-spacing: 5px; font-size: 1.2em;">
+            <button onclick="verifyCode()" class="btn-primary">Verify Code</button>
+        </div>
+    </div>
+
+    <script src="/js/firebase_auth_flow.js"></script>
+</body>
+
+</html>

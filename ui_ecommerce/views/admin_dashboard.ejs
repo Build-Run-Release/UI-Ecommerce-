@@ -71,12 +71,12 @@
 
         <!-- Dashboard Tabs -->
         <div class="dash-nav">
-            <div class="dash-tab active" onclick="switchTab('overview')">Overview</div>
-            <div class="dash-tab" onclick="switchTab('products')">Products</div>
-            <div class="dash-tab" onclick="switchTab('users')">User Management</div>
-            <div class="dash-tab" onclick="switchTab('moderation')">Moderation (<%= (flaggedUsers ? flaggedUsers.length
-                    : 0) + (appeals ? appeals.length : 0) %>)</div>
-            <div class="dash-tab" onclick="switchTab('feedback')">Feedback</div>
+            <div class="dash-tab active" onclick="switchTab('overview', this)">Overview</div>
+            <div class="dash-tab" onclick="switchTab('products', this)">Products</div>
+            <div class="dash-tab" onclick="switchTab('users', this)">User Management</div>
+            <div class="dash-tab" onclick="switchTab('moderation', this)">Moderation (<%= (flaggedUsers ?
+                    flaggedUsers.length : 0) + (appeals ? appeals.length : 0) %>)</div>
+            <div class="dash-tab" onclick="switchTab('feedback', this)">Feedback</div>
         </div>
 
         <!-- TAB: OVERVIEW -->
@@ -451,7 +451,7 @@
 
     <script>
         // Simple Tab Switcher
-        function switchTab(tabId) {
+        function switchTab(tabId, element) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.dash-tab').forEach(el => el.classList.remove('active'));
@@ -460,13 +460,9 @@
             document.getElementById('tab-' + tabId).classList.add('active');
 
             // Highlight nav
-            // Heuristic to find the specific tab button (could be improved with IDs)
-            const buttons = document.querySelectorAll('.dash-tab');
-            if (tabId === 'overview') buttons[0].classList.add('active');
-            if (tabId === 'products') buttons[1].classList.add('active');
-            if (tabId === 'users') buttons[2].classList.add('active');
-            if (tabId === 'moderation') buttons[3].classList.add('active');
-            if (tabId === 'feedback') buttons[4].classList.add('active');
+            if (element) {
+                element.classList.add('active');
+            }
         }
 
         // Modal Logic
