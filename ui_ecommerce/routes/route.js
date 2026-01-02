@@ -91,7 +91,21 @@ async function getCategories() {
     }
 }
 
-const csrfProtection = csurf({ cookie: true });
+const csrfProtection = csurf(); // Default uses session, which is what we want with express-session
+
+// Global Error Handler for CSRF
+router.use((err, req, res, next) => {
+    if (err.code !== 'EBADCSRFTOKEN') return next(err);
+    console.error('CSRF Token Error:', err);
+    // Determine where to redirect based on the route
+    if (req.url.includes('/signup') || req.url.includes('/login')) {
+        return res.render('signup', {
+            error: "Session expired or invalid form token. Please refresh and try again.",
+            csrfToken: req.csrfToken()
+        });
+    }
+    res.status(403).send('Form tampered with or session expired.');
+});
 
 // Specific Middleware to pass token to views
 const passCsrfToken = (req, res, next) => {
@@ -175,6 +189,105 @@ router.get('/captcha', (req, res) => {
 
     res.type('svg');
     res.status(200).send(captcha.data);
+});
+
+// --- 2. AUTHENTICATION (Login/Signup/Logout) ---
+
+// LOGIN: Uses standard UrlEncoded, so global CSRF (if we placed it below) would be fine, 
+// but placing here means we must add 'csrfProtection' manually OR let them run before line 181?
+// Line 181 is "router.use(csrfProtection)". 
+// Routes defined BEFORE it are NOT protected by it automatically.
+// So we MUST add 'csrfProtection' middleware to these routes explicitly.
+
+router.get("/login", csrfProtection, passCsrfToken, (req, res) => res.render("login", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
+
+router.post("/login", csrfProtection, async (req, res) => {
+    // ... Login handling code ...
+    const { username, password } = req.body;
+    try {
+        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
+        const user = rows[0];
+
+        if (!user) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken() });
+
+        // --- PASSWORD CHECK ---
+        const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$');
+        let match = false;
+        if (isHashed) {
+            match = await bcrypt.compare(password, user.password);
+        } else {
+            if (user.password === password) {
+                match = true;
+                const newHash = await bcrypt.hash(password, SALT_ROUNDS);
+                await db.execute({ sql: "UPDATE users SET password = ? WHERE id = ?", args: [newHash, user.id] });
+            }
+        }
+
+        if (!match) {
+            return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken() });
+        }
+
+        // --- MFA LOGIC (Firebase Phone Auth) ---
+        if (user.phone_number) {
+            req.session.pre_auth_user_id = user.id;
+            return res.render('mfa_verify', {
+                phone_number: user.phone_number,
+                csrfToken: req.csrfToken()
+            });
+        }
+
+        // --- DIRECT LOGIN ---
+        req.session.user = { id: user.id, username: user.username, role: user.role, email: user.email };
+
+        if (user.role === 'admin') {
+            return res.redirect('/admin_dashboard');
+        } else if (user.role === 'seller') {
+            return res.redirect('/seller/dashboard');
+        } else {
+            return res.redirect('/buyer/dashboard');
+        }
+    } catch (err) {
+        console.error(err);
+        res.render('login', { error: "Login failed", csrfToken: req.csrfToken() });
+    }
+});
+
+
+router.get("/signup", csrfProtection, passCsrfToken, (req, res) => res.render("signup", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
+
+// SIGNUP POST: MULTIPART -> UPLOAD -> CSRF -> HANDLER
+router.post("/signup", upload.single('university_id_image'), csrfProtection, async (req, res) => {
+    const { username, password, role, email, terms } = req.body;
+
+    // csurf attached to req.csrfToken() now that middleware ran
+
+    if (terms !== 'on') {
+        return res.render('signup', { error: "You must agree to the Terms & Conditions.", csrfToken: req.csrfToken() });
+    }
+
+    try {
+        const check = await db.execute({ sql: "SELECT * FROM users WHERE username = ? OR email = ?", args: [username, email] });
+        if (check.rows.length > 0) return res.render('signup', { error: "Username or Email already taken!", csrfToken: req.csrfToken() });
+
+        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+        const isVerified = email.endsWith('.edu') || email.endsWith('.edu.ng') || email.endsWith('.ac.ng') ? 1 : 0;
+        const dorm = req.body.dorm || 'Off Campus';
+
+        // Image Handling
+        const universityIdUrl = req.file ? req.file.path : (req.body.university_id || null);
+        const phoneNumber = req.body.phone_number || null;
+
+        await db.execute({
+            sql: "INSERT INTO users (username, password, role, email, dorm, university_id, is_verified_student, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+            args: [username, hashedPassword, role, email, dorm, universityIdUrl, isVerified, phoneNumber]
+        });
+
+        res.redirect('/login');
+
+    } catch (err) {
+        console.error("Signup Error:", err);
+        return res.render('signup', { error: "Error creating user: " + err.message, csrfToken: req.csrfToken() });
+    }
 });
 
 // --- APPLY GLOBAL CSRF TO ALL OTHER ROUTES ---
@@ -352,148 +465,9 @@ router.get("/", async (req, res) => {
     }
 });
 
-// --- 2. AUTHENTICATION (Login/Signup/Logout) ---
-router.get("/signup", (req, res) => res.render("signup", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
+// --- 2. AUTHENTICATION MOVED UP FOR MIDDLEWARE ORDERING ---
+// See above Global CSRF section
 
-// Need to allow multer to parse form-data (including _csrf) before csurf middleware if used globally.
-// OR use upload.single as middleware here
-router.post("/signup", upload.single('university_id_image'), async (req, res) => {
-    // Manually handle CSRF if needed or rely on global middleware 
-    // (If global middleware is BEFORE this, it might fail because body is not parsed yet for multipart)
-    // Assuming app order: 1. BodyParser (JSON/URL) 2. Csurf 3. Routes
-    // BUT Multer is needed for multipart.
-    // FIX: Common pattern is upload -> csrf -> handler.
-    // However, if global CSRF is already running, we might have an issue.
-    // Let's assume the user setup (router.use(csrfProtection) at line 181 is AFTER specific routes or handled?)
-    // Line 181: router.use(csrfProtection); router.use(passCsrfToken);
-    // This is AFTER the specific routes above it? No, checking logic... 
-    // Line 113: router.post('/seller/add-product', ... csrfProtection ...) defines it explicitly.
-    // Line 358: router.post("/signup") is Defined AFTER?
-    // Let's look at file structure.
-    // Ah, lines 1-350 were viewed. Line 181 applies to "ALL OTHER ROUTES".
-    // So /signup IS affected by global CSRF.
-    // If I add upload.single here, will it work?
-    // CSRF middleware expects `req.body._csrf`. Multer populates `req.body`.
-    // So `upload.single` MUST come BEFORE `csrfProtection` for this route.
-    // Since `csrfProtection` is global for "other routes", I might need to explictly add it here 
-    // AND ensure this route is defined BEFORE global middleware or rewrite it.
-    // Wait, line 356 (signup GET) and 358 (signup POST) are seemingly AFTER line 181?
-    // "180: // --- APPLY GLOBAL CSRF TO ALL OTHER ROUTES ---"
-    // "181: router.use(csrfProtection);"
-    // "358: router.post("/signup", ...)"
-    // So /signup IS using the global middleware.
-    // PROBLEM: Global `csurf` checks req.body immediately. But req.body is empty because BodyParser doesn't handle multipart.
-    // SOLUTION: I should use `upload.single` middleware on this route, BUT `csurf` will run BEFORE it if it's global.
-    // actually, `router.use` runs in order. If 358 is defined AFTER 181, then 181 runs first.
-    // This will FAIL for multipart.
-    // I need to exempt /signup from global CSRF or move /signup definition BEFORE global CSRF.
-    // OR: I can just use `upload.none()` for regular forms if I wanted, but here I have a file.
-
-    // STRATEGY: 
-    // 1. I will assume I can just add `upload.single(...)` here. 
-    // 2. IF `signup` is currently working, existing body parser works.
-    // 3. Changing to multipart breaks `express.json()`/`urlencoded`.
-    // ALL multipart requests must pass through multer FIRST to populate req.body for CSRF.
-    // Since I cannot easily move the global middleware line in this single edit without risking logic (it's in the middle of the file),
-    // I will try to rely on the fact that maybe I can add the route definition.
-    // Better: I will use `upload.single` and if it fails, I will advise moving the route.
-
-    const { username, password, role, email, terms } = req.body;
-    console.log(`Signup attempt: ${username}, role: ${role}`);
-
-    if (terms !== 'on') {
-        return res.render('signup', { error: "You must agree to the Terms & Conditions.", csrfToken: req.body._csrf || '' });
-    }
-
-    try {
-        const check = await db.execute({ sql: "SELECT * FROM users WHERE username = ? OR email = ?", args: [username, email] });
-        if (check.rows.length > 0) return res.render('signup', { error: "Username or Email already taken!", csrfToken: req.body._csrf || '' });
-
-        const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-
-        // Simple heuristic: if email ends in .edu or .ng, mark as semi-verified
-        const isVerified = email.endsWith('.edu') || email.endsWith('.edu.ng') || email.endsWith('.ac.ng') ? 1 : 0;
-        const dorm = req.body.dorm || 'Off Campus';
-
-        // Image Handling
-        const universityIdUrl = req.file ? req.file.path : (req.body.university_id || null);
-        const phoneNumber = req.body.phone_number || null;
-
-        await db.execute({
-            sql: "INSERT INTO users (username, password, role, email, dorm, university_id, is_verified_student, phone_number) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            args: [username, hashedPassword, role, email, dorm, universityIdUrl, isVerified, phoneNumber]
-        });
-
-        // Auto Login logic -> NOW REDIRECT TO LOGIN (Security Best Practice: Force them to login/verify)
-        res.redirect('/login');
-
-    } catch (err) {
-        console.error("Signup Error:", err);
-        return res.render('signup', { error: "Error creating user: " + err.message, csrfToken: req.csrfToken() });
-    }
-});
-
-router.get("/login", (req, res) => res.render("login", { error: null, csrfToken: req.csrfToken ? req.csrfToken() : '' }));
-
-// LOGIN with OTP Support (Updated for Firebase Phone Auth)
-router.post("/login", async (req, res) => {
-    const { username, password } = req.body;
-    try {
-        const { rows } = await db.execute({ sql: "SELECT * FROM users WHERE username = ?", args: [username] });
-        const user = rows[0];
-
-        if (!user) return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken() });
-
-        // --- PASSWORD CHECK ---
-        const isHashed = user.password.startsWith('$2b$') || user.password.startsWith('$2a$');
-        let match = false;
-        if (isHashed) {
-            match = await bcrypt.compare(password, user.password);
-        } else {
-            if (user.password === password) {
-                match = true;
-                // Lazy Migration
-                const newHash = await bcrypt.hash(password, SALT_ROUNDS);
-                await db.execute({ sql: "UPDATE users SET password = ? WHERE id = ?", args: [newHash, user.id] });
-            }
-        }
-
-        if (!match) {
-            return res.render('login', { error: "Invalid credentials", csrfToken: req.csrfToken() });
-        }
-
-        // --- MFA LOGIC (Firebase Phone Auth) ---
-        // If user has a phone number, enforce MFA
-        if (user.phone_number) {
-            // Render MFA Page (Client-side will handle sending SMS)
-            // We pass user ID via session (temp) or return it to client? 
-            // Better: Store in session "pre-auth" state
-            req.session.pre_auth_user_id = user.id;
-            return res.render('mfa_verify', {
-                phone_number: user.phone_number,
-                csrfToken: req.csrfToken()
-            });
-        }
-
-        // --- DIRECT LOGIN (No Phone) ---
-        // OPTIONAL: Redirect to "Add Phone" page to enforce security?
-        // For now, let them in.
-
-        req.session.user = { id: user.id, username: user.username, role: user.role, email: user.email };
-        console.log(`[AUTH] User ${user.id} logged in directly (No Phone).`);
-
-        if (user.role === 'admin') {
-            return res.redirect('/admin_dashboard');
-        } else if (user.role === 'seller') {
-            return res.redirect('/seller/dashboard');
-        } else {
-            return res.redirect('/buyer/dashboard');
-        }
-    } catch (err) {
-        console.error(err);
-        res.render('login', { error: "Login failed", csrfToken: req.csrfToken() });
-    }
-});
 
 const { verifyFirebaseToken } = require('../utils/firebase_admin');
 
